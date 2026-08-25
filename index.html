@@ -4833,13 +4833,7 @@ function doLogin(){
     }).catch(function(authErr){
       // فشل Auth - نحاول Lazy Migration: تسجيل دخول بالطريقة القديمة ثم نقل
       // Firebase الجديد يستخدم auth/invalid-login-credentials بدلاً من user-not-found
-      if(authErr.code==='auth/user-not-found' || 
-         authErr.code==='auth/invalid-email' ||
-         authErr.code==='auth/invalid-login-credentials' ||
-         authErr.code==='auth/invalid-credential' ||
-         authErr.code==='auth/wrong-password'){
-        return migrateOldUser(u,p);
-      }
+      // حباق: لا يوجد مستخدمون قدامى للترحيل — نعرض خطأ Auth الحقيقي مباشرة
       throw authErr;
     });
   }).then(function(found){
