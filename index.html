@@ -3800,7 +3800,8 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         <div class="cc-tabs">
           <button class="cc-tab act" onclick="ccTab('ing',this)">🥕 المواد الخام</button>
           <button class="cc-tab" onclick="ccTab('rec',this)">📖 الوصفات وبطاقات التكلفة</button>
-          <button class="cc-tab" style="margin-inline-start:auto;background:#0D47A1;color:#fff;border-color:#0D47A1" onclick="fxOpen()">⬇️ استيراد من فودكس</button>
+          <button class="cc-tab" style="margin-inline-start:auto;background:#8B2F2B;color:#fff;border-color:#8B2F2B" onclick="hbLegacyImport()">📦 نقل بيانات حباق السابقة</button>
+          <button class="cc-tab" style="background:#0D47A1;color:#fff;border-color:#0D47A1" onclick="fxOpen()">⬇️ استيراد من فودكس</button>
         </div>
 
         <!-- INGREDIENTS PANE -->
@@ -17171,6 +17172,84 @@ function ccPrintCard(id){
    +'<div style="text-align:center;font-size:10px;color:#8B6E55;margin-top:26px">تاريخ الإصدار: '+new Date().toLocaleDateString('ar-SA')+' — نَسَق لحلول الأعمال والتشغيل<\/div>'
    +'<script>window.onload=function(){window.print();}<\/'+'script><\/body><\/html>');
   w.document.close();
+}
+
+/* ---------- HABAQ LEGACY IMPORT (نقل أصناف ووصفات منصة حباق السابقة) ---------- */
+function hbLegacyImport(){
+  if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
+  if(!confirm('سيتم نقل المواد الخام والوصفات من بيانات منصة حباق السابقة إلى قسم التكاليف:\n\n• لن يُحذف أو يُعدَّل أي شيء موجود\n• المطابق بالاسم يُتخطى (يمكن إعادة التشغيل بأمان)\n• الكميات غير الرقمية لا تُخمَّن — تُستبعد ويصدر بها تقرير\n\nمتابعة؟'))return;
+  var rep={ingAdd:0,ingSkip:0,recAdd:0,recSkip:0,lineMiss:[],recEmpty:[]};
+  Promise.all([
+    db.collection('items').get(),
+    db.collection('recipes').get(),
+    db.collection('cost_ingredients').get(),
+    db.collection('cost_recipes').get()
+  ]).then(function(res){
+    var oldItems=[],oldRecs=[];
+    res[0].forEach(function(d){var x=d.data();x._id=d.id;oldItems.push(x);});
+    res[1].forEach(function(d){var x=d.data();x._id=d.id;oldRecs.push(x);});
+    if(oldItems.length===0&&oldRecs.length===0){alert('لم يُعثر على بيانات سابقة (مجموعتا items وrecipes فارغتان)');return 'done';}
+    var exIng={},exRec={};
+    res[2].forEach(function(d){exIng[(d.data().name||'').trim()]=d.id;});
+    res[3].forEach(function(d){exRec[(d.data().name||'').trim()]=true;});
+    var now=new Date().toISOString(), by=(CU&&CU.name)||'نقل تلقائي';
+    var idMap={}, nameMap={}, writes=[];
+    // ---- المواد الخام ----
+    oldItems.forEach(function(it){
+      var nm=(it.name||it.nameAr||it.itemName||'').trim();
+      if(!nm)return;
+      if(exIng[nm]){idMap[it._id]=exIng[nm];nameMap[nm]=exIng[nm];rep.ingSkip++;return;}
+      var unit=it.recipeUnit||it.unit||'جم';
+      var price=parseFloat(it.price!=null?it.price:(it.packPrice!=null?it.packPrice:it.cost))||0;
+      var pack=parseFloat(it.convFactor!=null?it.convFactor:(it.pack!=null?it.pack:it.packQty))||1;
+      var ref=db.collection('cost_ingredients').doc();
+      writes.push({ref:ref,data:{name:nm,unit:unit,price:price,pack:pack,waste:0,legacyId:it._id,legacyCat:(it.subcat||it.cat||''),updatedAt:now,updatedBy:by}});
+      idMap[it._id]=ref.id; nameMap[nm]=ref.id; exIng[nm]=ref.id; rep.ingAdd++;
+    });
+    // ---- الوصفات ----
+    oldRecs.forEach(function(r){
+      var nm=(r.name||r.nameAr||'').trim(); if(!nm)return;
+      if(exRec[nm]){rep.recSkip++;return;}
+      var lines=r.ingredients||r.items||r.lines||[];
+      var items=[];
+      lines.forEach(function(ln){
+        var oid=ln.itemId||ln.ingId||'';
+        var lnm=(ln.itemName||ln.name||'').trim();
+        var nid=(oid&&idMap[oid])||(lnm&&nameMap[lnm])||'';
+        var q=parseFloat(ln.qty!=null?ln.qty:ln.quantity);
+        if(nid&&q>0){items.push({ingId:nid,qty:q});}
+        else{rep.lineMiss.push(nm+' ← '+(lnm||oid||'؟')+' (كمية: '+String(ln.qty!=null?ln.qty:(ln.quantity!=null?ln.quantity:'—'))+')');}
+      });
+      if(items.length===0){rep.recEmpty.push(nm);return;}
+      var yieldQ=parseFloat(r.servings!=null?r.servings:r.yield)||1;
+      var price=parseFloat(r.price!=null?r.price:r.salePrice)||0;
+      var ref2=db.collection('cost_recipes').doc();
+      writes.push({ref:ref2,data:{name:nm,yield:yieldQ,price:price,target:35,chef:'',items:items,legacyId:r._id,updatedAt:now,updatedBy:by}});
+      rep.recAdd++;
+    });
+    if(writes.length===0){alert('لا يوجد جديد للنقل — كل شيء منقول مسبقاً.\nمواد متخطاة: '+rep.ingSkip+' | وصفات متخطاة: '+rep.recSkip);return 'done';}
+    // دفعات بحد 400 عملية
+    var chain=Promise.resolve();
+    for(var i=0;i<writes.length;i+=400){
+      (function(chunk){
+        chain=chain.then(function(){
+          var b=db.batch();
+          chunk.forEach(function(w){b.set(w.ref,w.data);});
+          return b.commit();
+        });
+      })(writes.slice(i,i+400));
+    }
+    return chain;
+  }).then(function(x){
+    if(x==='done')return;
+    var msg='✅ اكتمل النقل\n\n🥕 مواد خام مضافة: '+rep.ingAdd+(rep.ingSkip?' (متخطاة موجودة: '+rep.ingSkip+')':'')
+           +'\n📖 وصفات مضافة: '+rep.recAdd+(rep.recSkip?' (متخطاة موجودة: '+rep.recSkip+')':'');
+    if(rep.recEmpty.length)msg+='\n\n⚠️ وصفات لم تُنقل (بلا مكونات صالحة): '+rep.recEmpty.join('، ');
+    if(rep.lineMiss.length)msg+='\n\n⚠️ مكونات مستبعدة (كمية غير رقمية أو مادة غير مطابقة) — أضفها يدوياً:\n'+rep.lineMiss.slice(0,12).join('\n')+(rep.lineMiss.length>12?'\n… و'+(rep.lineMiss.length-12)+' أخرى (التفاصيل في الكونسول)':'');
+    alert(msg);
+    console.log('تقرير نقل بيانات حباق السابقة:',rep);
+    _ccLoaded=false; ccInit();
+  }).catch(function(e){alert('خطأ أثناء النقل: '+(e.message||e.code||e));console.error('hbLegacyImport error:',e);});
 }
 
 /* ---------- FOODICS IMPORT (استيراد من فودكس) ---------- */
