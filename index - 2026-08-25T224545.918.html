@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حباق — منصة التشغيل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+/* ============================================================
+   Nassaq UI Kit v0.1 — ثيم حباق (شاي)
+   ============================================================ */
+:root{
+  --brand-900:#17362a; --brand-700:#1f4a38; --brand-600:#2e6b4f; --brand-100:#e3efe7;
+  --accent:#c98a2d; --accent-soft:#f6ead3;
+  --ink:#1c2420; --muted:#6e7a72;
+  --bg:#f4f1e8; --surface:#ffffff; --line:#e7e2d4;
+  --pos:#2e6b4f; --neg:#b3452f;
+  --radius:18px; --shadow:0 6px 24px rgba(23,54,42,.07);
+  --font-display:'Alexandria',sans-serif;
+  --font-body:'IBM Plex Sans Arabic',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-height:100vh}
+h1,h2,h3{font-family:var(--font-display)}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+[hidden]{display:none !important}
+
+/* ---------- شاشة الدخول ---------- */
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px;
+  background:
+    radial-gradient(600px 400px at 85% 10%, rgba(201,138,45,.10), transparent),
+    radial-gradient(700px 500px at 10% 90%, rgba(46,107,79,.10), transparent),
+    var(--bg);}
+.login-shell{display:grid;grid-template-columns:1.05fr 1fr;width:100%;max-width:960px;
+  border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(23,54,42,.22);
+  background:var(--surface)}
+@media (max-width:900px){.login-shell{grid-template-columns:1fr;max-width:440px}}
+
+/* لوحة البراند */
+.login-brand{position:relative;overflow:hidden;padding:44px 38px;color:#eef5f0;
+  background:linear-gradient(160deg,var(--brand-900) 0%,var(--brand-700) 70%, #1f4a38 100%);
+  display:flex;flex-direction:column;justify-content:space-between;min-height:560px}
+@media (max-width:900px){.login-brand{min-height:auto;padding:32px 28px;gap:24px}}
+.lb-blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.14;pointer-events:none}
+.lb-blob.b1{width:260px;height:260px;background:#c98a2d;top:-90px;inset-inline-end:-70px;
+  animation:lbFloat 9s ease-in-out infinite}
+.lb-blob.b2{width:200px;height:200px;background:#8fce9f;bottom:-60px;inset-inline-start:-60px;
+  animation:lbFloat 11s ease-in-out infinite reverse}
+@keyframes lbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(18px) scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.lb-blob{animation:none}}
+.lb-head{position:relative;z-index:1}
+.lb-logo{display:flex;align-items:center;gap:14px}
+.lb-logo .nm{font-family:var(--font-display);font-weight:800;font-size:38px;color:#fff}
+.lb-tag{color:#a8c4b3;font-size:13.5px;margin-top:4px}
+.lb-welcome{position:relative;z-index:1;margin-top:26px;font-size:14px;line-height:1.9;color:#d7e6dc}
+
+/* رسائل الفريق داخل لوحة البراند */
+.team-ticker-wrap{position:relative;z-index:1;margin-top:26px;padding-top:20px;
+  border-top:1px solid rgba(255,255,255,.16);
+  text-align:start;min-height:120px;display:flex;flex-direction:column;gap:10px}
+.team-ticker-label{font-size:11.5px;font-weight:700;letter-spacing:.6px;color:var(--accent, #c98a2d);
+  text-transform:uppercase}
+.team-ticker{font-size:15px;color:#cfe0d5;font-weight:600;line-height:1.8;min-height:58px;
+  opacity:0;transform:translateY(10px);transition:opacity .5s ease, transform .5s ease}
+.team-ticker.show{opacity:1;transform:translateY(0)}
+.team-ticker .tt-name{display:block;color:#fff;font-family:var(--font-display);
+  font-weight:800;font-size:19px}
+.team-ticker-dots{display:flex;gap:6px;margin-top:2px}
+.team-ticker-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);
+  transition:background .3s, transform .3s}
+.team-ticker-dots span.on{background:var(--accent, #c98a2d);transform:scale(1.25)}
+
+.login-card{background:var(--surface);border:0;border-radius:0;
+  box-shadow:none;padding:44px 38px;width:100%;max-width:none;align-self:center}
+@media (max-width:900px){.login-card{padding:32px 28px}}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.login-logo .nm{font-family:var(--font-display);font-weight:800;font-size:30px}
+.login-sub{color:var(--muted);font-size:13px;margin-bottom:26px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:7px}
+.field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  font-size:14px;background:#fbfaf5;outline:none;transition:border .15s}
+.field input:focus{border-color:var(--brand-600)}
+.btn{border:0;border-radius:12px;padding:12px 20px;font-weight:700;font-size:14px;transition:filter .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--brand-600);color:#fff;width:100%}
+.btn-ghost{background:transparent;color:var(--brand-600);font-weight:600;font-size:13px}
+.btn-accent{background:var(--accent);color:#231a08}
+.btn-danger{background:#f9e4de;color:var(--neg)}
+.login-err{background:#f9e4de;color:var(--neg);border-radius:10px;padding:10px 14px;
+  font-size:13px;margin-bottom:14px}
+.lang-fab{position:fixed;top:18px;inset-inline-start:18px;z-index:60}
+
+/* ---------- هيكل التطبيق ---------- */
+.app{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+@media (max-width:1024px){.app{grid-template-columns:1fr}.sidebar{position:fixed;inset-inline-start:0;top:0;z-index:50;transform:translateX(100%);transition:transform .25s;width:256px}
+  [dir="ltr"] .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0) !important}}
+.sidebar{background:linear-gradient(180deg,var(--brand-900) 0%,var(--brand-700) 100%);
+  color:#eef5f0;padding:26px 18px;display:flex;flex-direction:column;gap:6px;height:100vh;position:sticky;top:0;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:0 6px}
+.logo-cup{position:relative;width:42px;height:42px;flex:none}
+.logo-name{font-family:var(--font-display);font-weight:800;font-size:24px}
+.logo-tag{font-size:10.5px;color:#a8c4b3;margin-top:2px}
+.steam{position:absolute;bottom:29px;width:2.5px;height:11px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.75));
+  animation:steam 2.6s ease-in-out infinite}
+.steam:nth-child(1){inset-inline-end:12px;animation-delay:0s}
+.steam:nth-child(2){inset-inline-end:19px;animation-delay:.9s}
+.steam:nth-child(3){inset-inline-end:26px;animation-delay:1.7s}
+@keyframes steam{0%{transform:translateY(4px) scaleY(.6);opacity:0}40%{opacity:.9}100%{transform:translateY(-10px) scaleY(1.15);opacity:0}}
+@media (prefers-reduced-motion:reduce){.steam{animation:none;opacity:.4}}
+.nav-label{font-size:10.5px;color:#8fae9c;padding:12px 10px 5px;letter-spacing:1px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  color:#d7e6dc;text-decoration:none;font-size:13.5px;font-weight:500;transition:background .18s,color .18s}
+.nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nav a.active{background:var(--accent);color:#231a08;font-weight:700}
+.nav a.active svg{stroke:#231a08}
+.nav svg{width:18px;height:18px;stroke:#cfe0d5;flex:none}
+.nav .soon{margin-inline-start:auto;font-size:9.5px;background:rgba(255,255,255,.13);
+  color:#cfe0d5;padding:2px 7px;border-radius:99px;font-weight:600}
+.side-footer{margin-top:auto;font-size:10.5px;color:#8fae9c;padding:12px 8px;border-top:1px solid rgba(255,255,255,.12)}
+
+/* ---------- المحتوى ---------- */
+.main{padding:24px 28px 40px;max-width:1500px;width:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.topbar h1{font-size:26px}
+.topbar .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar button{display:flex;align-items:center;gap:7px}
+
+/* ---------- التبويبات ---------- */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:24px}
+.tab{padding:14px 18px;border:0;background:0;color:var(--muted);font-weight:600;font-size:13.5px;
+  border-bottom:3px solid transparent;cursor:pointer;transition:color .18s, border-color .18s}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--brand-600);border-bottom-color:var(--brand-600)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ---------- الأسلوب العام للعناصر ---------- */
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:20px}
+.card h2{font-size:18px;margin-bottom:16px}
+.card h3{font-size:16px;margin-bottom:12px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;font-size:13.5px;background:var(--bg);outline:none;
+  transition:border-color .18s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--brand-600)}
+.form-group textarea{resize:vertical;min-height:80px;font-family:inherit}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:768px){.form-row{grid-template-columns:1fr}}
+
+/* ---------- نموذج المخالفات ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;backdrop-filter:blur(1px);cursor:pointer}
+.modal-bg:not([hidden]) {display:flex !important}
+.modal-bg[hidden] {display:none !important}
+.modal{pointer-events:all;cursor:default}
+.modal{background:var(--surface);border-radius:20px;box-shadow:0 20px 60px rgba(23,54,42,.2);
+  padding:32px;width:100%;max-width:550px;animation:modalIn .3s ease}
+@keyframes modalIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{margin-bottom:18px;font-size:19px}
+.modal .form-group{margin-bottom:16px}
+.modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.modal-actions button{flex:1}
+
+/* ---------- الجداول ---------- */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+table th{background:var(--bg);padding:12px 14px;text-align:right;font-weight:700;color:var(--ink);
+  border-bottom:1px solid var(--line)}
+table td{padding:12px 14px;border-bottom:1px solid var(--line)}
+table tr:hover{background:#fafaf7}
+table .actions{display:flex;gap:6px}
+table .actions button{padding:6px 8px;font-size:11.5px;border-radius:8px;background:var(--bg);
+  color:var(--ink);border:1px solid var(--line)}
+table .actions button:hover{background:var(--line)}
+
+/* ---------- شبكة الإحصائيات ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+.kpi-val{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--brand-600);margin-bottom:4px}
+.kpi-label{font-size:11.5px;color:var(--muted);font-weight:600}
+
+/* ---------- الألوان والحالات ---------- */
+.status-badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
+.status-new{background:#e3f2fd;color:#1565c0}
+.status-pending{background:#fff3e0;color:#e65100}
+.status-resolved{background:#e8f5e9;color:#2e7d3e}
+.text-muted{color:var(--muted)}
+.text-danger{color:var(--neg)}
+.text-success{color:var(--pos)}
+
+/* ---------- أيقونات وأزرار ---------- */
+.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .15s, border-color .15s}
+.icon-btn:hover{background:var(--line)}
+.icon-btn svg{width:18px;height:18px;stroke:var(--ink)}
+
+.btn-small{padding:8px 12px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center;gap:6px}
+.btn-small.danger{background:#f9e4de;color:var(--neg);border:1px solid #ead3ce}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     شاشة الدخول
+     ============================================================ -->
+<div id="loginWrap" class="login-wrap">
+  <div class="login-shell">
+    <div class="login-brand">
+      <div class="lb-head">
+        <div class="lb-logo">
+          <div style="font-family:var(--font-display);font-weight:800;font-size:38px;color:#fff">🍵</div>
+          <div class="nm">حباق</div>
+        </div>
+        <div class="lb-tag">منصة إدارة الشاي</div>
+        <div class="lb-welcome">منصة متكاملة لإدارة العمليات والموظفين والمخالفات والزيارات التشغيلية.</div>
+      </div>
+      <div class="team-ticker-wrap">
+        <div class="team-ticker-label">النسخة</div>
+        <div class="team-ticker">
+          <span class="tt-name">v0.2</span>
+          <div class="team-ticker-dots"><span class="on"></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="login-card">
+      <div class="login-logo">
+        <div style="font-size:28px">🍵</div>
+        <div class="nm">حباق</div>
+      </div>
+      <div class="login-sub">تسجيل الدخول إلى منصتك</div>
+      <div id="loginErr" class="login-err" hidden></div>
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input id="loginEmail" type="email" placeholder="your@email.com">
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input id="loginPass" type="password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="handleLogin()">دخول</button>
+      <div style="margin-top:18px;text-align:center">
+        <button class="btn-ghost" onclick="toggleAuthMode()">إنشاء حساب جديد</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     التطبيق الرئيسي
+     ============================================================ -->
+<div id="appWrap" class="app" hidden>
+  <!-- الشريط الجانبي -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-cup">
+        <div style="font-size:32px;text-align:center">🍵</div>
+        <div class="steam"></div>
+        <div class="steam"></div>
+        <div class="steam"></div>
+      </div>
+      <div>
+        <div class="logo-name">حباق</div>
+        <div class="logo-tag">منصة التشغيل</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">الرئيسية</div>
+      <a href="#" onclick="switchTab('dashboard')" class="active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>لوحة التحكم</span>
+      </a>
+      <div class="nav-label">التشغيل</div>
+      <a href="#" onclick="switchTab('employees')" data-tab="employees">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>الموظفون</span>
+      </a>
+      <a href="#" onclick="switchTab('violations')" data-tab="violations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><polyline points="2 12 12 17 22 12"></polyline><polyline points="2 17 12 22 22 17"></polyline></svg>
+        <span>المخالفات</span>
+      </a>
+      <a href="#" onclick="switchTab('visits')" data-tab="visits">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>الزيارات</span>
+      </a>
+      <div class="nav-label">الإدارة</div>
+      <a href="#" onclick="switchTab('revenue')" data-tab="revenue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22m8-12H4"></path></svg>
+        <span>الإيرادات</span>
+      </a>
+    </nav>
+    <div class="side-footer" id="userInfo">—</div>
+    <button class="btn btn-ghost" onclick="handleLogout()" style="width:100%;justify-content:center;margin-top:10px">تسجيل خروج</button>
+  </div>
+
+  <!-- المحتوى الرئيسي -->
+  <div class="main">
+    <!-- لوحة التحكم -->
+    <div id="dashboard" class="tab-content active">
+      <div class="topbar">
+        <h1>لوحة التحكم</h1>
+      </div>
+      <div class="kpi-grid" id="dashboardKPIs">
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpiTotalEmps">—</div>
+          <div class="kpi-label">عدد الموظفين</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpiTotalViolations">0</div>
+          <div class="kpi-label">المخالفات الشهر</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpiTotalVisits">0</div>
+          <div class="kpi-label">الزيارات الشهر</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpiMonthRevenue">—</div>
+          <div class="kpi-label">الإيرادات الشهر</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <h3>آخر المخالفات</h3>
+          <table id="dashViolationsTable">
+            <thead><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th></tr></thead>
+            <tbody><tr><td colspan="3" style="text-align:center;color:var(--muted)">لا توجد بيانات</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>آخر الزيارات</h3>
+          <table id="dashVisitsTable">
+            <thead><tr><th>المشرف</th><th>النوع</th><th>التاريخ</th></tr></thead>
+            <tbody><tr><td colspan="3" style="text-align:center;color:var(--muted)">لا توجد بيانات</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- الموظفون -->
+    <div id="employees" class="tab-content">
+      <div class="topbar">
+        <h1>الموظفون</h1>
+        <div class="toolbar">
+          <button class="btn btn-accent" onclick="showAddEmployeeModal()">➕ إضافة موظف</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="employeesTable">
+            <thead>
+              <tr><th>الاسم</th><th>المنصب</th><th>التقسيم</th><th>حالة التوظيف</th><th>الإجراءات</th></tr>
+            </thead>
+            <tbody id="employeesTableBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted)">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- المخالفات -->
+    <div id="violations" class="tab-content">
+      <div class="topbar">
+        <h1>المخالفات والنزاعات</h1>
+        <div class="toolbar">
+          <button class="btn btn-accent" onclick="showAddViolationModal()">➕ تسجيل مخالفة</button>
+        </div>
+      </div>
+      <div class="card">
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:16px">وفق لائحة تنظيم العمل الموحدة — الحزء يتدرج بتكرار المخالفة خلال السنة</p>
+        <div class="table-wrap">
+          <table id="violationsTable">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>اسم الموظف</th>
+                <th>فئة المخالفة</th>
+                <th>المخالفة</th>
+                <th>الملاحظات</th>
+                <th style="width:100px">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="violationsTableBody">
+              <tr><td colspan="6" style="text-align:center;color:var(--muted)">لا توجد مخالفات مسجلة</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- الزيارات -->
+    <div id="visits" class="tab-content">
+      <div class="topbar">
+        <h1>الزيارات التشغيلية</h1>
+        <div class="toolbar">
+          <button class="btn btn-accent" onclick="showAddVisitModal()">📋 تسجيل زيارة</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="visitsTable">
+            <thead>
+              <tr><th>التاريخ</th><th>المشرف</th><th>نوع الزيارة</th><th>نسبة الامتثال</th><th>الإجراءات</th></tr>
+            </thead>
+            <tbody id="visitsTableBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted)">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- الإيرادات -->
+    <div id="revenue" class="tab-content">
+      <div class="topbar">
+        <h1>الإيرادات</h1>
+      </div>
+      <div class="card">
+        <p style="color:var(--muted)">قسم الإيرادات قيد التطوير</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// الإعدادات والمتغيرات
+// ============================================================
+let db, auth, currentUser = null;
+
+// بيانات المخالفات
+const VIOLATION_CATEGORIES = [
+  { id: 'attendance', label: 'مخالفات تتعلق بمواعيد العمل', color: '#e74c3c' },
+  { id: 'conduct', label: 'مخالفات تتعلق بسلوك العمل', color: '#f39c12' },
+  { id: 'discipline', label: 'مخالفات تتعلق بتنظيم العمل', color: '#3498db' },
+  { id: 'safety', label: 'مخالفات تتعلق بالسلامة والصحة', color: '#9b59b6' },
+  { id: 'other', label: 'مخالفات أخرى', color: '#95a5a6' }
+];
+
+const VIOLATION_TYPES = {
+  attendance: [
+    'التأخر عن العمل حتى (15) دقيقة دون إذن',
+    'التأخر عن العمل أكثر من (15) دقيقة دون إذن',
+    'مغادرة مكان العمل قبل انتهاء وقت العمل',
+    'عدم الحضور بدون إعلام',
+    'الغياب المتكرر'
+  ],
+  conduct: [
+    'عدم الالتزام بتعليمات الإدارة',
+    'التحدث بأسلوب غير لائق مع الزملاء',
+    'عدم التعاون مع الزملاء',
+    'الاستخدام غير المشروع للموارد',
+    'عدم الحفاظ على سرية المعلومات'
+  ],
+  discipline: [
+    'عدم ارتداء الزي الموحد',
+    'عدم الاهتمام بالنظافة الشخصية',
+    'عدم المحافظة على الممتلكات',
+    'استخدام الهاتف أثناء العمل',
+    'عدم تنفيذ التعليمات الصحيحة'
+  ],
+  safety: [
+    'عدم الالتزام بإجراءات السلامة',
+    'العمل تحت تأثير الكحول أو المخدرات',
+    'الإهمال الذي قد يسبب حادث',
+    'عدم الإبلاغ عن الأخطار المحتملة',
+    'استخدام المعدات بشكل غير آمن'
+  ],
+  other: [
+    'مخالفات أخرى'
+  ]
+};
+
+// ============================================================
+// Firebase Setup
+// ============================================================
+function initFirebase() {
+  const firebaseConfig = {
+    apiKey: "AIzaSyDvLz4yQXq-eF_J-v8lNfKK9JqAKOl0cHo",
+    authDomain: "habaq-b707c.firebaseapp.com",
+    projectId: "habaq-b707c",
+    storageBucket: "habaq-b707c.appspot.com",
+    messagingSenderId: "965948833355",
+    appId: "1:965948833355:web:0e8ee9f6f0537ff7e0d70c"
+  };
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  auth = firebase.auth();
+  auth.onAuthStateChanged(onAuthStateChanged);
+}
+
+function onAuthStateChanged(user) {
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginWrap').hidden = true;
+    document.getElementById('appWrap').hidden = false;
+    document.getElementById('userInfo').textContent = user.email || 'مستخدم';
+    loadAllData();
+  } else {
+    currentUser = null;
+    document.getElementById('loginWrap').hidden = false;
+    document.getElementById('appWrap').hidden = true;
+  }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPass').value;
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (err) {
+    document.getElementById('loginErr').textContent = err.message;
+    document.getElementById('loginErr').hidden = false;
+  }
+}
+
+function handleLogout() {
+  auth.signOut();
+}
+
+function toggleAuthMode() {
+  alert('يرجى التواصل مع مسؤول النظام لإنشاء حساب جديد');
+}
+
+// ============================================================
+// تحويل التبويبات
+// ============================================================
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
+}
+
+// ============================================================
+// تحميل البيانات
+// ============================================================
+async function loadAllData() {
+  await Promise.all([
+    loadEmployeesData(),
+    loadViolationsData(),
+    loadVisitsData()
+  ]);
+  updateDashboardKPIs();
+}
+
+async function loadEmployeesData() {
+  try {
+    const snap = await db.collection('employees').orderBy('name').get();
+    window.employeesData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    console.log('✅ تم تحميل ' + window.employeesData.length + ' موظف');
+    renderEmployeesTable();
+  } catch (err) {
+    console.error('❌ خطأ في تحميل الموظفين:', err);
+    window.employeesData = [];
+  }
+}
+
+async function loadViolationsData() {
+  try {
+    const snap = await db.collection('violations').orderBy('date', 'desc').get();
+    window.violationsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderViolationsTable();
+  } catch (err) {
+    console.error('Error loading violations:', err);
+  }
+}
+
+async function loadVisitsData() {
+  try {
+    const snap = await db.collection('visits').orderBy('date', 'desc').get();
+    window.visitsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderVisitsTable();
+  } catch (err) {
+    console.error('Error loading visits:', err);
+  }
+}
+
+// ============================================================
+// عرض الجداول
+// ============================================================
+function renderEmployeesTable() {
+  if (!window.employeesData) window.employeesData = [];
+  const html = window.employeesData.map(e => `
+    <tr>
+      <td>${e.name || '—'}</td>
+      <td>${e.position || '—'}</td>
+      <td>${e.division || '—'}</td>
+      <td>${e.status || '—'}</td>
+      <td>
+        <div class="actions">
+          <button onclick="editEmployee('${e.id}')">تعديل</button>
+          <button class="danger" onclick="deleteEmployee('${e.id}')">حذف</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+  document.getElementById('employeesTableBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">لا توجد موظفون</td></tr>';
+}
+
+function renderViolationsTable() {
+  if (!window.violationsData) window.violationsData = [];
+  const html = window.violationsData.map(v => {
+    const cat = VIOLATION_CATEGORIES.find(c => c.id === v.category);
+    const dateStr = v.date instanceof Date ? v.date.toLocaleDateString('ar-SA') : new Date(v.date?.toDate?.() || v.date).toLocaleDateString('ar-SA');
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${v.employeeName || '—'}</td>
+        <td><span style="color:${cat?.color || '#95a5a6'}">${cat?.label || v.category}</span></td>
+        <td>${v.violationType || '—'}</td>
+        <td>${v.notes || '—'}</td>
+        <td>
+          <div class="actions">
+            <button onclick="deleteViolation('${v.id}')">حذف</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  document.getElementById('violationsTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">لا توجد مخالفات مسجلة</td></tr>';
+}
+
+function renderVisitsTable() {
+  if (!window.visitsData) window.visitsData = [];
+  const html = window.visitsData.map(v => {
+    const dateStr = v.date instanceof Date ? v.date.toLocaleDateString('ar-SA') : new Date(v.date?.toDate?.() || v.date).toLocaleDateString('ar-SA');
+    const comp = v.compliance != null ? v.compliance + '%' : '—';
+    const compColor = v.compliance == null ? 'var(--muted)' : v.compliance >= 85 ? 'var(--pos)' : v.compliance >= 60 ? 'var(--accent)' : 'var(--neg)';
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${v.manager || '—'}</td>
+        <td>${v.visitType || '—'}</td>
+        <td style="color:${compColor};font-weight:800">${comp}</td>
+        <td>
+          <div class="actions">
+            <button onclick="viewVisit('${v.id}')">عرض</button>
+            <button class="danger" onclick="deleteVisit('${v.id}')">حذف</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  document.getElementById('visitsTableBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">جاري التحميل...</td></tr>';
+}
+
+// ============================================================
+// نافذة تسجيل المخالفة
+// ============================================================
+function showAddViolationModal() {
+  let modal = document.getElementById('violationModal');
+  if (!modal) {
+    createViolationModal();
+    modal = document.getElementById('violationModal');
+  }
+  // ملء البيانات الحديثة
+  updateViolationModalData();
+  document.getElementById('violationForm').reset();
+  document.getElementById('violationCategorySelect').value = '';
+  document.getElementById('violationTypeSelect').innerHTML = '<option value="">اختر المخالفة أولاً</option>';
+  modal.hidden = false;
+}
+
+function createViolationModal() {
+  const div = document.createElement('div');
+  div.id = 'violationModal';
+  div.className = 'modal-bg';
+  div.innerHTML = `
+    <div class="modal">
+      <h3>➕ تسجيل مخالفة</h3>
+      <form id="violationForm">
+        <div class="form-group">
+          <label>اسم الموظف</label>
+          <select id="violationEmployeeSelect" required>
+            <option value="">اختر الموظف</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>فئة المخالفة</label>
+          <select id="violationCategorySelect" onchange="updateViolationTypes()" required>
+            <option value="">اختر الفئة</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>المخالفة</label>
+          <select id="violationTypeSelect" required>
+            <option value="">اختر المخالفة أولاً</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>التاريخ</label>
+          <input type="date" id="violationDateInput" value="${new Date().toISOString().split('T')[0]}" required>
+        </div>
+        <div class="form-group">
+          <label>الملاحظات</label>
+          <textarea id="violationNotesInput"></textarea>
+        </div>
+      </form>
+      <div class="modal-actions">
+        <button class="btn" style="background:var(--bg)" onclick="document.getElementById('violationModal').hidden=true">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveViolation()">حفظ</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  
+  // ملء الفئات مباشرة
+  const cats = div.querySelector('#violationCategorySelect');
+  cats.innerHTML = '<option value="">اختر الفئة</option>' + 
+    VIOLATION_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+}
+
+function updateViolationModalData() {
+  const empSelect = document.getElementById('violationEmployeeSelect');
+  if (empSelect && window.employeesData && window.employeesData.length > 0) {
+    empSelect.innerHTML = '<option value="">اختر الموظف</option>' + 
+      window.employeesData.map(e => `<option value="${e.id}" data-name="${e.name}">${e.name}</option>`).join('');
+  } else if (empSelect) {
+    empSelect.innerHTML = '<option value="">لا توجد موظفون - أضف موظف أولاً</option>';
+  }
+}
+
+function updateViolationTypes() {
+  const cat = document.getElementById('violationCategorySelect').value;
+  const typeSelect = document.getElementById('violationTypeSelect');
+  if (cat && VIOLATION_TYPES[cat]) {
+    typeSelect.innerHTML = VIOLATION_TYPES[cat].map(t => `<option value="${t}">${t}</option>`).join('');
+  } else {
+    typeSelect.innerHTML = '<option value="">اختر المخالفة أولاً</option>';
+  }
+}
+
+async function saveViolation() {
+  const empSelect = document.getElementById('violationEmployeeSelect');
+  const empId = empSelect.value;
+  const empName = empSelect.options[empSelect.selectedIndex].text;
+  const category = document.getElementById('violationCategorySelect').value;
+  const type = document.getElementById('violationTypeSelect').value;
+  const date = document.getElementById('violationDateInput').value;
+  const notes = document.getElementById('violationNotesInput').value;
+  
+  if (!empId || !category || !type || !date) {
+    alert('يرجى ملء جميع الحقول المطلوبة');
+    return;
+  }
+  
+  try {
+    await db.collection('violations').add({
+      employeeId: empId,
+      employeeName: empName,
+      category: category,
+      violationType: type,
+      date: new Date(date),
+      notes: notes,
+      createdAt: new Date()
+    });
+    alert('تم تسجيل المخالفة بنجاح ✅');
+    document.getElementById('violationModal').hidden = true;
+    await loadViolationsData();
+    updateDashboardKPIs();
+  } catch (err) {
+    console.error('❌ خطأ في الحفظ:', err);
+    alert('خطأ: ' + err.message);
+  }
+}
+
+async function deleteViolation(violationId) {
+  if (!confirm('هل تأكد من حذف هذه المخالفة؟')) return;
+  try {
+    await db.collection('violations').doc(violationId).delete();
+    alert('تم حذف المخالفة ✅');
+    await loadViolationsData();
+    updateDashboardKPIs();
+  } catch (err) {
+    alert('خطأ: ' + err.message);
+  }
+}
+
+// ============================================================
+// نموذج الموظفين
+// ============================================================
+function showAddEmployeeModal() {
+  const modal = document.getElementById('employeeModal') || createEmployeeModal();
+  document.getElementById('employeeForm').reset();
+  modal.hidden = false;
+}
+
+function createEmployeeModal() {
+  const div = document.createElement('div');
+  div.id = 'employeeModal';
+  div.className = 'modal-bg';
+  div.innerHTML = `
+    <div class="modal">
+      <h3>➕ إضافة موظف</h3>
+      <form id="employeeForm">
+        <div class="form-group">
+          <label>الاسم</label>
+          <input type="text" id="empNameInput" required>
+        </div>
+        <div class="form-group">
+          <label>المنصب</label>
+          <input type="text" id="empPositionInput" required>
+        </div>
+        <div class="form-group">
+          <label>التقسيم</label>
+          <input type="text" id="empDivisionInput" required>
+        </div>
+        <div class="form-group">
+          <label>حالة التوظيف</label>
+          <select id="empStatusInput" required>
+            <option value="">اختر الحالة</option>
+            <option value="نشط">نشط</option>
+            <option value="إجازة">إجازة</option>
+            <option value="منتهي">منتهي</option>
+          </select>
+        </div>
+      </form>
+      <div class="modal-actions">
+        <button class="btn" style="background:var(--bg)" onclick="document.getElementById('employeeModal').hidden=true">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveEmployee()">حفظ</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  return div;
+}
+
+async function saveEmployee() {
+  const name = document.getElementById('empNameInput').value;
+  const position = document.getElementById('empPositionInput').value;
+  const division = document.getElementById('empDivisionInput').value;
+  const status = document.getElementById('empStatusInput').value;
+  
+  if (!name || !position || !division || !status) {
+    alert('يرجى ملء جميع الحقول');
+    return;
+  }
+  
+  try {
+    await db.collection('employees').add({name, position, division, status, createdAt: new Date()});
+    alert('تم إضافة الموظف ✅');
+    document.getElementById('employeeModal').hidden = true;
+    await loadEmployeesData();
+  } catch (err) {
+    alert('خطأ: ' + err.message);
+  }
+}
+
+async function deleteEmployee(empId) {
+  if (!confirm('هل تأكد من حذف هذا الموظف؟')) return;
+  try {
+    await db.collection('employees').doc(empId).delete();
+    alert('تم حذف الموظف ✅');
+    await loadEmployeesData();
+  } catch (err) {
+    alert('خطأ: ' + err.message);
+  }
+}
+
+function editEmployee(empId) {
+  alert('خاصية التعديل قيد التطوير');
+}
+
+// ============================================================
+// نموذج الزيارات
+// ============================================================
+function showAddVisitModal() {
+  alert('خاصية الزيارات متوفرة بالفعل في النسخة السابقة');
+}
+
+async function viewVisit(visitId) {
+  alert('عرض تفاصيل الزيارة قيد التطوير');
+}
+
+async function deleteVisit(visitId) {
+  if (!confirm('هل تأكد من حذف هذه الزيارة؟')) return;
+  try {
+    await db.collection('visits').doc(visitId).delete();
+    alert('تم حذف الزيارة ✅');
+    await loadVisitsData();
+  } catch (err) {
+    alert('خطأ: ' + err.message);
+  }
+}
+
+// ============================================================
+// تحديث لوحة التحكم
+// ============================================================
+function updateDashboardKPIs() {
+  const now = new Date();
+  const thisMonth = (data) => data.filter(d => {
+    const date = d.date instanceof Date ? d.date : new Date(d.date?.toDate?.() || d.date);
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  });
+  
+  const emps = window.employeesData || [];
+  const vios = window.violationsData || [];
+  const viss = window.visitsData || [];
+  
+  document.getElementById('kpiTotalEmps').textContent = emps.length;
+  document.getElementById('kpiTotalViolations').textContent = thisMonth(vios).length;
+  document.getElementById('kpiTotalVisits').textContent = thisMonth(viss).length;
+  document.getElementById('kpiMonthRevenue').textContent = '—';
+  
+  // آخر 3 مخالفات
+  const recentVios = vios.slice(0, 3).map(v => {
+    const dateStr = v.date instanceof Date ? v.date.toLocaleDateString('ar-SA') : new Date(v.date?.toDate?.() || v.date).toLocaleDateString('ar-SA');
+    return `<tr><td>${v.employeeName || '—'}</td><td>${VIOLATION_CATEGORIES.find(c => c.id === v.category)?.label || v.category}</td><td>${dateStr}</td></tr>`;
+  }).join('');
+  document.getElementById('dashViolationsTable').innerHTML = '<thead><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th></tr></thead><tbody>' + (recentVios || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">لا توجد بيانات</td></tr>') + '</tbody>';
+  
+  // آخر 3 زيارات
+  const recentViss = viss.slice(0, 3).map(v => {
+    const dateStr = v.date instanceof Date ? v.date.toLocaleDateString('ar-SA') : new Date(v.date?.toDate?.() || v.date).toLocaleDateString('ar-SA');
+    return `<tr><td>${v.manager || '—'}</td><td>${v.visitType || '—'}</td><td>${dateStr}</td></tr>`;
+  }).join('');
+  document.getElementById('dashVisitsTable').innerHTML = '<thead><tr><th>المشرف</th><th>النوع</th><th>التاريخ</th></tr></thead><tbody>' + (recentViss || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">لا توجد بيانات</td></tr>') + '</tbody>';
+}
+
+// ============================================================
+// التهيئة
+// ============================================================
+initFirebase();
+</script>
+</body>
+</html>
