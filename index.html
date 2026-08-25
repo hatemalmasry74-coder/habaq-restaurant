@@ -4965,6 +4965,7 @@ function startSession(){
   // Load dashboard data only for roles that should see it
   var dashRoles=['branch_manager','cashier','visit_supervisor','store_manager','owner'];
   if(dashRoles.includes(CU.role)) loadDashboard();
+  if(CU.role==='owner'){ownerLockUI();setInterval(ownerLockUI,1200);}
   // Seed default custody users if needed
   if(CU.role==='branch_manager')setTimeout(seedDefaultCustodyUsers,2000);
   // Check notifications after loading employees
@@ -5081,6 +5082,27 @@ function filterDashboard(){
   }
 }
 
+
+/* ---------- OWNER VIEW LOCK (قفل واجهة المشاهدة للمالك) ---------- */
+function ownerLockUI(){
+  if(!CU||CU.role!=='owner')return;
+  var KEEP=/tab|print|card|export|excel|filter|load|refresh|range|period|view|show|close|toggle|lang|logout|بحث|عرض|بطاقة|تحديث|طباعة|إغلاق|خروج|اليوم|أمس|الأسبوع|الشهر|الكل|مخصص/i;
+  document.querySelectorAll('#app button').forEach(function(b){
+    if(b.dataset.olock)return;
+    var sig=((b.getAttribute('onclick')||'')+' '+b.className+' '+(b.textContent||'')).toLowerCase();
+    b.dataset.olock='1';
+    if(KEEP.test(sig))return;
+    b.disabled=true;b.style.opacity='.35';b.style.cursor='not-allowed';b.title='حساب مشاهدة فقط';
+  });
+  var IKEEP=/filter|search|from|to|month|year|date|range|period|بحث/i;
+  document.querySelectorAll('#app input,#app textarea').forEach(function(i){
+    if(i.dataset.olock)return;
+    i.dataset.olock='1';
+    var sig=(i.id+' '+i.className+' '+(i.type||'')+' '+(i.placeholder||'')).toLowerCase();
+    if(i.type==='date'||i.type==='month'||IKEEP.test(sig))return;
+    i.disabled=true;
+  });
+}
 
 function filterNav(){
   var ac=PERMS[CU.role]||[];
