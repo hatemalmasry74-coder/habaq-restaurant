@@ -4227,7 +4227,8 @@ var PERMS = {
   store_manager: ['dashboard','purchase','production'],
   hr_manager: ['dashboard','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen'],
   purchases_rep: ['purchase-system'],
-  accountant: ['purchase-system','reports','salesreport','custodyreport','finance','opreports','backup']
+  accountant: ['purchase-system','reports','salesreport','custodyreport','finance','opreports','backup'],
+  owner: ['dashboard','reports','salesreport','custodyreport','vreports','opreports','finance','costcards','breakeven','monthlyreports','purchase-system']
 };
 var ROLE_NAMES = {
   branch_manager:'مدير الفرع',
@@ -4236,7 +4237,8 @@ var ROLE_NAMES = {
   store_manager:'مسؤول المخازن',
   hr_manager:'مسؤول الموارد البشرية',
   purchases_rep:'مندوب المشتريات',
-  accountant:'المحاسب'
+  accountant:'المحاسب',
+  owner:'المالك (مشاهدة فقط)'
 };
 var ROLE_HINTS = {
   branch_manager:'سيحصل على صلاحيات كاملة: الفتح، الغلق، الكاشير، الزيارات، المشتريات، التقارير، وإدارة المستخدمين',
@@ -4245,7 +4247,8 @@ var ROLE_HINTS = {
   store_manager:'سيحصل على صلاحيات: طلبات المشتريات وطلبات الإنتاج فقط',
   hr_manager:'سيحصل على صلاحيات: سجل الموظفين، مسير الرواتب، تقييم الموظفين، واعتماد جزاء المخالفات وفق اللائحة',
   purchases_rep:'سيحصل على صلاحيات: تسجيل فواتير الموردين والمدفوعات ورفع صور الفواتير فقط',
-  accountant:'سيحصل على صلاحيات: مراجعة المشتريات والمدفوعات (قراءة فقط) + كل التقارير المالية والتشغيلية'
+  accountant:'سيحصل على صلاحيات: مراجعة المشتريات والمدفوعات (قراءة فقط) + كل التقارير المالية والتشغيلية',
+  owner:'مشاهدة فقط: لوحة التحكم وجميع التقارير المالية والتشغيلية وبطاقات التكلفة — دون أي صلاحية تعديل أو إضافة'
 };
 
 // ===== FIREBASE INIT =====
@@ -4958,7 +4961,7 @@ function startSession(){
     return;
   }
   // Load dashboard data only for roles that should see it
-  var dashRoles=['branch_manager','cashier','visit_supervisor','store_manager'];
+  var dashRoles=['branch_manager','cashier','visit_supervisor','store_manager','owner'];
   if(dashRoles.includes(CU.role)) loadDashboard();
   // Seed default custody users if needed
   if(CU.role==='branch_manager')setTimeout(seedDefaultCustodyUsers,2000);
@@ -16920,8 +16923,9 @@ var _ccIngs=[], _ccRecs=[], _beData=null, _ccLoaded=false;
 
 function ccGuard(){return CU && CU.role==='branch_manager';}
 
+function ccViewOK(){return CU && (CU.role==='branch_manager'||CU.role==='owner');}
 function ccInit(){
-  if(!ccGuard())return;
+  if(!ccViewOK())return;
   if(_ccLoaded){ccRenderIngs();ccRenderRecs();return;}
   Promise.all([
     db.collection('cost_ingredients').get(),
@@ -17523,7 +17527,7 @@ function fxApply(){
 
 /* ---------- BREAK-EVEN ---------- */
 function beInit(){
-  if(!ccGuard())return;
+  if(!ccViewOK())return;
   var load=function(){
     db.collection('cost_settings').doc('breakeven').get().then(function(doc){
       _beData=doc.exists?doc.data():{fixed:[],qty:{},actual:0};
