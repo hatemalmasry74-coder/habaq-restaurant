@@ -17199,7 +17199,8 @@ function hbLegacyImport(){
       var nm=(it.name||it.nameAr||it.itemName||'').trim();
       if(!nm)return;
       if(exIng[nm]){idMap[it._id]=exIng[nm];nameMap[nm]=exIng[nm];rep.ingSkip++;return;}
-      var unit=it.recipeUnit||it.unit||'جم';
+      var UNIT_AR={piece:'حبة',g:'جم',gram:'جم',kg:'كجم',ml:'مل',l:'لتر',liter:'لتر'};
+      var unit=it.recipeUnit||it.unit||'جم'; unit=UNIT_AR[unit]||unit;
       var price=parseFloat(it.price!=null?it.price:(it.packPrice!=null?it.packPrice:it.cost))||0;
       var pack=parseFloat(it.convFactor!=null?it.convFactor:(it.pack!=null?it.pack:it.packQty))||1;
       var ref=db.collection('cost_ingredients').doc();
@@ -17222,10 +17223,21 @@ function hbLegacyImport(){
       });
       if(items.length===0){rep.recEmpty.push(nm);return;}
       var yieldQ=parseFloat(r.servings!=null?r.servings:r.yield)||1;
-      var price=parseFloat(r.price!=null?r.price:r.salePrice)||0;
+      var price=parseFloat(r.sellPrice!=null?r.sellPrice:(r.price!=null?r.price:r.salePrice))||0;
       var ref2=db.collection('cost_recipes').doc();
       writes.push({ref:ref2,data:{name:nm,yield:yieldQ,price:price,target:35,chef:'',items:items,legacyId:r._id,updatedAt:now,updatedBy:by}});
       rep.recAdd++;
+    });
+    // ترميم: الوصفات المنقولة سابقاً بسعر بيع صفر تُحدَّث من sellPrice القديم
+    var oldRecByName={};
+    oldRecs.forEach(function(r){var n=(r.name||'').trim();if(n)oldRecByName[n]=r;});
+    res[3].forEach(function(d){
+      var cr=d.data();var n=(cr.name||'').trim();
+      var orx=oldRecByName[n];
+      if(orx&&(!cr.price||cr.price===0)){
+        var sp=parseFloat(orx.sellPrice!=null?orx.sellPrice:orx.price)||0;
+        if(sp>0){writes.push({ref:db.collection('cost_recipes').doc(d.id),data:{price:sp},merge:true});rep.recFix=(rep.recFix||0)+1;}
+      }
     });
     if(writes.length===0){alert('لا يوجد جديد للنقل — كل شيء منقول مسبقاً.\nمواد متخطاة: '+rep.ingSkip+' | وصفات متخطاة: '+rep.recSkip);return 'done';}
     // دفعات بحد 400 عملية
@@ -17234,7 +17246,7 @@ function hbLegacyImport(){
       (function(chunk){
         chain=chain.then(function(){
           var b=db.batch();
-          chunk.forEach(function(w){b.set(w.ref,w.data);});
+          chunk.forEach(function(w){if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});
           return b.commit();
         });
       })(writes.slice(i,i+400));
@@ -17242,7 +17254,7 @@ function hbLegacyImport(){
     return chain;
   }).then(function(x){
     if(x==='done')return;
-    var msg='✅ اكتمل النقل\n\n🥕 مواد خام مضافة: '+rep.ingAdd+(rep.ingSkip?' (متخطاة موجودة: '+rep.ingSkip+')':'')
+    var msg='✅ اكتمل النقل\n\n🥕 مواد خام مضافة: '+rep.ingAdd+(rep.ingSkip?' (متخطاة موجودة: '+rep.ingSkip+')':'')+(rep.recFix?'\n🔧 أسعار بيع مرمَّمة لوصفات منقولة: '+rep.recFix:'')
            +'\n📖 وصفات مضافة: '+rep.recAdd+(rep.recSkip?' (متخطاة موجودة: '+rep.recSkip+')':'');
     if(rep.recEmpty.length)msg+='\n\n⚠️ وصفات لم تُنقل (بلا مكونات صالحة): '+rep.recEmpty.join('، ');
     if(rep.lineMiss.length)msg+='\n\n⚠️ مكونات مستبعدة (كمية غير رقمية أو مادة غير مطابقة) — أضفها يدوياً:\n'+rep.lineMiss.slice(0,12).join('\n')+(rep.lineMiss.length>12?'\n… و'+(rep.lineMiss.length-12)+' أخرى (التفاصيل في الكونسول)':'');
