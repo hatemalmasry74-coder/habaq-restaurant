@@ -17956,14 +17956,21 @@ function saveBreakeven(){
 }
 
 function loadBreakevenSaved(){
-  // Sensible defaults — typical café numbers
+  // القيم الافتراضية لحباق — من التقارير الشهرية الفعلية للمؤسسة وتقرير مبيعات أغسطس 2026
+  // الرواتب 18,000 | التأمينات 980 | الإقامات 325 | الشهادات الصحية 137
+  // الإيجار 4,548 | الكهرباء 2,050 | الرخصة والدفاع المدني 162 | السجل التجاري 90
+  // قوى + مدد + أبشر أعمال 176 | عقد النظافة 292 | نيو ليب (كاشير) 75
+  // التسويق 5,250 (متوسط شهرين: 4,000 و 6,500) | المطبوعات 2,600 (متوسط شهرين: 1,200 و 4,000)
+  // الفئات: حصص المبيعات ومتوسط الأسعار من تقرير أغسطس، والتكلفة بنسبة المشتريات إلى المبيعات (≈ 35%)
   var defaults = {
-    'be-emp-salary':'15000','be-emp-gosi':'1500','be-emp-health':'200','be-emp-leave':'800','be-emp-cert':'400',
-    'be-op-rent':'8000','be-op-elec':'1500','be-op-water':'300','be-op-internet':'250','be-op-pos':'200',
-    'be-op-marketing':'500','be-op-clean':'300','be-op-maintain':'400',
-    'be-drk-price':'18','be-drk-cost':'4.5','be-drk-pkg':'5','be-drk-mix':'60',
-    'be-bkr-price':'12','be-bkr-cost':'4','be-bkr-pkg':'3','be-bkr-mix':'25',
-    'be-dsr-price':'22','be-dsr-cost':'7','be-dsr-pkg':'4','be-dsr-mix':'15',
+    'be-emp-salary':'18000','be-emp-gosi':'980','be-emp-iqama':'325','be-emp-cert':'137',
+    'be-emp-housing':'0','be-emp-worklic':'0','be-emp-overtime':'0','be-emp-health':'0','be-emp-leave':'0','be-emp-other':'0',
+    'be-op-rent':'4548','be-op-elec':'2050','be-op-civil':'162','be-op-cr':'90','be-op-gov':'176',
+    'be-op-clean':'292','be-op-pos':'75','be-op-marketing':'5250','be-op-other':'2600',
+    'be-op-municipal':'0','be-op-internet':'0','be-op-water':'0','be-op-gas':'0','be-op-maintain':'0',
+    'be-drk-price':'6.95','be-drk-cost':'2.42','be-drk-pkg':'0','be-drk-mix':'55.5',
+    'be-bkr-price':'15.09','be-bkr-cost':'5.25','be-bkr-pkg':'0','be-bkr-mix':'41.2',
+    'be-dsr-price':'15.87','be-dsr-cost':'5.52','be-dsr-pkg':'0','be-dsr-mix':'3.3',
     'be-days':'30'
   };
 
