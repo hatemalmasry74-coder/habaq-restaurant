@@ -731,6 +731,8 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn bsm bo" onclick="loadEmployees()">🔄 تحديث</button>
+              <button class="btn bsm bo" onclick="trigUp('emp-import-input')">📥 استيراد موظفين</button>
+              <input type="file" id="emp-import-input" accept=".json,application/json" style="display:none" onchange="importEmployeesFile(this)">
               <button class="btn bsm bp" onclick="openAddEmployee()">+ إضافة موظف</button>
             </div>
           </div>
@@ -1216,6 +1218,8 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
                 <option value="خباز">خباز</option>
                 <option value="نادل">نادل</option>
                 <option value="عامل نظافة">عامل نظافة</option>
+                <option value="قهوجي">قهوجي</option>
+                <option value="عامل مطبخ">عامل مطبخ</option>
                 <option value="أخرى">أخرى</option>
               </select>
             </div>
@@ -5609,6 +5613,59 @@ function sponsorshipBadge(s, sponsorName){
   var m=map[s||'company']||map.company;
   var extra = (s==='external' && sponsorName) ? ' | '+sponsorName : '';
   return '<span style="background:'+m.bg+';color:'+m.color+';padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap">'+m.icon+' '+m.label+extra+'</span>';
+}
+
+// ===== IMPORT EMPLOYEES (JSON file from ID / health cards) =====
+// Personal data is imported from a file at runtime so it is never stored in the site source
+var EMP_IMPORT_FIELDS=['name','nameEn','iqamaNumber','nationality','phone','position','dept','hireDate','iqamaExpiry','passportExpiry',
+  'healthCardExpiry','healthCardNumber','healthCardIssue','healthCardIssueHijri','healthCardExpiryHijri','trainingProgram','trainingEndHijri',
+  'birthDate','birthPlace','religion','iqamaProfession','employerName','employerId','workLocation','sponsorship','sponsorName','status','notes'];
+function importEmployeesFile(inp){
+  if(!CU){alert('يرجى تسجيل الدخول');return;}
+  var f=inp.files&&inp.files[0];inp.value='';
+  if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    var list;
+    try{list=JSON.parse(e.target.result);}catch(err){alert('الملف غير صالح (JSON): '+err.message);return;}
+    if(list&&list.employees)list=list.employees;
+    if(!Array.isArray(list)||!list.length){alert('لا توجد بيانات موظفين في الملف');return;}
+    var ready=function(){
+      var ops=[],summary=[];
+      list.forEach(function(src){
+        var d={};
+        EMP_IMPORT_FIELDS.forEach(function(k){if(src[k]!==undefined&&src[k]!==null&&src[k]!=='')d[k]=String(src[k]).trim();});
+        if(!d.iqamaNumber||!d.name)return;
+        var ex=_employees.find(function(x){return String(x.iqamaNumber||'').trim()===d.iqamaNumber;});
+        d.updatedBy=CU.name;d.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+        if(ex){
+          if(ex.notes&&d.notes&&ex.notes.indexOf(d.notes)>=0)delete d.notes;
+          else if(ex.notes&&d.notes)d.notes=ex.notes+'\n'+d.notes;
+          if(ex.name)delete d.name; // keep the name already in the registry
+          ops.push(function(){return db.collection('hr_employees').doc(ex._id).update(d);});
+          summary.push('🔄 تحديث: '+(ex.name||d.nameEn)+' ('+d.iqamaNumber+')');
+        } else {
+          var n=Object.assign({sponsorship:'company',status:'active',paymentMethod:'cash',bankData:{},
+            basicSalary:0,housingAllowance:0,transportAllowance:0,phoneAllowance:0,otherAllowances:0,insuranceDeduction:0,totalSalary:0,
+            photoData:'',createdBy:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()},d);
+          ops.push(function(){return db.collection('hr_employees').add(n);});
+          summary.push('➕ إضافة: '+d.name+' ('+d.iqamaNumber+')');
+        }
+      });
+      if(!ops.length){alert('لا توجد سجلات صالحة (الاسم ورقم الإقامة مطلوبان)');return;}
+      if(!confirm('سيتم استيراد '+ops.length+' موظف:\n\n'+summary.join('\n')+'\n\nالرواتب لا تُستورد — أكملها من "تعديل" لكل موظف.\nمتابعة؟'))return;
+      Promise.all(ops.map(function(fn){return fn();})).then(function(){
+        alert('✅ تم استيراد بيانات '+ops.length+' موظف');
+        loadEmployees();
+      }).catch(function(err){alert('خطأ في الاستيراد: '+err.message);loadEmployees();});
+    };
+    // make sure the current registry is loaded to avoid duplicates
+    db.collection('hr_employees').get().then(function(snap){
+      _employees=[];snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});
+      ready();
+    }).catch(function(err){alert('تعذّر تحميل سجل الموظفين: '+err.message);});
+  };
+  r.readAsText(f);
 }
 
 function loadEmployees(){
