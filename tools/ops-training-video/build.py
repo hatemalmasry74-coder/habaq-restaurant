@@ -542,7 +542,7 @@ def main():
     page = fetch_page(work, args.page)
     narr = narration(script, beats, work, args.voice_dir, args.no_tts)
     wm, contact = brand_html(script)
-    by = f"<div class='d' style='direction:ltr'>تقديم: {script['brand']['name']}</div>" if script.get("brand") else ""
+    by = f"<div class='d'>تقديم: <bdi dir='ltr'>{script['brand']['name']}</bdi></div>" if script.get("brand") else ""
     intro = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
              f"<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>{by}")
     outro = ("<div class='k'>نهاية الجزء الثاني</div><div class='t'>المشكلة التي تتكرر مرتين<br>مشكلة نظام</div>"
