@@ -18,7 +18,7 @@ MOVE = 0.7          # seconds of camera move before each beat's speech
 TAIL = 0.3          # pause after each beat
 INTRO = 2.5         # title card
 OUTRO = 3.0         # closing card
-SR = 24000
+SR = 48000
 SOURCE_URL = "https://raw.githubusercontent.com/hatemattia1982-dot/-hatem-ops-training-/main/index.html"
 
 
@@ -56,6 +56,17 @@ def mp3_to_pcm(mp3):
     raw = subprocess.run([FF, "-v", "error", "-i", str(mp3), "-f", "s16le", "-ac", "1",
                           "-ar", str(SR), "-"], check=True, capture_output=True).stdout
     return raw
+
+
+def load_voice(path):
+    """Recorded narration: trim leading/trailing silence, clean up rumble, even out loudness."""
+    af = ("highpass=f=70,"
+          "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.15,"
+          "areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.25,areverse,"
+          "acompressor=threshold=-20dB:ratio=2.5:attack=10:release=200,"
+          "loudnorm=I=-16:TP=-1.5:LRA=9")
+    return subprocess.run([FF, "-v", "error", "-i", str(path), "-af", af, "-f", "s16le", "-ac", "1",
+                           "-ar", str(SR), "-"], check=True, capture_output=True).stdout
 
 
 def estimate_seconds(text):
@@ -282,6 +293,8 @@ def main():
                     help="local path or site URL of the platform page (default: download SOURCE_URL)")
     ap.add_argument("--out", default=str(HERE / "out" / "m1-part2.mp4"))
     ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
+    ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
+                    "(any audio format); captions then show each beat's key points")
     ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
     args = ap.parse_args()
 
@@ -303,8 +316,24 @@ def main():
 
     # ---- 1. narration
     pcm, timings = [], []
-    use_tts = not args.no_tts
+    use_tts = not args.no_tts and not args.voice_dir
+    voice_files = {}
+    if args.voice_dir:
+        for f in sorted(Path(args.voice_dir).iterdir()):
+            m = re.match(r"(\d+)", f.stem)
+            if m and f.is_file():
+                voice_files[int(m.group(1))] = f
+        missing = [i + 1 for i in range(len(beats)) if i + 1 not in voice_files]
+        if missing:
+            sys.exit(f"missing recordings for beats: {missing}")
     for i, b in enumerate(beats):
+        if args.voice_dir:
+            data = load_voice(voice_files[i + 1])
+            dur = len(data) / 2 / SR
+            pcm.append(data)
+            timings.append((dur, None))
+            print(f"beat {i:02d}: {dur:5.1f}s  {b['label']}  <- {voice_files[i + 1].name}")
+            continue
         mp3 = work / "audio" / f"{i:02d}.mp3"
         wj = work / "audio" / f"{i:02d}.json"
         words = None
@@ -414,7 +443,13 @@ def main():
                 snap(base(c, h, 1 if prev_hl else t, b["label"], ""), 1 / FPS)
                 elapsed += 1 / FPS
             # hold, one still per caption
-            for (s0, s1, txt) in time_chunks(caption_chunks(b["text"]), words, dur):
+            if words is None:  # recorded voice: show the beat's key points, split evenly
+                ks = b.get("keys") or [b["label"]]
+                caps = [(dur * k / len(ks), dur * (k + 1) / len(ks) + (TAIL if k == len(ks) - 1 else 0), t)
+                        for k, t in enumerate(ks)]
+            else:
+                caps = time_chunks(caption_chunks(b["text"]), words, dur)
+            for (s0, s1, txt) in caps:
                 snap(base(cam, hl, 1, b["label"], txt), s1 - s0)
                 elapsed += s1 - s0
             prev_cam, prev_hl = cam, hl
@@ -442,7 +477,7 @@ def main():
            "-crf", "20", "-tune", "stillimage", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
            "-shortest", "-movflags", "+faststart", str(out)]
     subprocess.run(cmd, check=True)
-    print("wrote", out, "(silent preview)" if not use_tts else "")
+    print("wrote", out, "(silent preview)" if not (use_tts or args.voice_dir) else "")
 
 
 if __name__ == "__main__":
