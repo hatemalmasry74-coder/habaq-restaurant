@@ -63,6 +63,7 @@ def load_voice(path):
     af = ("highpass=f=70,"
           "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.15,"
           "areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.25,areverse,"
+          "silenceremove=stop_periods=-1:stop_duration=0.7:stop_threshold=-45dB:stop_silence=0.45,"
           "acompressor=threshold=-20dB:ratio=2.5:attack=10:release=200,"
           "loudnorm=I=-16:TP=-1.5:LRA=9")
     return subprocess.run([FF, "-v", "error", "-i", str(path), "-af", af, "-f", "s16le", "-ac", "1",
@@ -122,11 +123,11 @@ SETUP_JS = r"""
     #gate,#appnav,#bar,#wm,#dash,#welcome,#npanel,#imodal,#gmodal{display:none!important}
     html,body{overflow:hidden!important;height:auto}
     html{background:#f5f0e8}
-    #cam{position:fixed;top:0;left:0;width:1920px;transform-origin:0 0}
+    #cam{position:fixed;top:0;left:0;width:100vw;transform-origin:0 0}
     #vhl{position:absolute;z-index:50;pointer-events:none;border:5px solid #d9a441;border-radius:14px;
          box-shadow:0 0 0 9999px rgba(10,30,34,.42),0 0 28px 6px rgba(217,164,65,.65)}
     .vmark{background:rgba(255,208,90,.75);border-radius:3px;box-shadow:0 0 0 3px rgba(255,208,90,.75);color:#0b353c;font-weight:700}
-    #vcap{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);max-width:1560px;z-index:100;
+    #vcap{position:fixed;left:50%;bottom:var(--capb,44px);transform:translateX(-50%);max-width:82vw;width:max-content;z-index:100;
           direction:rtl;text-align:center;font:700 44px/1.55 'Tajawal','Cairo',sans-serif;color:#fff;
           background:rgba(8,26,30,.86);padding:16px 38px 20px;border-radius:18px;
           box-shadow:0 10px 30px rgba(0,0,0,.35);border-bottom:4px solid #d9a441}
@@ -142,6 +143,10 @@ SETUP_JS = r"""
     #vcard .k{font:700 30px 'Tajawal';color:#d9a441;letter-spacing:2px}
     #vcard .t{font:800 84px 'Cairo','Tajawal';}
     #vcard .d{font:500 38px 'Tajawal';opacity:.92}
+    #vhook{position:fixed;top:0;left:0;right:0;z-index:150;display:none;direction:rtl;text-align:center;
+           padding:150px 60px 44px;background:linear-gradient(180deg,#0b353c 70%,rgba(11,53,60,0));color:#fff;
+           font:800 60px/1.45 'Cairo','Tajawal',sans-serif}
+    #vhook b{color:#f2c45c}
   `;
   document.head.appendChild(st);
   // wrap page content in a camera layer
@@ -149,7 +154,7 @@ SETUP_JS = r"""
   while (document.body.firstChild) cam.appendChild(document.body.firstChild);
   document.body.appendChild(cam);
   const hl = document.createElement('div'); hl.id = 'vhl'; cam.appendChild(hl);
-  for (const [id, html] of [['vcap',''],['vbadge',''],['vprog',''],['vcard','']]) {
+  for (const [id, html] of [['vcap',''],['vbadge',''],['vprog',''],['vcard',''],['vhook','']]) {
     const d = document.createElement('div'); d.id = id; d.innerHTML = html; document.body.appendChild(d);
   }
   document.getElementById('vbadge').innerHTML = `<span class="u">${cfg.badge}</span><span class="s"></span>`;
@@ -239,6 +244,8 @@ APPLY_JS = r"""
   document.getElementById('vbadge').style.display = s.label ? 'flex' : 'none';
   document.getElementById('vprog').style.width = (s.prog * 100) + '%';
   const card = document.getElementById('vcard');
+  const hook = document.getElementById('vhook');
+  if (s.hook) { hook.style.display = 'block'; hook.innerHTML = s.hook; } else hook.style.display = 'none';
   if (s.card) { card.style.display = 'flex'; card.style.opacity = s.cardo; card.innerHTML = s.card; } else card.style.display = 'none';
 }
 """
@@ -260,16 +267,16 @@ def fetch_font(route):
         route.abort()
 
 
-def camera_for(rect, max_zoom=1.75):
-    pad = 70
+def camera_for(rect, max_zoom=1.75, top=90, bottom=CAP_SPACE):
+    pad = 70 if W > H else 36
     rw, rh = rect["w"] + 2 * pad, rect["h"] + 2 * pad
-    avail_h = H - CAP_SPACE - 90
+    avail_h = H - bottom - top
     z = max(0.55, min(max_zoom, W / rw, avail_h / rh))
     cx, cy = rect["x"] + rect["w"] / 2, rect["y"] + rect["h"] / 2
-    ty = cy * z - (90 + avail_h / 2)
+    ty = cy * z - (top + avail_h / 2)
     # if the target is taller than the view, pin its top instead of its centre
     if rect["h"] * z > avail_h:
-        ty = (rect["y"] - pad / 2) * z - 90
+        ty = (rect["y"] - pad / 2) * z - top
     return {"z": z, "tx": cx * z - W / 2, "ty": ty}
 
 
@@ -287,52 +294,38 @@ def lerp_rect(a, b, t):
     return {k: lerp(a[k], b[k], t) for k in ("x", "y", "w", "h")}
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--page", default=None,
-                    help="local path or site URL of the platform page (default: download SOURCE_URL)")
-    ap.add_argument("--out", default=str(HERE / "out" / "m1-part2.mp4"))
-    ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
-    ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
-                    "(any audio format); captions then show each beat's key points")
-    ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
-    args = ap.parse_args()
+def fetch_page(work, page=None):
+    if page:
+        return page
+    import urllib.request
+    page = str(work / "index.html")
+    ca = os.environ.get("SSL_CERT_FILE")
+    ctx = ssl.create_default_context(cafile=ca) if ca and os.path.exists(ca) else None
+    with urllib.request.urlopen(SOURCE_URL, context=ctx, timeout=60) as r:
+        Path(page).write_bytes(r.read())
+    return page
 
-    script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
-    beats = script["beats"]
-    work = HERE / "out" / "work"
-    (work / "audio").mkdir(parents=True, exist_ok=True)
-    frames = work / "frames"
-    shutil.rmtree(frames, ignore_errors=True)
-    frames.mkdir(parents=True)
 
-    if not args.page:
-        import urllib.request
-        args.page = str(work / "index.html")
-        ca = os.environ.get("SSL_CERT_FILE")
-        ctx = ssl.create_default_context(cafile=ca) if ca and os.path.exists(ca) else None
-        with urllib.request.urlopen(SOURCE_URL, context=ctx, timeout=60) as r:
-            Path(args.page).write_bytes(r.read())
-
-    # ---- 1. narration
-    pcm, timings = [], []
-    use_tts = not args.no_tts and not args.voice_dir
+def narration(script, beats, work, voice_dir=None, no_tts=False):
+    """Return [(pcm_bytes, dur, words)] per beat. words is None for recorded voice."""
+    out = []
+    use_tts = not no_tts and not voice_dir
     voice_files = {}
-    if args.voice_dir:
-        for f in sorted(Path(args.voice_dir).iterdir()):
+    if voice_dir:
+        for f in sorted(Path(voice_dir).iterdir()):
             m = re.match(r"(\d+)", f.stem)
             if m and f.is_file():
                 voice_files[int(m.group(1))] = f
-        missing = [i + 1 for i in range(len(beats)) if i + 1 not in voice_files]
+        missing = [b["n"] for b in beats if b["n"] not in voice_files]
         if missing:
             sys.exit(f"missing recordings for beats: {missing}")
-    for i, b in enumerate(beats):
-        if args.voice_dir:
-            data = load_voice(voice_files[i + 1])
-            dur = len(data) / 2 / SR
-            pcm.append(data)
-            timings.append((dur, None))
-            print(f"beat {i:02d}: {dur:5.1f}s  {b['label']}  <- {voice_files[i + 1].name}")
+    (work / "audio").mkdir(parents=True, exist_ok=True)
+    for b in beats:
+        i = b["n"] - 1
+        if voice_dir:
+            data = load_voice(voice_files[b["n"]])
+            out.append((data, len(data) / 2 / SR, None))
+            print(f"beat {b['n']:02d}: {out[-1][1]:5.1f}s  {b['label']}  <- {voice_files[b['n']].name}")
             continue
         mp3 = work / "audio" / f"{i:02d}.mp3"
         wj = work / "audio" / f"{i:02d}.json"
@@ -355,42 +348,53 @@ def main():
             dur = estimate_seconds(b["text"])
             data = b"\0\0" * int(dur * SR)
             words = []
-        pcm.append(data)
-        timings.append((dur, words or []))
-        print(f"beat {i:02d}: {dur:5.1f}s  {b['label']}")
+        out.append((data, dur, words))
+        print(f"beat {b['n']:02d}: {dur:5.1f}s  {b['label']}")
+    return out
 
-    total = INTRO + sum(MOVE + d + TAIL for d, _ in timings) + OUTRO
-    print(f"total duration: {total:.1f}s ({total/60:.2f} min)")
 
-    # full narration track, sample-aligned with the video timeline
+def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromium=None,
+           intro_card=None, intro=INTRO, outro_card=None, outro=OUTRO, hook=None,
+           cam_top=90, cam_bottom=CAP_SPACE, cap_bottom=44, lead=MOVE, dpr=1, css=""):
+    """Drive the page and write an MP4 whose picture follows the narration beat by beat."""
+    global W, H
+    W, H = size
+    frames = work / "frames"
+    shutil.rmtree(frames, ignore_errors=True)
+    frames.mkdir(parents=True)
+    intro_t = intro if intro_card else 0.0
+    total = intro_t + sum(lead + d + TAIL for _, d, _ in narr) + outro
+
     sil = lambda s: b"\0\0" * int(round(s * SR))
-    track = [sil(INTRO)]
-    for data, (dur, _) in zip(pcm, timings):
-        track += [sil(MOVE), data, sil(TAIL)]
-    track.append(sil(OUTRO))
+    track = [sil(intro_t)]
+    for data, _, _ in narr:
+        track += [sil(lead), data, sil(TAIL)]
+    track.append(sil(outro))
     wav_path = work / "narration.wav"
     with wave.open(str(wav_path), "wb") as wv:
         wv.setnchannels(1); wv.setsampwidth(2); wv.setframerate(SR)
         wv.writeframes(b"".join(track))
 
-    # ---- 2. frames
     from playwright.sync_api import sync_playwright
-    concat = []   # (file, duration)
+    concat = []
     n = [0]
     with sync_playwright() as p:
-        launch = {"executable_path": args.chromium} if args.chromium else {}
+        launch = {"executable_path": chromium} if chromium else {}
         if os.environ.get("HTTPS_PROXY"):
             launch["proxy"] = {"server": os.environ["HTTPS_PROXY"], "bypass": "127.0.0.1,localhost"}
         br = p.chromium.launch(**launch)
-        pg = br.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
+        pg = br.new_page(viewport={"width": W, "height": H}, device_scale_factor=dpr)
         # deterministic render: no auth/analytics/embeds; fonts fetched via Python (honours custom CA)
         pg.route(re.compile(r"(gstatic\.com/firebasejs|youtube|googletagmanager|google-analytics)"),
                  lambda r: r.abort())
         pg.route(re.compile(r"https://fonts\.(googleapis|gstatic)\.com/.*"), fetch_font)
-        url = args.page if re.match(r"https?://", args.page) else Path(args.page).resolve().as_uri()
+        url = page if re.match(r"https?://", page) else Path(page).resolve().as_uri()
         pg.goto(url, wait_until="load", timeout=90000)
         pg.wait_for_timeout(2500)
-        pg.evaluate(SETUP_JS, {"badge": script["badge"]})
+        pg.evaluate(SETUP_JS, {"badge": badge})
+        pg.evaluate(f"document.documentElement.style.setProperty('--capb','{cap_bottom}px')")
+        if css:
+            pg.add_style_tag(content=css)
         pg.evaluate("document.fonts.ready")
         pg.wait_for_timeout(800)
 
@@ -404,7 +408,8 @@ def main():
         elapsed = 0.0
 
         def base(cam_, hl, hlo, label, cap, extra=None):
-            s = {**cam_, "hl": hl, "hlo": hlo, "label": label, "cap": cap, "prog": elapsed / total}
+            s = {**cam_, "hl": hl, "hlo": hlo, "label": "" if hook else label, "cap": cap,
+                 "prog": elapsed / total, "hook": hook}
             if extra:
                 s.update(extra)
             return s
@@ -417,32 +422,28 @@ def main():
                 print("WARN phrase not found:", r["missing"], file=sys.stderr)
             hl = dict(r.get("hl") or r["cam"])
             hl = {"x": hl["x"] - 10, "y": hl["y"] - 8, "w": hl["w"] + 20, "h": hl["h"] + 16}
-            targets.append((camera_for(r["cam"]), hl))
+            targets.append((camera_for(r["cam"], top=cam_top, bottom=cam_bottom), hl))
 
-        # intro card over the module header
-        cam0, hl0 = targets[0]
-        card = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
-                "<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>")
-        snap(base(cam0, None, 0, "", "", {"card": card, "cardo": 1}), INTRO - 0.5)
-        elapsed += INTRO - 0.5
-        steps = int(0.5 * FPS)
-        for k in range(steps):
-            snap(base(cam0, None, 0, "", "", {"card": card, "cardo": 1 - (k + 1) / steps}), 1 / FPS)
-            elapsed += 1 / FPS
-
+        cam0 = targets[0][0]
         prev_cam, prev_hl = cam0, None
-        for i, (b, (dur, words), (cam, hl)) in enumerate(zip(beats, timings, targets)):
+        if intro_card:
+            snap(base(cam0, None, 0, "", "", {"card": intro_card, "cardo": 1}), intro_t - 0.5)
+            elapsed += intro_t - 0.5
+            steps = int(0.5 * FPS)
+            for k in range(steps):
+                snap(base(cam0, None, 0, "", "", {"card": intro_card, "cardo": 1 - (k + 1) / steps}), 1 / FPS)
+                elapsed += 1 / FPS
+
+        for b, (_, dur, words), (cam, hl) in zip(beats, narr, targets):
             pg.evaluate(MARK_JS, b.get("hl") if isinstance(b.get("hl"), dict) else None)
-            # camera move
-            steps = int(MOVE * FPS)
+            steps = max(1, int(lead * FPS))
             same = prev_cam == cam
             for k in range(steps):
                 t = ease((k + 1) / steps)
                 c = cam if same else {q: lerp(prev_cam[q], cam[q], t) for q in cam}
                 h = lerp_rect(prev_hl, hl, t) if prev_hl else hl
-                snap(base(c, h, 1 if prev_hl else t, b["label"], ""), 1 / FPS)
-                elapsed += 1 / FPS
-            # hold, one still per caption
+                snap(base(c, h, 1 if prev_hl else t, b["label"], ""), lead / steps)
+                elapsed += lead / steps
             if words is None:  # recorded voice: show the beat's key points, split evenly
                 ks = b.get("keys") or [b["label"]]
                 caps = [(dur * k / len(ks), dur * (k + 1) / len(ks) + (TAIL if k == len(ks) - 1 else 0), t)
@@ -455,12 +456,13 @@ def main():
             prev_cam, prev_hl = cam, hl
 
         pg.evaluate(MARK_JS, None)
-        end = ("<div class='k'>نهاية الجزء الثاني</div><div class='t'>المشكلة التي تتكرر مرتين<br>مشكلة نظام</div>"
-               "<div class='d'>نلقاك في الوحدة الثانية</div>")
-        steps = int(0.6 * FPS)
-        for k in range(steps):
-            snap(base(prev_cam, prev_hl, 1, "", "", {"card": end, "cardo": (k + 1) / steps, "prog": 1}), 1 / FPS)
-        snap(base(prev_cam, prev_hl, 1, "", "", {"card": end, "cardo": 1, "prog": 1}), OUTRO - 0.6)
+        if outro_card:
+            steps = int(0.6 * FPS)
+            for k in range(steps):
+                snap(base(prev_cam, prev_hl, 1, "", "", {"card": outro_card, "cardo": (k + 1) / steps,
+                                                           "prog": 1, "hook": None}), 1 / FPS)
+            snap(base(prev_cam, prev_hl, 1, "", "", {"card": outro_card, "cardo": 1, "prog": 1, "hook": None}),
+                 outro - 0.6)
         br.close()
 
     lst = work / "frames.txt"
@@ -468,16 +470,47 @@ def main():
         for fp, d in concat:
             f.write(f"file '{fp}'\nduration {d:.5f}\n")
         f.write(f"file '{concat[-1][0]}'\n")
-
-    # ---- 3. mux
-    out = Path(args.out)
+    out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     cmd = [FF, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", str(wav_path),
-           "-vf", f"fps={FPS},scale={W}:{H},format=yuv420p", "-c:v", "libx264", "-preset", "medium",
+           "-vf", f"fps={FPS},scale={W * dpr}:{H * dpr},format=yuv420p", "-c:v", "libx264", "-preset", "medium",
            "-crf", "20", "-tune", "stillimage", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
            "-shortest", "-movflags", "+faststart", str(out)]
     subprocess.run(cmd, check=True)
-    print("wrote", out, "(silent preview)" if not (use_tts or args.voice_dir) else "")
+    print(f"wrote {out}  ({total:.1f}s = {total/60:.2f} min)")
+    return total
+
+
+def load_script():
+    script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
+    for k, b in enumerate(script["beats"]):
+        b["n"] = k + 1
+    return script
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--page", default=None,
+                    help="local path or site URL of the platform page (default: download SOURCE_URL)")
+    ap.add_argument("--out", default=str(HERE / "out" / "m1-part2.mp4"))
+    ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
+    ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
+                    "(any audio format); captions then show each beat's key points")
+    ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
+    args = ap.parse_args()
+
+    script = load_script()
+    beats = script["beats"]
+    work = HERE / "out" / "work"
+    work.mkdir(parents=True, exist_ok=True)
+    page = fetch_page(work, args.page)
+    narr = narration(script, beats, work, args.voice_dir, args.no_tts)
+    intro = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
+             "<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>")
+    outro = ("<div class='k'>نهاية الجزء الثاني</div><div class='t'>المشكلة التي تتكرر مرتين<br>مشكلة نظام</div>"
+             "<div class='d'>نلقاك في الوحدة الثانية</div>")
+    render(page, beats, narr, args.out, work, badge=script["badge"], chromium=args.chromium,
+           intro_card=intro, outro_card=outro)
 
 
 if __name__ == "__main__":
