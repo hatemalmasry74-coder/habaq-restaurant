@@ -147,6 +147,15 @@ SETUP_JS = r"""
            padding:150px 60px 44px;background:linear-gradient(180deg,#0b353c 70%,rgba(11,53,60,0));color:#fff;
            font:800 60px/1.45 'Cairo','Tajawal',sans-serif}
     #vhook b{color:#f2c45c}
+    #vwm{position:fixed;left:40px;bottom:calc(var(--capb,44px) + 150px);z-index:90;direction:ltr;display:none;
+         align-items:center;gap:12px;padding:10px 20px;border-radius:40px;background:rgba(11,53,60,.5);
+         color:rgba(255,255,255,.9);font:700 24px/1 'Tajawal',sans-serif;pointer-events:none}
+    #vwm .sep{opacity:.5}
+    .wai{width:1.15em;height:1.15em;flex:none}
+    #vcard .br{margin-top:26px;display:flex;flex-direction:column;align-items:center;gap:14px}
+    #vcard .nm{font:800 46px 'Tajawal';direction:ltr;letter-spacing:1px}
+    #vcard .wa{display:flex;align-items:center;gap:12px;direction:ltr;background:#25d366;color:#fff;
+               font:800 34px 'Tajawal';padding:10px 28px;border-radius:40px}
   `;
   document.head.appendChild(st);
   // wrap page content in a camera layer
@@ -154,10 +163,11 @@ SETUP_JS = r"""
   while (document.body.firstChild) cam.appendChild(document.body.firstChild);
   document.body.appendChild(cam);
   const hl = document.createElement('div'); hl.id = 'vhl'; cam.appendChild(hl);
-  for (const [id, html] of [['vcap',''],['vbadge',''],['vprog',''],['vcard',''],['vhook','']]) {
+  for (const [id, html] of [['vcap',''],['vbadge',''],['vprog',''],['vcard',''],['vhook',''],['vwm','']]) {
     const d = document.createElement('div'); d.id = id; d.innerHTML = html; document.body.appendChild(d);
   }
   document.getElementById('vbadge').innerHTML = `<span class="u">${cfg.badge}</span><span class="s"></span>`;
+  if (cfg.wm) { const w = document.getElementById('vwm'); w.innerHTML = cfg.wm; w.style.display = 'flex'; }
   window.scrollTo(0, 0);
 
   // ---- named targets inside module m1
@@ -246,6 +256,8 @@ APPLY_JS = r"""
   const card = document.getElementById('vcard');
   const hook = document.getElementById('vhook');
   if (s.hook) { hook.style.display = 'block'; hook.innerHTML = s.hook; } else hook.style.display = 'none';
+  const wm = document.getElementById('vwm');
+  if (wm.innerHTML) wm.style.visibility = s.card ? 'hidden' : 'visible';
   if (s.card) { card.style.display = 'flex'; card.style.opacity = s.cardo; card.innerHTML = s.card; } else card.style.display = 'none';
 }
 """
@@ -355,7 +367,7 @@ def narration(script, beats, work, voice_dir=None, no_tts=False):
 
 def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromium=None,
            intro_card=None, intro=INTRO, outro_card=None, outro=OUTRO, hook=None,
-           cam_top=90, cam_bottom=CAP_SPACE, cap_bottom=44, lead=MOVE, dpr=1, css=""):
+           cam_top=90, cam_bottom=CAP_SPACE, cap_bottom=44, lead=MOVE, dpr=1, css="", watermark=""):
     """Drive the page and write an MP4 whose picture follows the narration beat by beat."""
     global W, H
     W, H = size
@@ -391,7 +403,7 @@ def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromiu
         url = page if re.match(r"https?://", page) else Path(page).resolve().as_uri()
         pg.goto(url, wait_until="load", timeout=90000)
         pg.wait_for_timeout(2500)
-        pg.evaluate(SETUP_JS, {"badge": badge})
+        pg.evaluate(SETUP_JS, {"badge": badge, "wm": watermark})
         pg.evaluate(f"document.documentElement.style.setProperty('--capb','{cap_bottom}px')")
         if css:
             pg.add_style_tag(content=css)
@@ -481,6 +493,22 @@ def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromiu
     return total
 
 
+WA_ICON = ('<svg class="wai" viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7c-2 0-4-.5-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.7 3.7 0 0 0-1.1 2.7 6.4 6.4 0 0 0 1.3 3.4 14.7 14.7 0 0 0 5.7 5c2.1.9 2.9 1 4 .8a3.4 3.4 0 0 0 2.2-1.6 2.8 2.8 0 0 0 .2-1.6c-.1-.2-.3-.3-.6-.4z"/></svg>')
+
+
+def brand_html(script):
+    """(watermark html, end-card contact block html) from script['brand'], or ('', '')."""
+    b = script.get("brand")
+    if not b:
+        return "", ""
+    wm = (f'<span>{b["name"]}</span>' +
+          (f'<span class="sep">|</span>{WA_ICON}<span dir="ltr">{b["whatsapp"]}</span>' if b.get("whatsapp") else ""))
+    card = (f"<div class='br'><div class='nm'>{b['name']}</div>" +
+            (f"<div class='wa'>{WA_ICON}<span dir='ltr'>{b['whatsapp']}</span></div>" if b.get("whatsapp") else "") +
+            "</div>")
+    return wm, card
+
+
 def load_script():
     script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
     for k, b in enumerate(script["beats"]):
@@ -513,12 +541,14 @@ def main():
     work.mkdir(parents=True, exist_ok=True)
     page = fetch_page(work, args.page)
     narr = narration(script, beats, work, args.voice_dir, args.no_tts)
+    wm, contact = brand_html(script)
+    by = f"<div class='d' style='direction:ltr'>تقديم: {script['brand']['name']}</div>" if script.get("brand") else ""
     intro = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
-             "<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>")
+             f"<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>{by}")
     outro = ("<div class='k'>نهاية الجزء الثاني</div><div class='t'>المشكلة التي تتكرر مرتين<br>مشكلة نظام</div>"
-             "<div class='d'>نلقاك في الوحدة الثانية</div>")
+             f"<div class='d'>نلقاك في الوحدة الثانية</div>{contact}")
     render(page, beats, narr, args.out, work, badge=script["badge"], chromium=args.chromium,
-           intro_card=intro, outro_card=outro)
+           intro_card=intro, outro_card=outro, outro=OUTRO + 1.5, watermark=wm)
 
 
 if __name__ == "__main__":

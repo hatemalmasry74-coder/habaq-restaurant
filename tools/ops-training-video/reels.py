@@ -13,6 +13,11 @@ REEL_CSS = """
   #vcard .d{font-size:22px!important;background:#d9a441;color:#0b353c;padding:8px 20px;border-radius:30px;font-weight:800!important}
   #vprog{height:5px!important}
   #vhl{border-width:3px!important}
+  #vwm{font-size:14px!important;padding:6px 12px!important;gap:7px!important;left:16px!important;
+       bottom:calc(var(--capb) + 78px)!important}
+  #vcard .br{margin-top:14px!important;gap:8px!important}
+  #vcard .nm{font-size:26px!important}
+  #vcard .wa{font-size:19px!important;padding:6px 16px!important}
 """
 
 
@@ -30,6 +35,7 @@ def main():
     work = build.HERE / "out" / "work-reels"
     work.mkdir(parents=True, exist_ok=True)
     page = build.fetch_page(work, args.page)
+    wm, contact = build.brand_html(script)
     have = {int(f.stem[:2]) for f in Path(args.voice_dir).iterdir() if f.stem[:2].isdigit()}
     for r in cfg["reels"]:
         if args.only and r["id"] not in args.only:
@@ -41,7 +47,7 @@ def main():
         narr = build.narration(script, beats, work, args.voice_dir)
         build.render(page, beats, narr, Path(args.out_dir) / f"{r['id']}.mp4", work,
                      size=(540, 960), dpr=2, css=REEL_CSS, chromium=args.chromium,
-                     hook=r["hook"], outro_card=r.get("cta", cfg["cta"]), outro=2.5,
+                     hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
                      cam_top=205, cam_bottom=150, cap_bottom=70, lead=0.5)
 
 
