@@ -496,11 +496,19 @@ def main():
     ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
     ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
                     "(any audio format); captions then show each beat's key points")
+    ap.add_argument("--skip-missing", action="store_true",
+                    help="with --voice-dir: leave out beats that have no recording yet")
     ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
     args = ap.parse_args()
 
     script = load_script()
     beats = script["beats"]
+    if args.voice_dir and args.skip_missing:
+        have = {int(f.stem[:2]) for f in Path(args.voice_dir).iterdir() if f.stem[:2].isdigit()}
+        skipped = [b["n"] for b in beats if b["n"] not in have]
+        beats = [b for b in beats if b["n"] in have]
+        if skipped:
+            print("skipping beats without recordings:", skipped)
     work = HERE / "out" / "work"
     work.mkdir(parents=True, exist_ok=True)
     page = fetch_page(work, args.page)
