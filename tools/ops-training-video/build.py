@@ -14,8 +14,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 W, H, FPS = 1920, 1080, 30
-MOVE = 0.9          # seconds of camera move before each beat's speech
-TAIL = 0.35         # pause after each beat
+MOVE = 0.7          # seconds of camera move before each beat's speech
+TAIL = 0.3          # pause after each beat
 INTRO = 2.5         # title card
 OUTRO = 3.0         # closing card
 SR = 24000
@@ -40,7 +40,8 @@ async def tts_beat(text, voice, rate, out_mp3):
     ca = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
     if ca and os.path.exists(ca):  # edge-tts pins certifi; honour a custom CA (corporate proxies)
         c._SSL_CTX = ssl.create_default_context(cafile=ca)
-    comm = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")  # edge-tts ignores env proxies
+    comm = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary", proxy=proxy)
     words = []
     with open(out_mp3, "wb") as f:
         async for ch in comm.stream():
