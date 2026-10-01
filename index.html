@@ -3596,6 +3596,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <input type="month" id="invc-month" onchange="invRenderCountSheet()" style="padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
                 <input type="text" id="invc-search" placeholder="🔍 بحث عن صنف" oninput="invRenderCountSheet()" style="padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
+                <button class="btn bsm bo" onclick="invUnitsManager()">🔧 الوحدات</button>
                 <button class="btn bsm bp" onclick="invNewItem('count')">➕ صنف جديد</button>
               </div>
             </div>
@@ -17610,7 +17611,9 @@ function ccEditIng(id){
   var g=_ccIngs.find(function(x){return x._id===id;}); if(!g)return;
   document.getElementById('ing-id').value=id;
   document.getElementById('ing-name').value=g.name||'';
-  document.getElementById('ing-unit').value=g.unit||'جم';
+  var us=document.getElementById('ing-unit'), uv=g.unit||'جم';
+  if(![].some.call(us.options,function(o){return o.value===uv;})){var o=document.createElement('option');o.value=uv;o.textContent=uv;us.appendChild(o);}
+  us.value=uv;
   document.getElementById('ing-price').value=g.price||'';
   document.getElementById('ing-pack').value=g.pack||'';
   document.getElementById('ing-waste').value=g.waste||0;
@@ -18759,10 +18762,10 @@ function invRenderCountSheet(){
   var exMap={};if(existing)(existing.lines||[]).forEach(function(l){exMap[l.itemId]=l;});
   var draft=invDraftFor(month), drMap=(draft&&draft.lines)||{};
   var info=document.getElementById('invc-info');
-  if(info)info.innerHTML=(existing?'<span style="color:#1B5E20">✅ يوجد جرد محفوظ لهذا الشهر بتاريخ '+(existing.date||'')+' بواسطة '+invEsc(existing.savedByName||'')+' — التعديل يستبدله</span>':'<span style="color:var(--tl)">لا يوجد جرد محفوظ لشهر '+month+' بعد — الرصيد الدفتري أدناه محسوب حتى '+end+'</span>')
+  if(info)info.innerHTML=(existing?'<span style="color:#1B5E20">✅ يوجد جرد معتمد لهذا الشهر — أُعدّ بواسطة '+invEsc(existing.firstSavedByName||existing.savedByName||'')+(existing.editCount?' | آخر تعديل بواسطة '+invEsc(existing.savedByName||'')+(existing.savedAt?' في '+invTs(existing.savedAt):'')+' (عدد التعديلات: '+existing.editCount+')':'')+'</span>'+(invCanCount()?'<div style="color:#1565C0;margin-top:2px">✏️ يمكنك تعديل الكميات أدناه ثم الضغط على «حفظ التعديلات» — يستبدل الجرد السابق ويُسجَّل اسمك ووقت التعديل.</div>':''):'<span style="color:var(--tl)">لا يوجد جرد محفوظ لشهر '+month+' بعد — الرصيد الدفتري أدناه محسوب حتى '+end+'</span>')
     +(draft&&Object.keys(drMap).length?'<div style="margin-top:4px;padding:6px 10px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;color:#8D6E00">📝 توجد مسودة جرد غير معتمدة لهذا الشهر ('+Object.keys(drMap).length+' صنف) — آخر إدخال بواسطة '+invEsc(draft.updatedByName||'')+(draft.updatedAt?' في '+invTs(draft.updatedAt):'')+'. الكميات معروضة في الجدول'+(invCanCount()?'، راجعها ثم اضغط حفظ لاعتمادها.':' وستبقى محفوظة حتى يعتمدها مدير الفرع أو مسؤول المخازن.')+'</div>':'')
     +(invCanCount()?'':'<div style="margin-top:4px;color:#B71C1C">ℹ️ اعتماد الجرد لمدير الفرع أو مسؤول المخازن فقط — ما تُدخله يُحفظ تلقائياً كمسودة ويظهر لهم في تقارير الجرد.</div>');
-  var sb=document.getElementById('invc-save-btn');if(sb)sb.textContent=invCanCount()?'💾 حفظ واعتماد الجرد الشهري':'📤 حفظ كمسودة للاعتماد';
+  var sb=document.getElementById('invc-save-btn');if(sb)sb.textContent=invCanCount()?(existing?'💾 حفظ التعديلات على الجرد':'💾 حفظ واعتماد الجرد الشهري'):'📤 حفظ كمسودة للاعتماد';
   var q=((document.getElementById('invc-search')||{}).value||'').trim();
   var typed={};if(el.getAttribute('data-month')===month)document.querySelectorAll('#invc-body tr[data-item]').forEach(function(tr){var i=tr.querySelector('.invc-in');if(i&&i.value!=='')typed[tr.getAttribute('data-item')]=i.value;});
   var rows='';
@@ -18771,7 +18774,7 @@ function invRenderCountSheet(){
     var ev=invEvents(g._id).filter(function(e){return !(e.type==='count'&&e.batch==='count-'+month);});
     var sys=invBalance(ev,end), ex=exMap[g._id], dr=drMap[g._id];
     var val=typed[g._id]!==undefined?typed[g._id]:(dr&&dr.counted!==null&&dr.counted!==undefined?dr.counted:(ex&&ex.counted!==null&&ex.counted!==undefined?ex.counted:''));
-    rows+='<tr data-item="'+g._id+'" data-sys="'+sys+'"><td style="font-weight:700">'+invEsc(g.name)+'</td><td>'+invEsc(g.unit||'')+'</td><td>'+invFmt(sys)+'</td>'
+    rows+='<tr data-item="'+g._id+'" data-sys="'+sys+'"><td style="font-weight:700">'+invEsc(g.name)+'</td><td>'+invEsc(g.unit||'')+(invCanWrite()?' <button class="btn bsm bo" style="padding:1px 6px;font-size:10px" title="تعديل الصنف والوحدة" onclick="invEditItem(\''+g._id+'\')">✏️</button>':'')+'</td><td>'+invFmt(sys)+'</td>'
       +'<td><input type="number" step="0.001" class="invc-in" value="'+val+'" placeholder="—" style="width:110px;padding:5px 8px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif" oninput="invcRow(this)"></td>'
       +'<td class="invc-diff">'+(val!==''?invcDiffHtml(parseFloat(val)-sys,g):'—')+'</td><td style="font-size:11px">'+ccUnitCost(g).toFixed(4)+'</td></tr>';
   });
@@ -18813,13 +18816,16 @@ function invSaveCount(){
     ops.push({ref:ref,data:{date:date,itemId:id,itemName:g.name,unit:g.unit||'',type:'count',qty:counted,note:'جرد شهر '+month+' (دفتري '+invFmt(sys)+')',batchId:batchId,createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()}});
   });
   if(!lines.length){alert('أدخل الكمية الفعلية لصنف واحد على الأقل');return;}
-  if(!confirm('حفظ جرد شهر '+month+' لعدد '+lines.length+' صنف؟\nسيصبح الجرد الفعلي هو رصيد نهاية الشهر وأول مدة الشهر التالي.'))return;
+  var prev=INV_COUNTS.find(function(c){return c.month===month;});
+  if(!confirm((prev?'تعديل جرد شهر '+month+' المعتمد سابقاً':'حفظ جرد شهر '+month)+' لعدد '+lines.length+' صنف؟\nسيصبح الجرد الفعلي هو رصيد نهاية الشهر وأول مدة الشهر التالي.'))return;
   var doc={month:month,date:date,lines:lines,savedBy:CU._id,savedByName:CU.name,savedAt:firebase.firestore.FieldValue.serverTimestamp(),
+           firstSavedBy:prev?(prev.firstSavedBy||prev.savedBy||''):CU._id,firstSavedByName:prev?(prev.firstSavedByName||prev.savedByName||''):CU.name,
+           firstSavedAt:prev?(prev.firstSavedAt||prev.savedAt||null):firebase.firestore.FieldValue.serverTimestamp(),editCount:prev?(Number(prev.editCount)||0)+1:0,
            totalShort:lines.reduce(function(s,l){return s+(l.diffValue<0?-l.diffValue:0);},0),totalOver:lines.reduce(function(s,l){return s+(l.diffValue>0?l.diffValue:0);},0)};
   ops.push({ref:db.collection('inv_counts').doc(batchId),data:doc});
   clearTimeout(_invDraftTimer);_invDraftPending={};
   invCommit(ops).then(function(){
-    alert('✅ تم حفظ الجرد الشهري');
+    alert(prev?'✅ تم حفظ التعديلات على جرد '+month:'✅ تم حفظ الجرد الشهري');
     var d=invDraftFor(month);
     if(d)db.collection('inv_count_drafts').doc(batchId).delete().catch(function(){});
     INV_DRAFTS=INV_DRAFTS.filter(function(x){return x.month!==month;});
@@ -18832,7 +18838,7 @@ function invRenderCountHistory(){
   var list=INV_COUNTS.slice().sort(function(a,b){return a.month<b.month?1:-1;});
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--tl);padding:12px;font-size:12px">لا توجد جردات محفوظة</div>';return;}
   el.innerHTML='<table class="dt"><thead><tr><th>الشهر</th><th>التاريخ</th><th>الأصناف</th><th>العجز (﷼)</th><th>الزيادة (﷼)</th><th>بواسطة</th><th></th></tr></thead><tbody>'+list.map(function(c){
-    return '<tr><td style="font-weight:700">'+c.month+'</td><td>'+(c.date||'')+'</td><td>'+(c.lines||[]).length+'</td><td style="color:#B71C1C">'+invMoney(c.totalShort)+'</td><td style="color:#1B5E20">'+invMoney(c.totalOver)+'</td><td>'+invEsc(c.savedByName||'')+'</td><td><button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ طباعة</button></td></tr>';
+    return '<tr><td style="font-weight:700">'+c.month+'</td><td>'+(c.date||'')+'</td><td>'+(c.lines||[]).length+'</td><td style="color:#B71C1C">'+invMoney(c.totalShort)+'</td><td style="color:#1B5E20">'+invMoney(c.totalOver)+'</td><td>'+invEsc(c.savedByName||'')+'</td><td style="white-space:nowrap"><button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ طباعة</button>'+(invCanCount()?' <button class="btn bsm bo" onclick="invOpenCountMonth(\''+c.month+'\')">✏️ تعديل</button>':'')+'</td></tr>';
   }).join('')+'</tbody></table>';
 }
 function invPrintCount(id){
@@ -18918,7 +18924,7 @@ function invRenderReports(){
       done++;short+=Number(c.totalShort)||0;over+=Number(c.totalOver)||0;
       (c.lines||[]).forEach(function(l){if(!(l.diffValue<0))return;var a=itemAgg[l.itemId]||(itemAgg[l.itemId]={name:l.name,unit:l.unit,times:0,qty:0,val:0});a.times++;a.qty+=-(Number(l.diff)||0);a.val+=-(Number(l.diffValue)||0);});
       st='<span style="color:#1B5E20;font-weight:700">✅ معتمد</span>';
-      act='<button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ عرض / طباعة</button> <button class="btn bsm bo" onclick="invExportCount(\''+c._id+'\')">⬇️ Excel</button>';
+      act='<button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ عرض / طباعة</button> <button class="btn bsm bo" onclick="invExportCount(\''+c._id+'\')">⬇️ Excel</button>'+(invCanCount()?' <button class="btn bsm bo" onclick="invOpenCountMonth(\''+m+'\')">✏️ تعديل</button>':'');
     }else if(dn){
       drafts++;st='<span style="color:#8D6E00;font-weight:700">📝 مسودة غير معتمدة</span>';
     }else{
@@ -18928,7 +18934,7 @@ function invRenderReports(){
     if(!c&&(dn||m<now))act+=' <button class="btn bsm '+(dn?'bp':'bo')+'" onclick="invOpenCountMonth(\''+m+'\')">'+(dn?(invCanCount()?'📋 مراجعة واعتماد':'📋 فتح المسودة'):'📋 بدء الجرد')+'</button>';
     return '<tr><td style="font-weight:700">'+m+'</td><td>'+st+'</td>'
       +'<td>'+(c?(c.lines||[]).length:(dn?dn+' <span style="font-size:10px;color:var(--tl)">(مسودة)</span>':'—'))+'</td>'
-      +'<td>'+(c?invEsc(c.savedByName||''):(dn?invEsc(d.updatedByName||''):'—'))+'</td>'
+      +'<td>'+(c?invEsc(c.firstSavedByName||c.savedByName||'')+(c.editCount?'<div style="font-size:10px;color:#1565C0">عُدّل '+c.editCount+'× — آخرها '+invEsc(c.savedByName||'')+'</div>':''):(dn?invEsc(d.updatedByName||''):'—'))+'</td>'
       +'<td style="font-size:11px">'+(c?invTs(c.savedAt)||c.date||'':(dn?invTs(d.updatedAt):'—'))+'</td>'
       +'<td style="color:#B71C1C">'+(c?invMoney(c.totalShort):'—')+'</td><td style="color:#1B5E20">'+(c?invMoney(c.totalOver):'—')+'</td>'
       +'<td>'+(c?invMoney((c.totalOver||0)-(c.totalShort||0)):'—')+'</td><td style="white-space:nowrap">'+act+'</td></tr>';
@@ -18961,6 +18967,73 @@ function invExportCount(id){
   })).map(function(r){return r.map(q).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='جرد-'+c.month+'.csv';
   document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+}
+
+// ===== تعديل صنف (الاسم / الوحدة / العبوة / السعر) =====
+function invUnitOptions(cur){
+  var all=['جم','كجم','مل','لتر','حبة','قطعة','عبوة','كيس','علبة','كرتون','رول','باكيت'];_ccIngs.forEach(function(g){if(g.unit&&all.indexOf(g.unit)<0)all.push(g.unit);});
+  if(cur&&all.indexOf(cur)<0)all.push(cur);
+  return all.map(function(u){return '<option value="'+invEsc(u)+'"'+(u===cur?' selected':'')+'>'+invEsc(u)+'</option>';}).join('')+'<option value="__">أخرى…</option>';
+}
+function invEditItem(id){
+  if(!invCanWrite()){alert('ليس لديك صلاحية تعديل الأصناف');return;}
+  var g=invIng(id);if(!g)return;
+  var html='<div class="fg2">'
+    +'<div class="fr"><label>اسم الصنف *</label><input type="text" id="ei-name" value="'+invEsc(g.name)+'"></div>'
+    +'<div class="fr"><label>وحدة القياس *</label><select id="ei-unit" onchange="document.getElementById(\'ei-unit-other\').style.display=this.value===\'__\'?\'block\':\'none\'">'+invUnitOptions(g.unit||'')+'</select><input type="text" id="ei-unit-other" placeholder="اكتب الوحدة" style="display:none;margin-top:4px"></div>'
+    +'<div class="fr"><label>حجم العبوة (بالوحدة) *</label><input type="number" id="ei-pack" step="0.001" min="0" value="'+(g.pack||'')+'"></div>'
+    +'<div class="fr"><label>سعر العبوة قبل الضريبة (ر.س)</label><input type="number" id="ei-price" step="0.01" min="0" value="'+(g.price||'')+'"></div>'
+    +'<div class="fr"><label>نسبة الهالك %</label><input type="number" id="ei-waste" step="0.5" min="0" max="99" value="'+(g.waste||0)+'"></div>'
+    +'</div><div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:6px 10px;margin-bottom:8px">⚠️ تغيير الوحدة يغيّر اسمها فقط ولا يحوّل الكميات المسجلة. مثال: إذا كانت الكميات مسجلة بالجرام وغيّرت الوحدة إلى كجم، عدّل حجم العبوة والجرد ليتوافقا مع الوحدة الجديدة. تكلفة الوحدة = سعر العبوة ÷ حجم العبوة.</div>'
+    +'<button class="btn bp" onclick="invSaveEditItem(\''+id+'\')">💾 حفظ التعديل</button>';
+  psShowModal('✏️ تعديل الصنف',html);
+}
+function invSaveEditItem(id){
+  var g=invIng(id);if(!g)return;
+  var name=(document.getElementById('ei-name').value||'').trim();
+  var unit=document.getElementById('ei-unit').value;if(unit==='__')unit=(document.getElementById('ei-unit-other').value||'').trim();
+  var pack=parseFloat(document.getElementById('ei-pack').value)||0, price=parseFloat(document.getElementById('ei-price').value)||0, waste=parseFloat(document.getElementById('ei-waste').value)||0;
+  if(!name||!unit||pack<=0){alert('أكمل اسم الصنف والوحدة وحجم العبوة');return;}
+  if(_ccIngs.some(function(x){return x._id!==id&&invNorm(x.name)===invNorm(name);})){alert('يوجد صنف آخر بنفس الاسم');return;}
+  var d={name:name,unit:unit,pack:pack,price:price,waste:waste,updatedAt:new Date().toISOString(),updatedBy:CU.name||''};
+  db.collection('cost_ingredients').doc(id).update(d).then(function(){
+    Object.assign(g,d);_ccIngs.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
+    psCloseModal();invAfterItemsChange();
+  }).catch(function(e){alert('خطأ: '+e.message);});
+}
+function invAfterItemsChange(){
+  if(typeof ccRenderIngs==='function')ccRenderIngs();
+  invFillItemSelect();invRenderLedger();
+  var c=document.getElementById('inv-count');if(c&&c.style.display!=='none')invRenderCountSheet();
+}
+// توحيد الوحدات: إعادة تسمية وحدة لكل الأصناف التي تستخدمها (مثل pcs / piece ← حبة)
+function invUnitsManager(){
+  if(!invCanWrite()){alert('ليس لديك صلاحية تعديل الأصناف');return;}
+  var cnt={};_ccIngs.forEach(function(g){var u=g.unit||'(بدون وحدة)';cnt[u]=(cnt[u]||0)+1;});
+  var units=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];});
+  var html='<div style="font-size:12px;color:var(--tl);margin-bottom:10px">اختر الوحدة الجديدة بجانب أي وحدة تريد توحيدها ثم اضغط «تطبيق» — تُحدَّث كل الأصناف التي تستخدم تلك الوحدة. لتعديل صنف واحد استخدم زر ✏️ بجانبه في الجرد.</div>'
+    +'<table class="dt"><thead><tr><th>الوحدة الحالية</th><th>عدد الأصناف</th><th>توحيد إلى</th><th></th></tr></thead><tbody>'
+    +units.map(function(u,i){return '<tr><td style="font-weight:700">'+invEsc(u)+'</td><td>'+cnt[u]+' <a href="javascript:void(0)" style="font-size:10px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">عرض</a><div style="display:none;font-size:10px;color:var(--tl)">'+_ccIngs.filter(function(g){return (g.unit||'(بدون وحدة)')===u;}).map(function(g){return invEsc(g.name);}).join('، ')+'</div></td>'
+      +'<td><select id="um-to-'+i+'" onchange="document.getElementById(\'um-oth-'+i+'\').style.display=this.value===\'__\'?\'block\':\'none\'">'+invUnitOptions(u)+'</select><input type="text" id="um-oth-'+i+'" placeholder="اكتب الوحدة" style="display:none;margin-top:4px;width:110px"></td>'
+      +'<td><button class="btn bsm bp" onclick="invRenameUnit('+i+')">تطبيق</button></td></tr>';}).join('')
+    +'</tbody></table>';
+  window._invUnitsList=units;
+  psShowModal('🔧 توحيد وحدات القياس',html);
+}
+function invRenameUnit(i){
+  var from=window._invUnitsList[i], to=document.getElementById('um-to-'+i).value;
+  if(to==='__')to=(document.getElementById('um-oth-'+i).value||'').trim();
+  if(!to){alert('حدد الوحدة الجديدة');return;}
+  if(to===from){alert('الوحدة الجديدة مطابقة للحالية');return;}
+  var items=_ccIngs.filter(function(g){return (g.unit||'(بدون وحدة)')===from;});
+  if(!confirm('تغيير الوحدة «'+from+'» إلى «'+to+'» لعدد '+items.length+' صنف؟\n(تغيير الاسم فقط — لا تتغير الكميات)'))return;
+  var now=new Date().toISOString();
+  var chunks=[];for(var k=0;k<items.length;k+=400)chunks.push(items.slice(k,k+400));
+  chunks.reduce(function(p,ch){return p.then(function(){var bt=db.batch();ch.forEach(function(g){bt.update(db.collection('cost_ingredients').doc(g._id),{unit:to,updatedAt:now,updatedBy:CU.name||''});});return bt.commit();});},Promise.resolve()).then(function(){
+    items.forEach(function(g){g.unit=to;g.updatedAt=now;});
+    invAfterItemsChange();invUnitsManager();
+    alert('✅ تم توحيد '+items.length+' صنف إلى «'+to+'»');
+  }).catch(function(e){alert('خطأ: '+e.message);});
 }
 
 // ===== إضافة صنف جديد من داخل المخازن / الجرد / الفاتورة =====
