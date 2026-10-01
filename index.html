@@ -3537,6 +3537,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
           <button class="tab" onclick="invTab('inv-moves',this)">➖ صرف / هالك / تسوية</button>
           <button class="tab" onclick="invTab('inv-sales',this)">🧾 خصم مبيعات الأصناف</button>
           <button class="tab" onclick="invTab('inv-count',this)">📋 الجرد الشهري</button>
+          <button class="tab" onclick="invTab('inv-reports',this)">📊 تقارير الجرد</button>
         </div>
 
         <div id="inv-ledger">
@@ -3601,11 +3602,30 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
             <div id="invc-info" style="font-size:11px;margin-bottom:8px"></div>
             <div id="invc-totals" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
             <div style="overflow-x:auto"><table class="dt"><thead><tr><th>الصنف</th><th>الوحدة</th><th>الرصيد الدفتري نهاية الشهر</th><th>الجرد الفعلي</th><th>الفرق</th><th>تكلفة الوحدة</th></tr></thead><tbody id="invc-body"></tbody></table></div>
-            <div style="display:flex;gap:8px;margin-top:10px"><button class="btn bp" onclick="invSaveCount()">💾 حفظ الجرد الشهري</button></div>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap"><button class="btn bp" id="invc-save-btn" onclick="invSaveCount()">💾 حفظ الجرد الشهري</button><span id="invc-draft-status" style="font-size:11px;color:var(--tl)"></span></div>
           </div>
           <div class="card">
             <div class="ct">🗂️ الجردات المحفوظة</div>
             <div id="invc-history"></div>
+          </div>
+        </div>
+
+        <div id="inv-reports" style="display:none">
+          <div class="card">
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <span>📊 تقارير الجرد</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px">
+                <span>من</span><input type="month" id="invr-from" onchange="invRenderReports()" style="padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
+                <span>إلى</span><input type="month" id="invr-to" onchange="invRenderReports()" style="padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
+              </div>
+            </div>
+            <div id="invr-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px"></div>
+            <div style="font-weight:700;font-size:13px;margin:6px 0">🗓️ حالة الجرد لكل شهر</div>
+            <div style="overflow-x:auto" id="invr-months"></div>
+          </div>
+          <div class="card">
+            <div class="ct">⚠️ الأصناف الأكثر عجزاً خلال الفترة</div>
+            <div style="overflow-x:auto" id="invr-items"></div>
           </div>
         </div>
       </div>
@@ -4624,7 +4644,8 @@ var AUDIT_COLL_NAMES={
   purchases_payments:'دفعات الموردين',
   purchase_requests:'طلبات المشتريات',
   inv_movements:'حركات المخزون',
-  inv_counts:'الجرد الشهري'
+  inv_counts:'الجرد الشهري',
+  inv_count_drafts:'مسودات الجرد'
 };
 var AUDIT_ACTION_NAMES={
   'delete':{label:'حذف',icon:'🗑️',bg:'#FFEBEE',color:'#B71C1C'},
@@ -18403,7 +18424,7 @@ function beInit(){ if(typeof ccViewOK==="function" && !ccViewOK()) return; loadB
 // Firestore: inv_movements / inv_counts  +  purchases_invoices.lines  +  cost_ingredients
 // المشتريات تُشتق مباشرة من بنود فواتير الشراء، فأي فاتورة تُحفظ تظهر في حركة الصنف فوراً
 // =================================================================
-var INV_MOVES=[], INV_COUNTS=[], _invInit=false, _invSalesPreview=null;
+var INV_MOVES=[], INV_COUNTS=[], INV_DRAFTS=[], _invInit=false, _invSalesPreview=null;
 var INV_TYPE_LABEL={opening:'رصيد أول المدة',purchase:'مشتريات',sale:'مبيعات (من الوصفات)',consume:'صرف / استهلاك',waste:'هالك / تالف',adjust:'تسوية',count:'جرد فعلي'};
 var INV_TYPE_ORDER={opening:0,purchase:1,sale:2,consume:2,waste:2,adjust:3,count:9};
 
@@ -18432,6 +18453,8 @@ function invIng(id){return _ccIngs.find(function(x){return x._id===id;});}
 function invInit(){
   var m=document.getElementById('inv-month');if(m&&!m.value)m.value=invMonthNow();
   var cm=document.getElementById('invc-month');if(cm&&!cm.value)cm.value=invMonthNow();
+  var rf=document.getElementById('invr-from');if(rf&&!rf.value)rf.value=invMonthAdd(invMonthNow(),-5);
+  var rt=document.getElementById('invr-to');if(rt&&!rt.value)rt.value=invMonthNow();
   var sm=document.getElementById('invs-month');if(sm&&!sm.value)sm.value=invMonthNow();
   var md=document.getElementById('invm-date');if(md&&!md.value)md.value=new Date().toISOString().slice(0,10);
   if(!invCanWrite()){var f=document.getElementById('inv-move-form');if(f)f.style.display='none';}
@@ -18443,21 +18466,25 @@ function invReload(){
     invEnsureIngs(),
     SDCache.snap('purchases_invoices').then(function(snap){PS_INVOICES=[];snap.forEach(function(d){var x=d.data();x._id=d.id;PS_INVOICES.push(x);});}),
     SDCache.snap('inv_movements').then(function(snap){INV_MOVES=[];snap.forEach(function(d){var x=d.data();x._id=d.id;INV_MOVES.push(x);});}),
-    SDCache.snap('inv_counts').then(function(snap){INV_COUNTS=[];snap.forEach(function(d){var x=d.data();x._id=d.id;INV_COUNTS.push(x);});})
+    SDCache.snap('inv_counts').then(function(snap){INV_COUNTS=[];snap.forEach(function(d){var x=d.data();x._id=d.id;INV_COUNTS.push(x);});}),
+    SDCache.snap('inv_count_drafts').then(function(snap){INV_DRAFTS=[];snap.forEach(function(d){var x=d.data();x._id=d.id;INV_DRAFTS.push(x);});}).catch(function(){INV_DRAFTS=[];})
   ]).then(function(){
     _invInit=true;
+    invPickDefaultCountMonth();
     invFillItemSelect();
     invRenderLedger();
     invRenderMoves();
     invRenderCountHistory();
+    var rp=document.getElementById('inv-reports');if(rp&&rp.style.display!=='none')invRenderReports();
   }).catch(function(e){console.error(e);alert('تعذر تحميل بيانات المخازن: '+e.message);});
 }
 function invTab(id,el){
-  ['inv-ledger','inv-moves','inv-sales','inv-count'].forEach(function(x){var e=document.getElementById(x);if(e)e.style.display=(x===id)?'block':'none';});
+  ['inv-ledger','inv-moves','inv-sales','inv-count','inv-reports'].forEach(function(x){var e=document.getElementById(x);if(e)e.style.display=(x===id)?'block':'none';});
   document.querySelectorAll('#pg-inventory .tabs .tab').forEach(function(t){t.classList.remove('active');});
   if(el)el.classList.add('active');
   if(id==='inv-count')invRenderCountSheet();
   if(id==='inv-ledger')invRenderLedger();
+  if(id==='inv-reports')invRenderReports();
 }
 
 // ===== الأحداث المجمّعة لصنف (فواتير + حركات) =====
@@ -18730,20 +18757,26 @@ function invRenderCountSheet(){
   var month=(document.getElementById('invc-month')||{}).value||invMonthNow(), end=invMonthEnd(month);
   var existing=INV_COUNTS.find(function(c){return c.month===month;});
   var exMap={};if(existing)(existing.lines||[]).forEach(function(l){exMap[l.itemId]=l;});
+  var draft=invDraftFor(month), drMap=(draft&&draft.lines)||{};
   var info=document.getElementById('invc-info');
-  if(info)info.innerHTML=existing?'<span style="color:#1B5E20">✅ يوجد جرد محفوظ لهذا الشهر بتاريخ '+(existing.date||'')+' بواسطة '+invEsc(existing.savedByName||'')+' — التعديل يستبدله</span>':'<span style="color:var(--tl)">لا يوجد جرد محفوظ لشهر '+month+' بعد — الرصيد الدفتري أدناه محسوب حتى '+end+'</span>';
+  if(info)info.innerHTML=(existing?'<span style="color:#1B5E20">✅ يوجد جرد محفوظ لهذا الشهر بتاريخ '+(existing.date||'')+' بواسطة '+invEsc(existing.savedByName||'')+' — التعديل يستبدله</span>':'<span style="color:var(--tl)">لا يوجد جرد محفوظ لشهر '+month+' بعد — الرصيد الدفتري أدناه محسوب حتى '+end+'</span>')
+    +(draft&&Object.keys(drMap).length?'<div style="margin-top:4px;padding:6px 10px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;color:#8D6E00">📝 توجد مسودة جرد غير معتمدة لهذا الشهر ('+Object.keys(drMap).length+' صنف) — آخر إدخال بواسطة '+invEsc(draft.updatedByName||'')+(draft.updatedAt?' في '+invTs(draft.updatedAt):'')+'. الكميات معروضة في الجدول'+(invCanCount()?'، راجعها ثم اضغط حفظ لاعتمادها.':' وستبقى محفوظة حتى يعتمدها مدير الفرع أو مسؤول المخازن.')+'</div>':'')
+    +(invCanCount()?'':'<div style="margin-top:4px;color:#B71C1C">ℹ️ اعتماد الجرد لمدير الفرع أو مسؤول المخازن فقط — ما تُدخله يُحفظ تلقائياً كمسودة ويظهر لهم في تقارير الجرد.</div>');
+  var sb=document.getElementById('invc-save-btn');if(sb)sb.textContent=invCanCount()?'💾 حفظ واعتماد الجرد الشهري':'📤 حفظ كمسودة للاعتماد';
   var q=((document.getElementById('invc-search')||{}).value||'').trim();
-  var typed={};document.querySelectorAll('#invc-body tr[data-item]').forEach(function(tr){var i=tr.querySelector('.invc-in');if(i&&i.value!=='')typed[tr.getAttribute('data-item')]=i.value;});
+  var typed={};if(el.getAttribute('data-month')===month)document.querySelectorAll('#invc-body tr[data-item]').forEach(function(tr){var i=tr.querySelector('.invc-in');if(i&&i.value!=='')typed[tr.getAttribute('data-item')]=i.value;});
   var rows='';
   _ccIngs.forEach(function(g){
     if(q&&(g.name||'').indexOf(q)<0)return;
     var ev=invEvents(g._id).filter(function(e){return !(e.type==='count'&&e.batch==='count-'+month);});
-    var sys=invBalance(ev,end), ex=exMap[g._id];
+    var sys=invBalance(ev,end), ex=exMap[g._id], dr=drMap[g._id];
+    var val=typed[g._id]!==undefined?typed[g._id]:(dr&&dr.counted!==null&&dr.counted!==undefined?dr.counted:(ex&&ex.counted!==null&&ex.counted!==undefined?ex.counted:''));
     rows+='<tr data-item="'+g._id+'" data-sys="'+sys+'"><td style="font-weight:700">'+invEsc(g.name)+'</td><td>'+invEsc(g.unit||'')+'</td><td>'+invFmt(sys)+'</td>'
-      +'<td><input type="number" step="0.001" class="invc-in" value="'+(typed[g._id]!==undefined?typed[g._id]:(ex&&ex.counted!==null&&ex.counted!==undefined?ex.counted:''))+'" placeholder="—" style="width:110px;padding:5px 8px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif" oninput="invcRow(this)"></td>'
-      +'<td class="invc-diff">'+(ex?invcDiffHtml(ex.counted-sys,g):'—')+'</td><td style="font-size:11px">'+ccUnitCost(g).toFixed(4)+'</td></tr>';
+      +'<td><input type="number" step="0.001" class="invc-in" value="'+val+'" placeholder="—" style="width:110px;padding:5px 8px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif" oninput="invcRow(this)"></td>'
+      +'<td class="invc-diff">'+(val!==''?invcDiffHtml(parseFloat(val)-sys,g):'—')+'</td><td style="font-size:11px">'+ccUnitCost(g).toFixed(4)+'</td></tr>';
   });
   el.innerHTML=rows||'<tr><td colspan="6" style="text-align:center;color:var(--tl);padding:20px">لا توجد أصناف</td></tr>';
+  el.setAttribute('data-month',month);
   invcTotals();
 }
 function invcDiffHtml(d,g){if(!isFinite(d))return '—';var col=d<0?'#B71C1C':(d>0?'#1B5E20':'var(--tl)');return '<span style="font-weight:700;color:'+col+'">'+(d>0?'+':'')+invFmt(d)+'</span><div style="font-size:10px;color:'+col+'">'+invMoney(d*ccUnitCost(g))+' ﷼</div>';}
@@ -18751,6 +18784,7 @@ function invcRow(inp){
   var tr=inp.closest('tr'), g=invIng(tr.getAttribute('data-item')), sys=parseFloat(tr.getAttribute('data-sys'))||0, v=inp.value===''?NaN:parseFloat(inp.value);
   tr.querySelector('.invc-diff').innerHTML=isFinite(v)?invcDiffHtml(v-sys,g):'—';
   invcTotals();
+  invDraftQueue(tr.getAttribute('data-item'),g,inp.value);
 }
 function invcTotals(){
   var short=0,over=0,cnt=0;
@@ -18763,8 +18797,12 @@ function invcTotals(){
   if(t)t.innerHTML='<div class="kpi"><div class="kv">'+cnt+'</div><div class="kl">صنف تم جرده</div></div><div class="kpi"><div class="kv" style="color:#B71C1C">'+invMoney(short)+'</div><div class="kl">قيمة العجز (﷼)</div></div><div class="kpi"><div class="kv" style="color:#1B5E20">'+invMoney(over)+'</div><div class="kl">قيمة الزيادة (﷼)</div></div>';
 }
 function invSaveCount(){
-  if(!invCanCount()){alert('صلاحية مدير الفرع أو مسؤول المخازن');return;}
+  if(!invCanCount()){
+    invDraftFlush().then(function(ok){alert(ok?'📝 تم حفظ الجرد كمسودة — سيظهر لمدير الفرع ومسؤول المخازن في «تقارير الجرد» لاعتماده':'تعذر حفظ المسودة — تحقق من الاتصال وحاول مرة أخرى');});
+    return;
+  }
   var month=(document.getElementById('invc-month')||{}).value;if(!month){alert('حدد الشهر');return;}
+  var srch=document.getElementById('invc-search');if(srch&&srch.value){srch.value='';invRenderCountSheet();}
   var date=invMonthEnd(month), batchId='count-'+month, lines=[], ops=[];
   document.querySelectorAll('#invc-body tr[data-item]').forEach(function(tr){
     var id=tr.getAttribute('data-item'), g=invIng(id), inp=tr.querySelector('.invc-in'), sys=parseFloat(tr.getAttribute('data-sys'))||0;
@@ -18779,7 +18817,15 @@ function invSaveCount(){
   var doc={month:month,date:date,lines:lines,savedBy:CU._id,savedByName:CU.name,savedAt:firebase.firestore.FieldValue.serverTimestamp(),
            totalShort:lines.reduce(function(s,l){return s+(l.diffValue<0?-l.diffValue:0);},0),totalOver:lines.reduce(function(s,l){return s+(l.diffValue>0?l.diffValue:0);},0)};
   ops.push({ref:db.collection('inv_counts').doc(batchId),data:doc});
-  invCommit(ops).then(function(){alert('✅ تم حفظ الجرد الشهري');return invReload().then(invRenderCountSheet);}).catch(function(e){alert('خطأ: '+e.message);});
+  clearTimeout(_invDraftTimer);_invDraftPending={};
+  invCommit(ops).then(function(){
+    alert('✅ تم حفظ الجرد الشهري');
+    var d=invDraftFor(month);
+    if(d)db.collection('inv_count_drafts').doc(batchId).delete().catch(function(){});
+    INV_DRAFTS=INV_DRAFTS.filter(function(x){return x.month!==month;});
+    try{localStorage.removeItem('invDraft-'+month);}catch(e){}
+    return invReload().then(invRenderCountSheet);
+  }).catch(function(e){alert('خطأ: '+e.message);});
 }
 function invRenderCountHistory(){
   var el=document.getElementById('invc-history');if(!el)return;
@@ -18802,6 +18848,120 @@ function invPrintCount(id){
   var w=window.open('','_blank','width=900,height=800');if(w){w.document.write(html);w.document.close();}
 }
 
+// ===== مسودات الجرد (حفظ تلقائي حتى لا يضيع ما يدخله الموظف) =====
+var _invDraftTimer=null, _invDraftPending={}, _invDraftMonth=null;
+function invMonthAdd(m,n){var p=m.split('-');var d=new Date(Date.UTC(+p[0],+p[1]-1+n,1));return d.toISOString().slice(0,7);}
+function invTs(v){var t=v&&typeof v.toDate==='function'?v.toDate():(v&&typeof v.seconds==='number'?new Date(v.seconds*1000):(v?new Date(v):null));if(!t||isNaN(t.getTime()))return '';return t.toLocaleString('en-GB',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function invDraftFor(month){
+  var d=INV_DRAFTS.find(function(x){return x.month===month;});
+  if(d)return d;
+  if(INV_COUNTS.some(function(c){return c.month===month;}))return null;
+  try{var l=JSON.parse(localStorage.getItem('invDraft-'+month)||'null');if(l&&l.lines&&Object.keys(l.lines).length)return l;}catch(e){}
+  return null;
+}
+// في أول أيام الشهر يُفتح الجرد على الشهر السابق إن لم يكن قد اعتُمد بعد
+function invPickDefaultCountMonth(){
+  var cm=document.getElementById('invc-month');if(!cm||cm.dataset.userSet)return;
+  var now=invMonthNow(), prev=invMonthAdd(now,-1);
+  if(new Date().getDate()<=10&&!INV_COUNTS.some(function(c){return c.month===prev;}))cm.value=prev;
+  if(!cm.dataset.bound){cm.dataset.bound='1';cm.addEventListener('change',function(){cm.dataset.userSet='1';});}
+}
+function invDraftQueue(itemId,g,raw){
+  if(!CU||CU.role==='owner')return;
+  var month=(document.getElementById('invc-month')||{}).value;if(!month||!itemId)return;
+  if(_invDraftMonth&&_invDraftMonth!==month)invDraftFlush();
+  _invDraftMonth=month;
+  _invDraftPending[itemId]=raw===''?null:{counted:parseFloat(raw)||0,name:(g&&g.name)||'',unit:(g&&g.unit)||''};
+  // نسخة محلية فورية في المتصفح
+  try{
+    var loc=JSON.parse(localStorage.getItem('invDraft-'+month)||'null')||{month:month,lines:{}};
+    if(raw==='')delete loc.lines[itemId];else loc.lines[itemId]=_invDraftPending[itemId];
+    loc.updatedByName=CU&&CU.name;loc.updatedAt=new Date().toISOString();
+    localStorage.setItem('invDraft-'+month,JSON.stringify(loc));
+  }catch(e){}
+  var st=document.getElementById('invc-draft-status');if(st)st.textContent='⏳ جارٍ حفظ المسودة…';
+  clearTimeout(_invDraftTimer);_invDraftTimer=setTimeout(invDraftFlush,1500);
+}
+function invDraftFlush(){
+  clearTimeout(_invDraftTimer);
+  var month=_invDraftMonth, pend=_invDraftPending;_invDraftPending={};
+  if(!month||!Object.keys(pend).length)return Promise.resolve(true);
+  var lines={}, del=firebase.firestore.FieldValue.delete();
+  Object.keys(pend).forEach(function(id){lines[id]=pend[id]===null?del:pend[id];});
+  var data={month:month,lines:lines,updatedBy:CU._id,updatedByName:CU.name,updatedByRole:CU.role||'',updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  var st=document.getElementById('invc-draft-status');
+  return db.collection('inv_count_drafts').doc('count-'+month).set(data,{merge:true}).then(function(){
+    var d=INV_DRAFTS.find(function(x){return x.month===month;});
+    if(!d){d={_id:'count-'+month,month:month,lines:{}};INV_DRAFTS.push(d);}
+    d.lines=d.lines||{};Object.keys(pend).forEach(function(id){if(pend[id]===null)delete d.lines[id];else d.lines[id]=pend[id];});
+    d.updatedByName=CU.name;d.updatedAt=new Date();
+    if(st)st.textContent='✅ المسودة محفوظة '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    return true;
+  }).catch(function(e){
+    console.warn('inv draft save failed: '+e.message);
+    if(st)st.innerHTML='<span style="color:#B71C1C">⚠️ تعذر حفظ المسودة على الخادم ('+invEsc(e.message)+') — محفوظة على هذا الجهاز فقط</span>';
+    return false;
+  });
+}
+window.addEventListener('beforeunload',function(){if(Object.keys(_invDraftPending).length)invDraftFlush();});
+
+// ===== 5) تقارير الجرد =====
+function invRenderReports(){
+  var now=invMonthNow();
+  var from=(document.getElementById('invr-from')||{}).value||invMonthAdd(now,-5), to=(document.getElementById('invr-to')||{}).value||now;
+  if(from>to){var t=from;from=to;to=t;}
+  var months=[];for(var m=to;m>=from&&months.length<60;m=invMonthAdd(m,-1))months.push(m);
+  var done=0,short=0,over=0,drafts=0,missing=0, itemAgg={};
+  var rows=months.map(function(m){
+    var c=INV_COUNTS.find(function(x){return x.month===m;}), d=invDraftFor(m), dn=d&&d.lines?Object.keys(d.lines).length:0, st, act='';
+    if(c){
+      done++;short+=Number(c.totalShort)||0;over+=Number(c.totalOver)||0;
+      (c.lines||[]).forEach(function(l){if(!(l.diffValue<0))return;var a=itemAgg[l.itemId]||(itemAgg[l.itemId]={name:l.name,unit:l.unit,times:0,qty:0,val:0});a.times++;a.qty+=-(Number(l.diff)||0);a.val+=-(Number(l.diffValue)||0);});
+      st='<span style="color:#1B5E20;font-weight:700">✅ معتمد</span>';
+      act='<button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ عرض / طباعة</button> <button class="btn bsm bo" onclick="invExportCount(\''+c._id+'\')">⬇️ Excel</button>';
+    }else if(dn){
+      drafts++;st='<span style="color:#8D6E00;font-weight:700">📝 مسودة غير معتمدة</span>';
+    }else{
+      if(m<now)missing++;
+      st=m<now?'<span style="color:#B71C1C;font-weight:700">❌ لم يُجرد</span>':'<span style="color:var(--tl)">⏳ الشهر جارٍ</span>';
+    }
+    if(!c&&(dn||m<now))act+=' <button class="btn bsm '+(dn?'bp':'bo')+'" onclick="invOpenCountMonth(\''+m+'\')">'+(dn?(invCanCount()?'📋 مراجعة واعتماد':'📋 فتح المسودة'):'📋 بدء الجرد')+'</button>';
+    return '<tr><td style="font-weight:700">'+m+'</td><td>'+st+'</td>'
+      +'<td>'+(c?(c.lines||[]).length:(dn?dn+' <span style="font-size:10px;color:var(--tl)">(مسودة)</span>':'—'))+'</td>'
+      +'<td>'+(c?invEsc(c.savedByName||''):(dn?invEsc(d.updatedByName||''):'—'))+'</td>'
+      +'<td style="font-size:11px">'+(c?invTs(c.savedAt)||c.date||'':(dn?invTs(d.updatedAt):'—'))+'</td>'
+      +'<td style="color:#B71C1C">'+(c?invMoney(c.totalShort):'—')+'</td><td style="color:#1B5E20">'+(c?invMoney(c.totalOver):'—')+'</td>'
+      +'<td>'+(c?invMoney((c.totalOver||0)-(c.totalShort||0)):'—')+'</td><td style="white-space:nowrap">'+act+'</td></tr>';
+  }).join('');
+  var k=document.getElementById('invr-kpis');
+  if(k)k.innerHTML='<div class="kpi"><div class="kv" style="color:#1B5E20">'+done+'</div><div class="kl">جرد معتمد</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#8D6E00">'+drafts+'</div><div class="kl">مسودة بانتظار الاعتماد</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#B71C1C">'+missing+'</div><div class="kl">شهر بدون جرد</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#B71C1C">'+invMoney(short)+'</div><div class="kl">إجمالي العجز (﷼)</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#1B5E20">'+invMoney(over)+'</div><div class="kl">إجمالي الزيادة (﷼)</div></div>'
+    +'<div class="kpi"><div class="kv">'+invMoney(over-short)+'</div><div class="kl">الصافي (﷼)</div></div>';
+  var el=document.getElementById('invr-months');
+  if(el)el.innerHTML='<table class="dt"><thead><tr><th>الشهر</th><th>الحالة</th><th>الأصناف</th><th>بواسطة</th><th>وقت الحفظ</th><th>العجز (﷼)</th><th>الزيادة (﷼)</th><th>الصافي (﷼)</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  var it=Object.keys(itemAgg).map(function(id){return itemAgg[id];}).sort(function(a,b){return b.val-a.val;}).slice(0,20);
+  var ie=document.getElementById('invr-items');
+  if(ie)ie.innerHTML=it.length?'<table class="dt"><thead><tr><th>الصنف</th><th>الوحدة</th><th>عدد مرات العجز</th><th>إجمالي الكمية الناقصة</th><th>قيمة العجز (﷼)</th></tr></thead><tbody>'+it.map(function(a){return '<tr><td style="font-weight:700">'+invEsc(a.name)+'</td><td>'+invEsc(a.unit||'')+'</td><td>'+a.times+'</td><td>'+invFmt(a.qty)+'</td><td style="color:#B71C1C;font-weight:700">'+invMoney(a.val)+'</td></tr>';}).join('')+'</tbody></table>'
+    :'<div style="text-align:center;color:var(--tl);padding:12px;font-size:12px">لا يوجد عجز في الجردات المعتمدة خلال الفترة</div>';
+}
+function invOpenCountMonth(m){
+  var cm=document.getElementById('invc-month');if(cm){cm.value=m;cm.dataset.userSet='1';}
+  var tabs=document.querySelectorAll('#pg-inventory .tabs .tab'), tb=null;
+  tabs.forEach(function(t){if((t.getAttribute('onclick')||'').indexOf("'inv-count'")>=0)tb=t;});
+  invTab('inv-count',tb);
+}
+function invExportCount(id){
+  var c=INV_COUNTS.find(function(x){return x._id===id;});if(!c)return;
+  var q=function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  var csv=[['الصنف','الوحدة','الرصيد الدفتري','الجرد الفعلي','الفرق','تكلفة الوحدة','قيمة الفرق']].concat((c.lines||[]).map(function(l){
+    return [l.name,l.unit,l.system,l.counted,l.diff,Number(l.unitCost||0).toFixed(4),Number(l.diffValue||0).toFixed(2)];
+  })).map(function(r){return r.map(q).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='جرد-'+c.month+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+}
 
 // ===== إضافة صنف جديد من داخل المخازن / الجرد / الفاتورة =====
 function invNewItem(ctx){
