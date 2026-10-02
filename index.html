@@ -9598,7 +9598,7 @@ function printForm(formId){
     var head='<tr style="background:#e8e2d6"><td style="padding:4px 6px;font-size:10px;font-weight:700">البند / اليوم</td>';
     for(var i=0;i<days;i++){
       var di=new Date(d0.getTime());di.setDate(d0.getDate()+i);
-      head+='<td style="width:'+cw+'px;text-align:center;font-size:8px;font-weight:700;border-right:1px solid #ccc;padding:2px 0">'+wd[di.getDay()]+'<br>'+di.getDate()+'/'+(di.getMonth()+1)+'</td>';
+      head+='<td style="width:'+cw+'px;text-align:center;font-size:'+(days>14?'7':'8')+'px;font-weight:700;border-right:1px solid #ccc;padding:2px 0">'+(days>14?'':wd[di.getDay()]+'<br>')+di.getDate()+(days>14?'':'/'+(di.getMonth()+1))+'</td>';
       if(i===days-1)dateRange=date+' ← '+di.getFullYear()+'-'+('0'+(di.getMonth()+1)).slice(-2)+'-'+('0'+di.getDate()).slice(-2);
     }
     head+='</tr>';
@@ -9616,8 +9616,6 @@ function printForm(formId){
       sectionsHtml+='<tr style="background:#f0ece4"><td colspan="'+(days+1)+'" style="padding:5px 8px;font-size:11px;font-weight:700;color:#5a3e2b">'+sec.title+'</td></tr>';
       sec.items.forEach(function(item){sectionsHtml+='<tr><td style="padding:4px 8px;font-size:10px">'+item+'</td>'+cells(20)+'</tr>';});
     });
-    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المسؤول / الوردية</td>'+blank(28)+'</tr>';
-    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المشرف</td>'+blank(28)+'</tr>';
   }
   if(!multi)fd.sections.forEach(function(sec,si){
     var itemsHtml='';
@@ -9667,7 +9665,7 @@ function printForm(formId){
     +'.qrrow{display:flex;align-items:center;gap:12px;padding:8px 12px;border-top:1px dashed #ddd;page-break-inside:avoid}.qrbox{width:78px;height:78px;flex-shrink:0;border:1px solid #ddd;padding:2px;background:#fff}.qrbox svg{width:100%;height:100%;display:block}'
     +'.ftr{background:'+fd.color+';padding:6px 12px;display:flex;justify-content:space-between}'
     +'.fl{color:rgba(255,255,255,.7);font-size:9px}'
-    +'@page{margin:1cm'+(days>10?';size:landscape':'')+'}.nassaq-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:130px;font-weight:900;color:rgba(122,21,21,0.05);pointer-events:none;z-index:0;font-family:Cairo,sans-serif;letter-spacing:6px;white-space:nowrap}.nassaq-footer-mark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(122,21,21,0.12);font-family:Cairo,sans-serif;white-space:nowrap;letter-spacing:2px}@media print{.np{display:none!important}}'
+    +'@page{margin:1cm;size:A4'+(days>10?' landscape':'')+'}@media print{body{padding:0!important}html,body{height:auto}}.nassaq-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:130px;font-weight:900;color:rgba(122,21,21,0.05);pointer-events:none;z-index:0;font-family:Cairo,sans-serif;letter-spacing:6px;white-space:nowrap}.nassaq-footer-mark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(122,21,21,0.12);font-family:Cairo,sans-serif;white-space:nowrap;letter-spacing:2px}@media print{.np{display:none!important}}'
     +'</style></head><body><div class="nassaq-watermark">نَسَق</div><div class="nassaq-footer-mark">نَسَق لحلول الأعمال والتشغيل</div>'
     +'<div class="nassaq-watermark">نَسَق</div><div class="nassaq-footer-mark">نَسَق لحلول الأعمال والتشغيل</div><div class="np" style="margin-bottom:10px;display:flex;gap:8px">'
     +'<button onclick="window.print()" style="padding:8px 18px;background:'+fd.color+';color:#fff;border:none;border-radius:8px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer">🖨️ طباعة</button>'
@@ -9695,7 +9693,11 @@ function printForm(formId){
     +'<div style="font-size:10px;color:#666;margin-top:2px">نَسَق لحلول الأعمال والتشغيل — Scan to contact us</div>'
     +'<div style="font-size:9px;color:#888;direction:ltr;text-align:right;margin-top:2px">nassaq-solutions.netlify.app</div></div></div>'
     +'<div class="ftr"><div class="fl">حباق — تحت إشراف نَسَق لحلول الأعمال والتشغيل</div><div class="fl">'+new Date().toLocaleDateString("ar-SA")+'</div></div>'
-    +'</div></body></html>';
+    +'</div><scr'+'ipt>(function(){var LAND='+(days>10?'true':'false')+';'
+    +'function fit(){var w=document.querySelector(".wrap");if(!w)return;var k=96/25.4,pw=(LAND?277:190)*k,ph=(LAND?190:277)*k,z=1;'
+    +'w.style.maxWidth="none";w.style.zoom=1;'
+    +'for(var n=0;n<6;n++){w.style.width=(pw/z)+"px";w.style.zoom=z;var h=w.getBoundingClientRect().height;if(h<=ph*0.97)break;z=z*ph*0.96/h;}}'
+    +'window.addEventListener("load",fit);window.addEventListener("beforeprint",fit);window.fit=fit;})();</scr'+'ipt></body></html>';
   var w=window.open('','_blank','width=820,height=950');
   if(w){w.document.write(html);w.document.close();}
   else alert('يرجى السماح بالنوافذ المنبثقة');
