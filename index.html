@@ -9577,6 +9577,8 @@ function saveFormData(formId){
   }).catch(function(e){alert('خطأ: '+e.message);});
 }
 
+var QR_CONTACT_SVG='<svg viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#fff" d="M0 0h33v33h-33z"/><path class="qrline" stroke="#000" d="M2 2.5h7m1 0h1m1 0h1m1 0h2m3 0h4m1 0h7m-29 1h1m5 0h1m1 0h1m1 0h1m2 0h1m4 0h1m3 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m2 0h2m2 0h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m5 0h3m1 0h1m2 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m4 0h2m1 0h6m2 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m2 0h1m3 0h1m2 0h2m1 0h2m1 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-21 1h2m1 0h2m1 0h1m2 0h2m1 0h1m-21 1h1m1 0h2m1 0h3m5 0h1m3 0h1m4 0h1m2 0h1m1 0h2m-28 1h1m1 0h1m3 0h1m1 0h1m1 0h3m2 0h9m3 0h1m-29 1h1m3 0h4m1 0h5m2 0h1m1 0h1m1 0h1m3 0h1m1 0h2m-28 1h5m3 0h2m2 0h1m3 0h1m2 0h4m5 0h1m-28 1h2m1 0h1m1 0h2m3 0h2m1 0h2m1 0h1m2 0h1m2 0h1m1 0h2m-27 1h2m2 0h1m2 0h2m3 0h1m1 0h3m2 0h1m1 0h2m3 0h3m-27 1h2m1 0h9m2 0h5m1 0h3m1 0h3m-29 1h1m3 0h1m2 0h1m1 0h3m2 0h1m1 0h1m1 0h1m1 0h1m3 0h1m2 0h1m-26 1h5m2 0h1m4 0h2m2 0h1m5 0h2m1 0h1m-27 1h2m2 0h1m1 0h1m1 0h1m2 0h1m1 0h3m3 0h1m2 0h1m1 0h3m-28 1h1m2 0h1m2 0h2m1 0h1m1 0h6m5 0h3m1 0h1m-25 1h1m1 0h1m3 0h2m1 0h1m1 0h2m2 0h2m2 0h1m1 0h1m2 0h1m-26 1h6m2 0h1m3 0h3m1 0h2m1 0h7m-19 1h2m1 0h1m4 0h1m3 0h1m3 0h5m-29 1h7m1 0h1m5 0h1m2 0h4m1 0h1m1 0h2m1 0h1m-28 1h1m5 0h1m1 0h1m1 0h2m1 0h3m4 0h1m3 0h2m1 0h2m-29 1h1m1 0h3m1 0h1m3 0h1m1 0h1m2 0h1m1 0h1m2 0h5m1 0h1m-27 1h1m1 0h3m1 0h1m1 0h1m2 0h1m3 0h2m2 0h1m1 0h1m1 0h3m2 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m1 0h4m3 0h1m1 0h2m1 0h1m2 0h1m1 0h1m-29 1h1m5 0h1m4 0h1m1 0h1m1 0h1m2 0h1m1 0h2m3 0h1m1 0h1m-28 1h7m1 0h2m1 0h3m1 0h1m2 0h5m1 0h1m2 0h1"/></svg>';
+
 function printForm(formId){
   var fd=FORMS_DATA[formId];
   var date=document.getElementById('frm-date-'+formId)?document.getElementById('frm-date-'+formId).value:new Date().toISOString().split('T')[0];
@@ -9662,6 +9664,7 @@ function printForm(formId){
     +'.sbox{border:1px solid #ddd;border-radius:6px;padding:8px;text-align:center}'
     +'.slbl{font-size:9px;color:#888;margin-bottom:18px}'
     +'.sln{border-bottom:1px solid #555}'
+    +'.qrrow{display:flex;align-items:center;gap:12px;padding:8px 12px;border-top:1px dashed #ddd;page-break-inside:avoid}.qrbox{width:78px;height:78px;flex-shrink:0;border:1px solid #ddd;padding:2px;background:#fff}.qrbox svg{width:100%;height:100%;display:block}'
     +'.ftr{background:'+fd.color+';padding:6px 12px;display:flex;justify-content:space-between}'
     +'.fl{color:rgba(255,255,255,.7);font-size:9px}'
     +'@page{margin:1cm'+(days>10?';size:landscape':'')+'}.nassaq-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:130px;font-weight:900;color:rgba(122,21,21,0.05);pointer-events:none;z-index:0;font-family:Cairo,sans-serif;letter-spacing:6px;white-space:nowrap}.nassaq-footer-mark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(122,21,21,0.12);font-family:Cairo,sans-serif;white-space:nowrap;letter-spacing:2px}@media print{.np{display:none!important}}'
@@ -9687,6 +9690,10 @@ function printForm(formId){
     +'<div class="sbox"><div class="slbl">توقيع المشرف</div><div class="sln"></div></div>'
     +'<div class="sbox"><div class="slbl">توقيع مدير الفرع</div><div class="sln"></div></div>'
     +'</div>'
+    +'<div class="qrrow"><div class="qrbox">'+QR_CONTACT_SVG+'</div>'
+    +'<div><div style="font-size:12px;font-weight:900;color:#5a3e2b">📲 امسح الباركود للتواصل معنا</div>'
+    +'<div style="font-size:10px;color:#666;margin-top:2px">نَسَق لحلول الأعمال والتشغيل — Scan to contact us</div>'
+    +'<div style="font-size:9px;color:#888;direction:ltr;text-align:right;margin-top:2px">nassaq-solutions.netlify.app</div></div></div>'
     +'<div class="ftr"><div class="fl">حباق — تحت إشراف نَسَق لحلول الأعمال والتشغيل</div><div class="fl">'+new Date().toLocaleDateString("ar-SA")+'</div></div>'
     +'</div></body></html>';
   var w=window.open('','_blank','width=820,height=950');
