@@ -1615,6 +1615,19 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
       <div class="page" id="pg-forms">
         <div class="ph"><h1>📋 النماذج التشغيلية</h1><p>قوائم التنظيف والفحص اليومية والأسبوعية — قابلة للطباعة</p></div>
 
+        <!-- PRINT PERIOD -->
+        <div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label style="font-weight:700;font-size:13px">🖨️ مدة الطباعة:</label>
+          <select id="forms-days" style="max-width:240px" onchange="try{localStorage.setItem('frmPrintDays',this.value)}catch(e){}">
+            <option value="1">يوم واحد (مع حفظ الاختيارات الحالية)</option>
+            <option value="7">٧ أيام — أسبوع</option>
+            <option value="10">١٠ أيام</option>
+            <option value="14">١٤ يوم — أسبوعان</option>
+            <option value="30">٣٠ يوم — شهر</option>
+          </select>
+          <span style="font-size:11px;color:var(--tl)">عند اختيار أكثر من يوم تُطبع الورقة بأعمدة للأيام لتعلّم عليها يدوياً بدل تغييرها كل يوم (التاريخ = تاريخ البداية)</span>
+        </div>
+
         <!-- FORM CARDS GRID -->
         <div id="forms-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px">
 
@@ -6521,7 +6534,7 @@ function printPaySlip(empId){
     splitRow='<tr style="background:#F3E5F5"><td style="padding:6px 10px;color:#555">منه نقد</td><td style="padding:6px 10px;text-align:left;color:#1B5E20;font-weight:700">'+cashAmt.toFixed(2)+' ﷼</td></tr>'
       +'<tr style="background:#F3E5F5"><td style="padding:6px 10px;color:#555">منه تحويل بنكي</td><td style="padding:6px 10px;text-align:left;color:#1A4A6B;font-weight:700">'+bankAmt.toFixed(2)+' ﷼</td></tr>';
   }
-  if(fd.fields){
+  if(fd.fields&&!multi){
     oilBlock+='<div style="border:1px solid #ddd;border-radius:8px;padding:10px;margin:10px 0"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
     fd.fields.forEach(function(f){
       var el=document.getElementById(f.id);var v=el?el.value:'';
@@ -9393,8 +9406,12 @@ function renderExtraFormCards(){
     grid.appendChild(c);
   });
 }
-document.addEventListener('DOMContentLoaded',renderExtraFormCards);
-if(document.readyState!=='loading')renderExtraFormCards();
+function initFormsDays(){
+  var sel=document.getElementById('forms-days');if(!sel)return;
+  try{var v=localStorage.getItem('frmPrintDays');if(v)sel.value=v;}catch(e){}
+}
+document.addEventListener('DOMContentLoaded',function(){renderExtraFormCards();initFormsDays();});
+if(document.readyState!=='loading'){renderExtraFormCards();initFormsDays();}
 
 function openForm(formId){
   var fd=FORMS_DATA[formId];
@@ -9567,8 +9584,40 @@ function printForm(formId){
   var shift=document.getElementById('frm-shift-'+formId)?document.getElementById('frm-shift-'+formId).value:'';
   var notes=document.getElementById('frm-notes-'+formId)?document.getElementById('frm-notes-'+formId).value:'';
   var shiftNames={morning:'🌅 صباح',afternoon:'🌤️ ظهيرة',night:'🌙 ليل'};
+  var daysSel=document.getElementById('forms-days');
+  var days=daysSel?(parseInt(daysSel.value,10)||1):1;
+  var multi=days>1;
   var sectionsHtml='';
-  fd.sections.forEach(function(sec,si){
+  var dateRange=date;
+  if(multi){
+    var wd=['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
+    var d0=new Date(date+'T00:00:00');
+    var cw=days>14?18:(days>10?22:26);
+    var head='<tr style="background:#e8e2d6"><td style="padding:4px 6px;font-size:10px;font-weight:700">البند / اليوم</td>';
+    for(var i=0;i<days;i++){
+      var di=new Date(d0.getTime());di.setDate(d0.getDate()+i);
+      head+='<td style="width:'+cw+'px;text-align:center;font-size:8px;font-weight:700;border-right:1px solid #ccc;padding:2px 0">'+wd[di.getDay()]+'<br>'+di.getDate()+'/'+(di.getMonth()+1)+'</td>';
+      if(i===days-1)dateRange=date+' ← '+di.getFullYear()+'-'+('0'+(di.getMonth()+1)).slice(-2)+'-'+('0'+di.getDate()).slice(-2);
+    }
+    head+='</tr>';
+    var cells=function(h){var c='';for(var j=0;j<days;j++)c+='<td style="width:'+cw+'px;height:'+(h||20)+'px;border-right:1px solid #ccc;text-align:center;color:#bbb;font-size:11px">□</td>';return c;};
+    var blank=function(h){var c='';for(var j=0;j<days;j++)c+='<td style="width:'+cw+'px;height:'+(h||20)+'px;border-right:1px solid #ccc"></td>';return c;};
+    sectionsHtml=head;
+    var rowsForFields=[];
+    if(fd.isOilForm)rowsForFields=['🌡️ درجة حرارة الزيت (°م)','📊 قيمة TPM (%)','🛢️ زيت مضاف (لتر)','⚠️ حالة الزيت (✓ / ✗)'];
+    if(fd.fields)fd.fields.forEach(function(f){rowsForFields.push(f.label);});
+    if(rowsForFields.length){
+      sectionsHtml+='<tr style="background:#f0ece4"><td colspan="'+(days+1)+'" style="padding:5px 8px;font-size:11px;font-weight:700;color:#5a3e2b">📊 القياسات والبيانات — اكتب القيمة</td></tr>';
+      rowsForFields.forEach(function(l){sectionsHtml+='<tr><td style="padding:4px 8px;font-size:10px">'+l+'</td>'+blank(22)+'</tr>';});
+    }
+    fd.sections.forEach(function(sec){
+      sectionsHtml+='<tr style="background:#f0ece4"><td colspan="'+(days+1)+'" style="padding:5px 8px;font-size:11px;font-weight:700;color:#5a3e2b">'+sec.title+'</td></tr>';
+      sec.items.forEach(function(item){sectionsHtml+='<tr><td style="padding:4px 8px;font-size:10px">'+item+'</td>'+cells(20)+'</tr>';});
+    });
+    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المسؤول / الوردية</td>'+blank(28)+'</tr>';
+    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المشرف</td>'+blank(28)+'</tr>';
+  }
+  if(!multi)fd.sections.forEach(function(sec,si){
     var itemsHtml='';
     sec.items.forEach(function(item,ii){
       var cid='fchk-'+formId+'-'+si+'-'+ii;
@@ -9584,7 +9633,7 @@ function printForm(formId){
   });
 
   var oilBlock='';
-  if(fd.isOilForm){
+  if(fd.isOilForm&&!multi){
     var temp=document.getElementById('oil-temp')?document.getElementById('oil-temp').value:'—';
     var tpm=document.getElementById('oil-tpm')?document.getElementById('oil-tpm').value:'—';
     var added=document.getElementById('oil-added')?document.getElementById('oil-added').value:'0';
@@ -9602,7 +9651,7 @@ function printForm(formId){
   var html='<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'
     +'<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Cairo,sans-serif;direction:rtl;padding:12px;font-size:12px}'
-    +'.wrap{max-width:760px;margin:0 auto;background:#fff}'
+    +'.wrap{max-width:'+(days>10?'1050':'760')+'px;margin:0 auto;background:#fff}'
     +'.hdr{background:'+fd.color+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center}'
     +'.ht{color:#fff;font-size:15px;font-weight:900}.hs{color:rgba(255,255,255,.7);font-size:10px;margin-top:2px}'
     +'.meta{display:grid;grid-template-columns:repeat(4,1fr);background:#f5f0e8;padding:8px 12px;gap:6px}'
@@ -9615,7 +9664,7 @@ function printForm(formId){
     +'.sln{border-bottom:1px solid #555}'
     +'.ftr{background:'+fd.color+';padding:6px 12px;display:flex;justify-content:space-between}'
     +'.fl{color:rgba(255,255,255,.7);font-size:9px}'
-    +'@page{margin:1.2cm}.nassaq-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:130px;font-weight:900;color:rgba(122,21,21,0.05);pointer-events:none;z-index:0;font-family:Cairo,sans-serif;letter-spacing:6px;white-space:nowrap}.nassaq-footer-mark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(122,21,21,0.12);font-family:Cairo,sans-serif;white-space:nowrap;letter-spacing:2px}@media print{.np{display:none!important}}'
+    +'@page{margin:1cm'+(days>10?';size:landscape':'')+'}.nassaq-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:130px;font-weight:900;color:rgba(122,21,21,0.05);pointer-events:none;z-index:0;font-family:Cairo,sans-serif;letter-spacing:6px;white-space:nowrap}.nassaq-footer-mark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(122,21,21,0.12);font-family:Cairo,sans-serif;white-space:nowrap;letter-spacing:2px}@media print{.np{display:none!important}}'
     +'</style></head><body><div class="nassaq-watermark">نَسَق</div><div class="nassaq-footer-mark">نَسَق لحلول الأعمال والتشغيل</div>'
     +'<div class="nassaq-watermark">نَسَق</div><div class="nassaq-footer-mark">نَسَق لحلول الأعمال والتشغيل</div><div class="np" style="margin-bottom:10px;display:flex;gap:8px">'
     +'<button onclick="window.print()" style="padding:8px 18px;background:'+fd.color+';color:#fff;border:none;border-radius:8px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer">🖨️ طباعة</button>'
@@ -9625,7 +9674,7 @@ function printForm(formId){
     +'<div class="hdr"><div><div class="ht">'+fd.title+'</div><div class="hs">'+fd.titleAr+' — حباق</div></div>'
     +'<div style="color:#fff;font-size:20px;font-weight:900">حباق</div></div>'
     +'<div class="meta">'
-    +'<div><div class="ml">التاريخ</div><div class="mv">'+date+'</div></div>'
+    +'<div><div class="ml">'+(multi?'الفترة ('+days+' يوم)':'التاريخ')+'</div><div class="mv" style="font-size:'+(multi?'9':'12')+'px">'+dateRange+'</div></div>'
     +'<div><div class="ml">الوردية</div><div class="mv">'+(shiftNames[shift]||shift)+'</div></div>'
     +'<div><div class="ml">المسؤول</div><div class="mv">'+(resp||'—')+'</div></div>'
     +'<div><div class="ml">المنطقة</div><div class="mv">'+fd.area+'</div></div>'
