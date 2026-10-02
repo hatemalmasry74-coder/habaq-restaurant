@@ -9616,8 +9616,6 @@ function printForm(formId){
       sectionsHtml+='<tr style="background:#f0ece4"><td colspan="'+(days+1)+'" style="padding:5px 8px;font-size:11px;font-weight:700;color:#5a3e2b">'+sec.title+'</td></tr>';
       sec.items.forEach(function(item){sectionsHtml+='<tr><td style="padding:4px 8px;font-size:10px">'+item+'</td>'+cells(20)+'</tr>';});
     });
-    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المسؤول / الوردية</td>'+blank(28)+'</tr>';
-    sectionsHtml+='<tr style="background:#f0ece4"><td style="padding:5px 8px;font-size:10px;font-weight:700">✍️ توقيع المشرف</td>'+blank(28)+'</tr>';
   }
   if(!multi)fd.sections.forEach(function(sec,si){
     var itemsHtml='';
