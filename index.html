@@ -1616,7 +1616,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         <div class="ph"><h1>📋 النماذج التشغيلية</h1><p>قوائم التنظيف والفحص اليومية والأسبوعية — قابلة للطباعة</p></div>
 
         <!-- FORM CARDS GRID -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px">
+        <div id="forms-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px">
 
           <!-- 1. Kitchen Daily Cleaning -->
           <div class="card" style="cursor:pointer;border:2px solid var(--br);transition:all .15s" onmouseover="this.style.borderColor='var(--r)'" onmouseout="this.style.borderColor='var(--br)'" onclick="openForm('kitchen-daily')">
@@ -6521,6 +6521,15 @@ function printPaySlip(empId){
     splitRow='<tr style="background:#F3E5F5"><td style="padding:6px 10px;color:#555">منه نقد</td><td style="padding:6px 10px;text-align:left;color:#1B5E20;font-weight:700">'+cashAmt.toFixed(2)+' ﷼</td></tr>'
       +'<tr style="background:#F3E5F5"><td style="padding:6px 10px;color:#555">منه تحويل بنكي</td><td style="padding:6px 10px;text-align:left;color:#1A4A6B;font-weight:700">'+bankAmt.toFixed(2)+' ﷼</td></tr>';
   }
+  if(fd.fields){
+    oilBlock+='<div style="border:1px solid #ddd;border-radius:8px;padding:10px;margin:10px 0"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+    fd.fields.forEach(function(f){
+      var el=document.getElementById(f.id);var v=el?el.value:'';
+      oilBlock+='<div><div style="font-size:9px;color:#888">'+f.label+'</div><div style="font-weight:700;min-height:18px;border-bottom:1px solid #999">'+(v||'')+'</div></div>';
+    });
+    oilBlock+='</div></div>';
+  }
+
   var html='<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'
     +'<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">'
     +'<style>'
@@ -9150,8 +9159,242 @@ var FORMS_DATA = {
         'إعداد قائمة المواد المطلوبة | Prepare ingredient requisition list',
       ]}
     ]
+  },
+
+  'restroom-daily': {
+    title:'Daily Restroom Cleaning & Inspection Log',
+    titleAr:'سجل تنظيف وفحص دورات المياه اليومي',
+    color:'#00838F', freq:'يومي', area:'دورات المياه',
+    icon:'🚻', bg:'#E0F7FA', tag:'دورات المياه', tagCls:'bg-i',
+    fields:[
+      {id:'rr-t1',label:'🕘 وقت الفحص ١',type:'time'},
+      {id:'rr-t2',label:'🕐 وقت الفحص ٢',type:'time'},
+      {id:'rr-t3',label:'🕔 وقت الفحص ٣',type:'time'},
+      {id:'rr-t4',label:'🕙 وقت الفحص ٤',type:'time'}
+    ],
+    sections:[
+      {title:'🌅 قبل الافتتاح — Before Opening',items:[
+        'تنظيف وتعقيم المراحيض من الداخل والخارج | Clean & disinfect toilets inside & out',
+        'تنظيف وتعقيم المقاعد والمقابض والسيفون | Disinfect seats, handles & flush buttons',
+        'تنظيف الأحواض والصنابير والمرايا | Clean sinks, faucets & mirrors',
+        'مسح وتعقيم الأرضيات | Mop & disinfect floors',
+        'تفريغ سلة المهملات وتغيير الكيس | Empty bin & replace bag',
+        'تعبئة الصابون السائل | Refill liquid soap',
+        'تعبئة المناديل الورقية وورق التواليت | Refill paper towels & toilet paper',
+        'التأكد من عمل المياه والسيفون وعدم وجود تسريب | Check water, flush & no leaks',
+        'التأكد من الإضاءة والتهوية والشفاط | Check lighting, ventilation & exhaust',
+        'إضافة معطر الجو | Add air freshener',
+      ]},
+      {title:'🔁 الفحص الدوري (كل ساعتين) — Periodic Checks',items:[
+        'فحص نظافة المراحيض والأرضية | Check toilets & floor cleanliness',
+        'مسح الأحواض والمرايا | Wipe sinks & mirrors',
+        'التأكد من توفر الصابون والمناديل وورق التواليت | Check soap, towels & toilet paper stock',
+        'تفريغ سلة المهملات إذا امتلأت | Empty bin if full',
+        'التأكد من عدم وجود روائح أو انسداد | Check for odors & blockages',
+      ]},
+      {title:'🌙 بعد الإغلاق — Closing Deep Clean',items:[
+        'تنظيف عميق للمراحيض بمعقم مركّز | Deep clean toilets with concentrated disinfectant',
+        'تنظيف الجدران والأبواب والمقابض | Clean walls, doors & handles',
+        'غسل الأرضيات وتنظيف البلاعات | Wash floors & clean drains',
+        'تنظيف الأدوات المستخدمة (مماسح/فرش) وتخزينها | Clean & store cleaning tools',
+        'تسجيل أي أعطال ورفع طلب صيانة | Log faults & raise maintenance request',
+      ]}
+    ]
+  },
+
+  'fridge-temp': {
+    title:'Fridge & Freezer Temperature Log',
+    titleAr:'سجل درجات حرارة الثلاجات والمجمدات',
+    color:'#1565C0', freq:'يومي', area:'المطبخ / المخزن',
+    icon:'🌡️', bg:'#E3F2FD', tag:'سلامة غذاء', tagCls:'bg-i',
+    fields:[
+      {id:'ft-f1',label:'❄️ ثلاجة ١ (°م) — المقبول 0–5',type:'number',step:'0.1',ph:'4'},
+      {id:'ft-f2',label:'❄️ ثلاجة ٢ (°م) — المقبول 0–5',type:'number',step:'0.1',ph:'4'},
+      {id:'ft-f3',label:'❄️ ثلاجة العرض (°م) — المقبول 0–5',type:'number',step:'0.1',ph:'4'},
+      {id:'ft-z1',label:'🧊 فريزر ١ (°م) — المقبول ≤ -18',type:'number',step:'0.1',ph:'-20'},
+      {id:'ft-z2',label:'🧊 فريزر ٢ (°م) — المقبول ≤ -18',type:'number',step:'0.1',ph:'-20'},
+      {id:'ft-z3',label:'🧊 ديب فريزر (°م) — المقبول ≤ -18',type:'number',step:'0.1',ph:'-20'}
+    ],
+    sections:[
+      {title:'🌡️ الفحص — Checks',items:[
+        'قراءة درجات الحرارة وتسجيلها أعلاه (صباحاً) | Record temperatures above (morning)',
+        'قراءة درجات الحرارة وتسجيلها (مساءً) | Record temperatures (evening)',
+        'التأكد من إغلاق الأبواب وسلامة الأختام | Doors close properly & seals intact',
+        'عدم تكدس المواد بما يمنع دوران الهواء | No overcrowding blocking airflow',
+        'فصل اللحوم النيئة في الأرفف السفلية | Raw meat stored on lower shelves',
+        'تغطية وتأريخ جميع المواد المخزنة | All items covered & dated',
+        'إزالة المواد المنتهية أو التالفة | Discard expired or spoiled items',
+        'إبلاغ الصيانة عند أي قراءة خارج المقبول | Report any out-of-range reading to maintenance',
+      ]}
+    ]
+  },
+
+  'receiving-inspection': {
+    title:'Goods Receiving Inspection Checklist',
+    titleAr:'نموذج فحص واستلام البضائع',
+    color:'#6D4C41', freq:'عند الاستلام', area:'المخزن',
+    icon:'📦', bg:'#EFEBE9', tag:'استلام', tagCls:'bg-w',
+    fields:[
+      {id:'rc-sup',label:'🏢 اسم المورد',type:'text',ph:'اسم المورد'},
+      {id:'rc-inv',label:'🧾 رقم الفاتورة / الإشعار',type:'text',ph:'رقم الفاتورة'},
+      {id:'rc-temp',label:'🌡️ حرارة المواد المبردة (°م)',type:'number',step:'0.1',ph:'4'},
+      {id:'rc-result',label:'✅ نتيجة الاستلام',type:'select',opts:['مقبول بالكامل','مقبول جزئياً','مرفوض']}
+    ],
+    sections:[
+      {title:'🚚 المركبة والتغليف — Vehicle & Packaging',items:[
+        'نظافة سيارة التوريد وتبريدها | Delivery vehicle clean & refrigerated',
+        'سلامة التغليف وعدم وجود تلف أو تسرب | Packaging intact, no damage or leaks',
+        'وجود بطاقة بيانات وتاريخ إنتاج وانتهاء | Labels with production & expiry dates',
+      ]},
+      {title:'🔍 فحص المواد — Product Inspection',items:[
+        'حرارة المبردات ≤ 5°م والمجمدات ≤ -18°م | Chilled ≤ 5°C, frozen ≤ -18°C',
+        'اللون والرائحة والقوام طبيعي | Color, smell & texture normal',
+        'عدم وجود آفات أو حشرات | No pests or insects',
+        'مطابقة الكميات والأصناف للفاتورة | Quantities & items match invoice',
+        'مدة الصلاحية المتبقية كافية | Sufficient remaining shelf life',
+      ]},
+      {title:'🗄️ بعد الاستلام — After Receiving',items:[
+        'نقل المواد المبردة والمجمدة فوراً للتخزين | Move chilled/frozen items to storage immediately',
+        'تأريخ المواد وترتيبها (الأقدم أولاً FIFO) | Date & arrange items (FIFO)',
+        'توقيع الفاتورة وتسجيل أي ملاحظات أو مرتجعات | Sign invoice & log any returns',
+      ]}
+    ]
+  },
+
+  'staff-hygiene': {
+    title:'Daily Staff Hygiene & Health Check',
+    titleAr:'نموذج النظافة الشخصية وصحة العاملين اليومي',
+    color:'#2E7D32', freq:'يومي', area:'جميع الأقسام',
+    icon:'🧼', bg:'#E8F5E9', tag:'سلامة غذاء', tagCls:'bg-s',
+    fields:[
+      {id:'sh-count',label:'👥 عدد العاملين المفحوصين',type:'number',ph:'0'},
+      {id:'sh-sick',label:'🤒 عدد المستبعدين لأسباب صحية',type:'number',ph:'0'}
+    ],
+    sections:[
+      {title:'🩺 الحالة الصحية — Health',items:[
+        'خلو العاملين من أعراض (حمى، سعال، إسهال، قيء) | No symptoms (fever, cough, diarrhea, vomiting)',
+        'خلو اليدين من الجروح المكشوفة أو تغطيتها بضمادة مقاومة للماء | No open wounds, or covered with waterproof dressing',
+        'الشهادات الصحية سارية المفعول | Health cards valid',
+      ]},
+      {title:'🧍 المظهر والنظافة — Appearance & Hygiene',items:[
+        'الزي الرسمي نظيف ومكتمل | Uniform clean & complete',
+        'غطاء الشعر / القبعة | Hair cover / cap',
+        'الأظافر قصيرة ونظيفة وبدون طلاء | Nails short, clean, no polish',
+        'عدم ارتداء مجوهرات أو ساعات | No jewelry or watches',
+        'غسل اليدين قبل بدء العمل وبعد دورة المياه | Hands washed before work & after restroom',
+        'ارتداء القفازات والكمامة عند اللزوم | Gloves & mask worn when required',
+        'أحذية العمل نظيفة ومناسبة | Work shoes clean & suitable',
+      ]},
+      {title:'🚭 السلوك — Conduct',items:[
+        'عدم الأكل أو الشرب أو التدخين في مناطق التحضير | No eating, drinking or smoking in prep areas',
+        'التأكد من توفر الصابون والمعقم عند أحواض اليدين | Soap & sanitizer available at hand sinks',
+      ]}
+    ]
+  },
+
+  'opening-closing': {
+    title:'Restaurant Opening & Closing Checklist',
+    titleAr:'قائمة فتح وإغلاق المطعم',
+    color:'#AD1457', freq:'يومي', area:'جميع الأقسام',
+    icon:'🔑', bg:'#FCE4EC', tag:'تشغيل', tagCls:'bg-w',
+    sections:[
+      {title:'🌅 الافتتاح — Opening',items:[
+        'فتح الأنوار والتكييف والشاشات | Turn on lights, AC & screens',
+        'فحص نظافة الصالة والمطبخ والمخبز | Inspect hall, kitchen & bakery cleanliness',
+        'تشغيل المعدات (فراير، فرن، ماكينة قهوة) | Power on equipment (fryers, ovens, coffee machine)',
+        'تسجيل درجات حرارة الثلاجات | Record fridge temperatures',
+        'فتح الكاشير وتجهيز الفكة | Open cashier & prepare change',
+        'التأكد من جاهزية قائمة الطعام والأسعار | Menu & prices ready',
+        'اجتماع قصير مع الفريق وتوزيع المهام | Quick team briefing & task assignment',
+      ]},
+      {title:'🌙 الإغلاق — Closing',items:[
+        'إغلاق الكاشير وتسليم الإيرادات | Close cashier & hand over revenue',
+        'إطفاء جميع المعدات وإغلاق الغاز | Switch off equipment & close gas valves',
+        'تغطية وتأريخ جميع المواد الغذائية وتخزينها | Cover, date & store all food',
+        'إخراج النفايات | Take out trash',
+        'تنظيف الأرضيات والأسطح | Clean floors & surfaces',
+        'إطفاء الأنوار والتكييف | Turn off lights & AC',
+        'إغلاق الأبواب والنوافذ وتفعيل الإنذار | Lock doors, windows & arm alarm',
+        'تسجيل ملاحظات اليوم والأعطال | Log daily notes & faults',
+      ]}
+    ]
+  },
+
+  'safety-weekly': {
+    title:'Weekly Safety & Equipment Inspection',
+    titleAr:'نموذج فحص السلامة والمعدات الأسبوعي',
+    color:'#C62828', freq:'أسبوعي', area:'جميع الأقسام',
+    icon:'🧯', bg:'#FFEBEE', tag:'سلامة', tagCls:'bg-w',
+    sections:[
+      {title:'🔥 السلامة من الحريق — Fire Safety',items:[
+        'طفايات الحريق في أماكنها وصالحة وغير منتهية | Extinguishers in place, valid, not expired',
+        'مخارج الطوارئ غير مسدودة | Emergency exits unobstructed',
+        'فحص خراطيم وصمامات الغاز وعدم وجود تسريب | Check gas hoses & valves for leaks',
+        'اختبار كاشف الدخان / الغاز | Test smoke / gas detectors',
+        'نظافة فلاتر الشفاط من الشحوم | Hood filters free of grease',
+      ]},
+      {title:'🩹 الإسعافات الأولية — First Aid',items:[
+        'صندوق الإسعافات متوفر ومكتمل | First aid kit available & stocked',
+        'استبدال المنتهي من المستلزمات | Replace expired supplies',
+        'أرقام الطوارئ معلقة وواضحة | Emergency numbers posted',
+      ]},
+      {title:'🔧 المعدات والمرافق — Equipment & Facilities',items:[
+        'فحص الأسلاك والمقابس والتمديدات الكهربائية | Check cables, sockets & wiring',
+        'فحص الأرضيات (انزلاق / تلف) | Check floors (slip / damage)',
+        'عمل المصابيح والإنارة الاحتياطية | Lights & emergency lighting working',
+        'فحص مصائد الشحوم والبالوعات | Check grease traps & drains',
+        'مراجعة مكافحة الحشرات وأجهزة الاصطياد | Pest control & traps check',
+        'تسجيل الأعطال ورفع طلبات الصيانة | Log faults & raise maintenance requests',
+      ]}
+    ]
+  },
+
+  'waste-expiry': {
+    title:'Expiry Dates & Storage Labeling Check',
+    titleAr:'نموذج مراجعة تواريخ الصلاحية والتخزين',
+    color:'#EF6C00', freq:'يومي', area:'المطبخ / المخزن',
+    icon:'🏷️', bg:'#FFF3E0', tag:'سلامة غذاء', tagCls:'bg-w',
+    fields:[
+      {id:'we-disc',label:'🗑️ عدد الأصناف المتلفة اليوم',type:'number',ph:'0'},
+      {id:'we-val',label:'💰 القيمة التقديرية للتالف (ر.س)',type:'number',step:'0.01',ph:'0'}
+    ],
+    sections:[
+      {title:'🏷️ المراجعة — Review',items:[
+        'مراجعة تواريخ الصلاحية في الثلاجات والمجمدات | Review expiry dates in fridges & freezers',
+        'مراجعة تواريخ المخزن الجاف | Review dry storage expiry dates',
+        'تأريخ المواد المفتوحة والمحضّرة (تاريخ الفتح/التحضير) | Label opened & prepped items with date',
+        'تطبيق نظام الأقدم أولاً (FIFO) | Apply FIFO rotation',
+        'التخلص من المنتهي وتسجيله في سجل التالف | Discard expired items & log them',
+        'تخزين المواد بعيداً عن الأرض (15 سم على الأقل) | Store items off the floor (min 15 cm)',
+        'فصل المواد الكيميائية عن الغذائية | Separate chemicals from food',
+        'عدم وجود تلف أو تسرب أو إصابة بالآفات | No damage, leaks or pest signs',
+      ]}
+    ]
   }
 };
+
+function renderExtraFormCards(){
+  var grid=document.getElementById('forms-grid');
+  if(!grid||grid.getAttribute('data-extra'))return;
+  grid.setAttribute('data-extra','1');
+  Object.keys(FORMS_DATA).forEach(function(k){
+    var fd=FORMS_DATA[k];if(!fd.icon)return;
+    var c=document.createElement('div');
+    c.className='card';
+    c.style.cssText='cursor:pointer;border:2px solid var(--br);transition:all .15s';
+    c.onmouseover=function(){this.style.borderColor=fd.color;};
+    c.onmouseout=function(){this.style.borderColor='';};
+    c.onclick=function(){openForm(k);};
+    c.innerHTML='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
+      +'<div style="width:44px;height:44px;border-radius:10px;background:'+fd.bg+';display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+fd.icon+'</div>'
+      +'<div><div style="font-size:14px;font-weight:900;color:'+fd.color+'">'+fd.title+'</div><div style="font-size:11px;color:var(--tl)">'+fd.titleAr+'</div></div></div>'
+      +'<div style="display:flex;gap:6px;align-items:center"><span class="bdg bg-s">'+fd.freq+'</span><span class="bdg '+(fd.tagCls||'bg-i')+'">'+fd.tag+'</span>'
+      +'<button class="btn bsm bs" style="margin-inline-start:auto" title="طباعة نموذج فارغ" onclick="event.stopPropagation();printForm(\''+k+'\')">🖨️</button></div>';
+    grid.appendChild(c);
+  });
+}
+document.addEventListener('DOMContentLoaded',renderExtraFormCards);
+if(document.readyState!=='loading')renderExtraFormCards();
 
 function openForm(formId){
   var fd=FORMS_DATA[formId];
@@ -9210,6 +9453,18 @@ function openForm(formId){
       </div>
     </div>`:'';
 
+  var fieldsHtml='';
+  if(fd.fields){
+    fieldsHtml='<div class="card" style="margin-bottom:10px"><div class="ct" style="color:'+fd.color+'">📊 قياسات وبيانات إضافية</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">';
+    fd.fields.forEach(function(f){
+      var inp;
+      if(f.type==='select'){inp='<select id="'+f.id+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';}
+      else{inp='<input type="'+f.type+'" id="'+f.id+'"'+(f.step?' step="'+f.step+'"':'')+(f.ph?' placeholder="'+f.ph+'"':'')+'>';}
+      fieldsHtml+='<div class="fr"><label>'+f.label+'</label>'+inp+'</div>';
+    });
+    fieldsHtml+='</div></div>';
+  }
+
   area.innerHTML=`
     <div class="card" style="border:2px solid ${fd.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
@@ -9231,6 +9486,7 @@ function openForm(formId){
         <div class="fr"><label>⏰ الوردية</label><select id="frm-shift-${formId}"><option value="morning">🌅 صباح</option><option value="afternoon">🌤️ ظهيرة</option><option value="night">🌙 ليل</option></select></div>
       </div>
       ${oilExtra}
+      ${fieldsHtml}
       <div id="frm-items-${formId}">${sectionsHtml}</div>
       <div class="fr"><label>📝 ملاحظات عامة</label><textarea id="frm-notes-${formId}" placeholder="أي ملاحظات أو أعطال..." style="min-height:56px"></textarea></div>
     </div>`;
@@ -9290,6 +9546,9 @@ function saveFormData(formId){
     extra.oilAdded=document.getElementById('oil-added')?document.getElementById('oil-added').value:'';
     extra.oilStatus=document.getElementById('oil-status')?document.getElementById('oil-status').value:'';
     extra.oilNotes=document.getElementById('oil-notes')?document.getElementById('oil-notes').value:'';
+  }
+  if(fd.fields){
+    fd.fields.forEach(function(f){var el=document.getElementById(f.id);extra[f.id]={label:f.label,value:el?el.value:''};});
   }
   var data={formId:formId,formTitle:fd.title,formTitleAr:fd.titleAr,
     date:date,shift:shift,responsiblePerson:resp,notes:notes,
