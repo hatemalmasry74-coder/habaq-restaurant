@@ -3894,6 +3894,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
           <button class="cc-tab" onclick="ccTab('rec',this)">📖 الوصفات وبطاقات التكلفة</button>
           <button class="cc-tab" style="margin-inline-start:auto;background:#8B2F2B;color:#fff;border-color:#8B2F2B" onclick="hbLegacyImport()">📦 نقل بيانات حباق السابقة</button>
           <button class="cc-tab" style="background:#1B5E20;color:#fff;border-color:#1B5E20" onclick="hbSeedImport()">🍽️ استيراد وصفات ومنيو حباق (من الشيف)</button>
+          <button class="cc-tab" style="background:#E65100;color:#fff;border-color:#E65100" onclick="ccQuickPrice()">💰 تسعير سريع للمواد بلا سعر</button>
           <button class="cc-tab" style="background:#0D47A1;color:#fff;border-color:#0D47A1" onclick="fxOpen()">⬇️ استيراد من فودكس</button>
         </div>
 
@@ -4042,6 +4043,20 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
             <span style="font-size:14px;font-weight:700">💼 إجمالي التكاليف الثابتة الشهرية</span>
             <span style="font-size:22px;font-weight:900;color:#C9A84C" id="be-total-fixed">0.00 ر.س</span>
           </div>
+        </div>
+
+        <!-- ============ تحليل مبيعات الأصناف من رواء ============ -->
+        <div class="card" style="margin-bottom:12px;border:1.5px solid #C9DEA5">
+          <div class="ct">📥 تحليل مبيعات الأصناف من رواء</div>
+          <div style="font-size:11px;color:var(--tl);margin-bottom:10px;background:var(--b);padding:8px 11px;border-radius:7px;border-right:3px solid var(--g)">
+            ارفع تقرير <b>مبيعات الأصناف</b> من رواء (xlsx أو csv، عمودا «اسم المنتج» و«الكمية المباعة»). تُطابَق الأصناف مع المنيو فتُحسب المبيعات الصافية وتكلفة الأصناف المباعة وFood Cost الفعلي ونسبة التكاليف التشغيلية، ثم يمكنك تطبيق متوسط السعر والتكلفة وحصة المبيعات على الحاسبة أدناه.
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div class="fr" style="margin:0"><label>ملف مبيعات الأصناف</label><input type="file" id="be-sales-file" accept=".xlsx,.csv"></div>
+            <div class="fr" style="margin:0"><label>عدد أيام فترة الملف</label><input type="number" id="be-sales-days" value="30" min="1" max="31" style="width:90px" oninput="beRenderSales()"></div>
+            <button class="btn bp" onclick="beLoadSales()">📊 تحليل الملف</button>
+          </div>
+          <div id="be-sales-out" style="display:none;margin-top:6px"></div>
         </div>
 
         <!-- ============ VARIABLE COSTS — البضاعة (تفصيلية للفئات) ============ -->
@@ -18119,7 +18134,7 @@ var HB_SEED={
   ings:[
     // k, الاسم، الوحدة، سعر العبوة (بدون ضريبة)، حجم العبوة، أسماء بديلة للمطابقة
     {k:'chicken',name:'دجاج مسلوق (جاهز للحشو)',unit:'جم',price:24,pack:1000,alias:['دجاج مسلوق','دجاج مسلوق مفروم']},
-    {k:'onion',name:'بصل',unit:'جم',price:3,pack:1000,alias:['بصل ابيض','بصل أبيض']},
+    {k:'onion',name:'بصل مفروم',unit:'جم',price:3.5,pack:1000,alias:['بصل','بصل ابيض','بصل أبيض']},
     {k:'sumac',name:'سماق',unit:'جم',price:55,pack:1000,alias:[]},
     {k:'bpepper',name:'فلفل أسود',unit:'جم',price:70,pack:1000,alias:['فلفل اسود مطحون']},
     {k:'maggi',name:'مرقة ماجي (كيس)',unit:'قطعة',price:1.5,pack:1,alias:['ماجي','مرقة دجاج','مكعبات ماجي']},
@@ -18138,9 +18153,9 @@ var HB_SEED={
     {k:'gonion',name:'بصل أخضر',unit:'جم',price:8,pack:1000,alias:['بصل اخضر','كراث']},
     {k:'spinach',name:'سبانخ',unit:'جم',price:9,pack:1000,alias:[]},
     {k:'labnah',name:'لبنة',unit:'جم',price:22,pack:1000,alias:['لبنه']},
-    {k:'cheese',name:'جبنة موزاريلا',unit:'جم',price:29,pack:1000,alias:['موزاريلا','جبنة','جبنه']},
+    {k:'cheese',name:'جبنة موزاريلا',unit:'جم',price:29,pack:1000,alias:['موزاريلا','جبنة','جبنه','جبن']},
     {k:'sesame',name:'سمسم',unit:'جم',price:18,pack:1000,alias:[]},
-    {k:'bseed',name:'حبة البركة',unit:'جم',price:30,pack:1000,alias:['حبه البركه','حبة بركة']},
+    {k:'bseed',name:'حبة البركة',unit:'جم',price:30,pack:1000,alias:['حبه البركه','حبة بركة','حبة سوداء','الحبة السوداء']},
     {k:'oil',name:'زيت نباتي',unit:'مل',price:8,pack:1000,alias:['زيت','زيت طبخ']},
     {k:'tea',name:'شاي أسود',unit:'جم',price:40,pack:1000,alias:['شاي','شاهي']},
     {k:'cardamom',name:'هيل',unit:'جم',price:250,pack:1000,alias:['هيل اخضر','هيل أخضر']},
@@ -18153,7 +18168,13 @@ var HB_SEED={
     {k:'ice',name:'ثلج (مكعب)',unit:'قطعة',price:0.05,pack:1,alias:['ثلج']},
     {k:'hib',name:'كركديه جاهز',unit:'جم',price:4,pack:250,alias:['كركديه']},
     {k:'icetea',name:'آيس تي جاهز',unit:'جم',price:6.5,pack:250,alias:['ايس تي','آيس تي','أيس تي']},
-    {k:'dough',name:'عجينة جاهزة 94 جم',unit:'قطعة',price:1,pack:1,alias:['عجينة','عجين جاهز','عجينه']}
+    {k:'dough',name:'عجينة جاهزة 94 جم',unit:'قطعة',price:1,pack:1,alias:['عجينة','عجين جاهز','عجينه']},
+    // مواد تُسعَّر فقط إن كانت موجودة في مخزونكم (لا تُنشأ)
+    {k:'dates',name:'تمر',unit:'جم',price:25,pack:1000,alias:['تمر سكري'],only:true},
+    {k:'cupg',name:'أكواب قزاز',unit:'قطعة',price:1.2,pack:1,alias:['كوب قزاز','أكواب القزاز'],only:true},
+    {k:'cupp',name:'أكواب بلاستيك',unit:'قطعة',price:0.12,pack:1,alias:['كوب بلاستيك'],only:true},
+    {k:'cuppr',name:'أكواب ورقية',unit:'قطعة',price:0.2,pack:1,alias:['كوب ورقي'],only:true},
+    {k:'trash',name:'أكياس قمامة مقاس 8',unit:'رول',price:6,pack:1,alias:['اكياس قمامة','كيس قمامة'],only:true}
   ],
   recs:[
     // ===== دفعات التحضير (batch) — الكمية لدفعة كاملة، yield = الوزن/الأكواب الناتجة =====
@@ -18200,13 +18221,22 @@ function ccEnsureLoaded(){
 }
 
 /* ---------- استيراد وصفات ومنيو حباق ---------- */
+function hbKey(s){
+  return invNorm(s).split(' ').map(function(w){return w.length>3&&w.indexOf('ال')===0?w.slice(2):w;}).filter(Boolean).sort().join(' ');
+}
+function hbKeys(name){
+  var keys=[];
+  String(name||'').split(/\s[-–—]\s|\s\/\s|\(/).forEach(function(p){var k=hbKey(p);if(k&&keys.indexOf(k)<0)keys.push(k);});
+  var full=hbKey(String(name||''));if(full&&keys.indexOf(full)<0)keys.push(full);
+  return keys;
+}
 function hbUnitFamily(u){
   u=String(u||'').trim().toLowerCase();
-  if(['جم','جرام','غرام','g','gm','gram'].indexOf(u)>=0)return 'g';
-  if(['كجم','كيلو','كيلوجرام','kg'].indexOf(u)>=0)return 'kg';
+  if(['جم','جرام','غرام','g','gm','gram','grams'].indexOf(u)>=0)return 'g';
+  if(['كجم','كيلو','كيلوجرام','kg','kilo'].indexOf(u)>=0)return 'kg';
   if(['مل','ml','ملل'].indexOf(u)>=0)return 'ml';
-  if(['لتر','l','liter','ليتر'].indexOf(u)>=0)return 'l';
-  if(['قطعة','حبة','حبه','piece','pc','pcs','كيس','علبة'].indexOf(u)>=0)return 'pc';
+  if(['لتر','l','liter','ليتر','litre'].indexOf(u)>=0)return 'l';
+  if(['قطعة','حبة','حبه','piece','pc','pcs','كيس','علبة','رول','roll','كرتون','pieces'].indexOf(u)>=0)return 'pc';
   return 'other:'+u;
 }
 function hbUnitFactor(seedUnit,exUnit){ // كمية بوحدة الوصفة → كمية بوحدة المادة الموجودة
@@ -18223,32 +18253,46 @@ function hbSeedImport(){
     res[0].forEach(function(d){var x=d.data();x._id=d.id;exIng.push(x);});
     res[1].forEach(function(d){var x=d.data();x._id=d.id;exRec.push(x);});
     var now=new Date().toISOString(), by=(CU&&CU.name)||'استيراد حباق';
-    var writes=[], ingMap={}, rep={ingNew:0,ingFill:0,ingKeep:[],ingAlt:0,recNew:0,recUpd:0};
+    var writes=[], ingMap={}, rep={ingNew:0,ingFill:0,ingKeep:[],ingMismatch:[],ingDel:0,ingReuse:0,recNew:0,recUpd:0};
+    var seedPrev=exIng.filter(function(g){return g.seed==='habaq';});
+    var nonSeed=exIng.filter(function(g){return g.seed!=='habaq';});
+    var usedEx={};
     var findEx=function(list,names){
-      var keys=[];names.forEach(function(n){invNameKeys(n).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
-      return list.find(function(x){var xk=invNameKeys(x.name);return xk.some(function(k){return keys.indexOf(k)>=0;});});
+      var keys=[];names.forEach(function(n){hbKeys(n).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
+      return list.find(function(x){return !usedEx[x._id]&&hbKeys(x.name).some(function(k){return keys.indexOf(k)>=0;});});
     };
-    var usedExIds={};
     // ---- المواد الخام ----
     HB_SEED.ings.forEach(function(sg){
-      var ex=findEx(exIng,[sg.name].concat(sg.alias||[]));
+      var ex=findEx(nonSeed,[sg.name].concat(sg.alias||[]));
       var f=ex?hbUnitFactor(sg.unit,ex.unit):0;
-      if(ex&&f&&!usedExIds[ex._id]){
-        usedExIds[ex._id]=1; ingMap[sg.k]={id:ex._id,f:f};
+      if(ex&&f){
+        usedEx[ex._id]=1; ingMap[sg.k]={id:ex._id,f:f};
         if(!(parseFloat(ex.price)>0)){
           writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:{price:sg.price,pack:sg.pack*f,updatedAt:now,updatedBy:by},merge:true});rep.ingFill++;
         }else{rep.ingKeep.push(ex.name);}
-      }else{
-        var ref=db.collection('cost_ingredients').doc();
-        var nm=sg.name; if(ex&&!f)rep.ingAlt++;
-        writes.push({ref:ref,data:{name:nm,unit:sg.unit,price:sg.price,pack:sg.pack,waste:0,seed:'habaq',updatedAt:now,updatedBy:by}});
-        ingMap[sg.k]={id:ref.id,f:1};rep.ingNew++;
+        return;
       }
+      if(ex&&!f)rep.ingMismatch.push(ex.name+' ('+ex.unit+')');
+      if(sg.only)return; // مواد تُسعَّر فقط إن كانت موجودة
+      var prev=seedPrev.find(function(g){return g.name===sg.name;});
+      if(prev){ingMap[sg.k]={id:prev._id,f:1};rep.ingReuse++;return;}
+      var ref=db.collection('cost_ingredients').doc();
+      writes.push({ref:ref,data:{name:sg.name,unit:sg.unit,price:sg.price,pack:sg.pack,waste:0,seed:'habaq',updatedAt:now,updatedBy:by}});
+      ingMap[sg.k]={id:ref.id,f:1};rep.ingNew++;
+    });
+    // ---- حذف نسخ مكررة أُنشئت سابقاً وصار لها مقابل موجود في المخزون ----
+    var targets={};Object.keys(ingMap).forEach(function(k){targets[ingMap[k].id]=1;});
+    var usedByUser={};
+    exRec.filter(function(r){return r.seed!=='habaq';}).forEach(function(r){(r.items||[]).forEach(function(it){if(it.ingId)usedByUser[it.ingId]=1;});});
+    seedPrev.forEach(function(g){
+      if(targets[g._id]||usedByUser[g._id])return;
+      writes.push({ref:db.collection('cost_ingredients').doc(g._id),del:true});rep.ingDel++;
     });
     // ---- الوصفات ----
     var recMap={};
     HB_SEED.recs.forEach(function(sr){
-      var ex=findEx(exRec,[sr.name]);
+      var keys=hbKeys(sr.name);
+      var ex=exRec.find(function(r){return hbKeys(r.name).some(function(k){return keys.indexOf(k)>=0;});});
       recMap[sr.k]={id:ex?ex._id:db.collection('cost_recipes').doc().id,exists:!!ex};
     });
     HB_SEED.recs.forEach(function(sr){
@@ -18264,26 +18308,55 @@ function hbSeedImport(){
       writes.push({ref:db.collection('cost_recipes').doc(rm.id),data:data,merge:rm.exists});
       if(rm.exists)rep.recUpd++;else rep.recNew++;
     });
-    var noPrice=exIng.filter(function(g){return !usedExIds[g._id]&&!(parseFloat(g.price)>0);}).map(function(g){return g.name;});
+    var noPrice=exIng.filter(function(g){return !usedEx[g._id]&&g.seed!=='habaq'&&!(parseFloat(g.price)>0);}).map(function(g){return g.name;});
     var msg='سيتم استيراد وصفات ومنيو حباق:\n\n'
-      +'🥕 مواد خام جديدة: '+rep.ingNew+(rep.ingAlt?' (منها '+rep.ingAlt+' بوحدة مختلفة عن الموجود)':'')+'\n'
-      +'💰 مواد موجودة بلا سعر ستُسعَّر: '+rep.ingFill+'\n'
+      +'🥕 مواد خام جديدة: '+rep.ingNew+(rep.ingReuse?' | مواد مستوردة سابقاً أُعيد استخدامها: '+rep.ingReuse:'')+'\n'
+      +'🔗 مواد موجودة في مخزونكم طُوبقت وسُعِّرت (كانت بلا سعر): '+rep.ingFill+'\n'
       +'🔒 مواد موجودة بسعرها (لن يُغيَّر سعرها): '+rep.ingKeep.length+'\n'
-      +'📖 وصفات ومنيو جديدة: '+rep.recNew+' | وصفات موجودة بنفس الاسم ستُحدَّث: '+rep.recUpd+'\n\n'
-      +'⚠️ الأسعار تقديرية لأسعار الجملة بأبها (بدون ضريبة) — راجعها من تبويب «المواد الخام» بعد الاستيراد.\n'
-      +(noPrice.length?'ℹ️ مواد في المخزون بلا سعر ولا تتطابق مع هذه القائمة: '+noPrice.length+' (راجعها يدوياً)\n':'')
+      +'🧹 نسخ مكررة أُنشئت سابقاً ستُحذف لأن لها مقابلاً في مخزونكم: '+rep.ingDel+'\n'
+      +'📖 وصفات ومنيو جديدة: '+rep.recNew+' | وصفات موجودة بنفس الاسم ستُحدَّث: '+rep.recUpd+'\n'
+      +(rep.ingMismatch.length?'\n⚠️ مواد موجودة بوحدة لا تتوافق مع الوصفة (لم تُربط): '+rep.ingMismatch.slice(0,8).join('، ')+'\n':'')
+      +'\n⚠️ الأسعار تقديرية لأسعار الجملة بأبها (بدون ضريبة) — راجعها بعد الاستيراد.\n'
+      +(noPrice.length?'ℹ️ مواد في المخزون بلا سعر ولا تتطابق مع القائمة: '+noPrice.length+' — استخدم زر «💰 تسعير سريع».\n':'')
       +'\nمتابعة؟';
     if(!confirm(msg))return 'cancel';
     var chain=Promise.resolve();
     for(var i=0;i<writes.length;i+=400){
-      (function(chunk){chain=chain.then(function(){var b=db.batch();chunk.forEach(function(w){if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});return b.commit();});})(writes.slice(i,i+400));
+      (function(chunk){chain=chain.then(function(){var b=db.batch();chunk.forEach(function(w){if(w.del)b.delete(w.ref);else if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});return b.commit();});})(writes.slice(i,i+400));
     }
     return chain.then(function(){return rep;});
   }).then(function(rep){
     if(rep==='cancel'||!rep)return;
-    alert('✅ تم الاستيراد\n\nمواد جديدة: '+rep.ingNew+' | مواد سُعِّرت: '+rep.ingFill+'\nوصفات ومنيو جديدة: '+rep.recNew+' | محدَّثة: '+rep.recUpd+'\n\nراجع الأسعار من تبويب «المواد الخام» ثم افتح «المنيو والأسعار».');
+    alert('✅ تم الاستيراد\n\nمواد جديدة: '+rep.ingNew+' | مواد سُعِّرت: '+rep.ingFill+' | نسخ مكررة حُذفت: '+rep.ingDel+'\nوصفات ومنيو جديدة: '+rep.recNew+' | محدَّثة: '+rep.recUpd+'\n\nلتسعير ما تبقى بلا سعر استخدم «💰 تسعير سريع». ثم في «الجرد» اضغط «🔄 تقييم بالأسعار الحالية».');
     _ccLoaded=false;ccInit();
   }).catch(function(e){alert('خطأ أثناء الاستيراد: '+(e.message||e.code||e));console.error('hbSeedImport',e);});
+}
+
+/* ---------- تسعير سريع للمواد التي بلا سعر ---------- */
+function ccQuickPrice(){
+  if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
+  ccEnsureLoaded().then(function(){
+    var list=_ccIngs.filter(function(g){return !(parseFloat(g.price)>0);});
+    if(!list.length){alert('كل المواد لها سعر ✅');return;}
+    var h='<div style="font-size:11px;color:var(--tl);margin-bottom:8px">أدخل <b>سعر العبوة بدون ضريبة</b> و<b>حجم العبوة</b> بنفس وحدة المادة. مثال: كيس سكر 10 كجم بـ 32 ريال والوحدة جم ← السعر 32 والحجم 10000. اترك الصف فارغاً لتخطيه.</div>'
+      +'<div style="max-height:55vh;overflow:auto"><table class="dt"><thead><tr><th>المادة</th><th>الوحدة</th><th>سعر العبوة (﷼)</th><th>حجم العبوة</th></tr></thead><tbody>'
+      +list.map(function(g){return '<tr data-id="'+g._id+'"><td style="font-weight:700">'+invEsc(g.name)+'<\/td><td>'+invEsc(g.unit||'')+'<\/td><td><input class="qp-price" type="number" step="0.01" style="width:90px;padding:4px;border:1px solid var(--br);border-radius:6px"><\/td><td><input class="qp-pack" type="number" step="0.01" value="'+(parseFloat(g.pack)>0?g.pack:1)+'" style="width:90px;padding:4px;border:1px solid var(--br);border-radius:6px"><\/td><\/tr>';}).join('')
+      +'<\/tbody><\/table><\/div><div style="margin-top:10px"><button class="btn bp" onclick="ccQuickPriceSave()">💾 حفظ الأسعار<\/button><\/div>';
+    psShowModal('💰 تسعير سريع — '+list.length+' مادة بلا سعر',h);
+  });
+}
+function ccQuickPriceSave(){
+  if(!ccGuard())return;
+  var rows=document.querySelectorAll('#ps-modal tr[data-id]'),ops=[],now=new Date().toISOString();
+  rows.forEach(function(tr){
+    var p=parseFloat(tr.querySelector('.qp-price').value),k=parseFloat(tr.querySelector('.qp-pack').value);
+    if(!(p>0)||!(k>0))return;
+    ops.push({ref:db.collection('cost_ingredients').doc(tr.getAttribute('data-id')),data:{price:p,pack:k,updatedAt:now,updatedBy:(CU&&CU.name)||''},merge:true});
+  });
+  if(!ops.length){alert('لم تُدخل أي سعر');return;}
+  var chain=Promise.resolve();
+  for(var i=0;i<ops.length;i+=400){(function(ch){chain=chain.then(function(){var b=db.batch();ch.forEach(function(o){b.set(o.ref,o.data,{merge:true});});return b.commit();});})(ops.slice(i,i+400));}
+  chain.then(function(){psCloseModal();alert('✅ تم حفظ أسعار '+ops.length+' مادة\nفي الجرد: اضغط «🔄 تقييم بالأسعار الحالية» لتظهر قيمة الجرد.');_ccLoaded=false;ccInit();}).catch(function(e){alert('خطأ: '+e.message);});
 }
 
 /* ---------- صفحة المنيو ---------- */
@@ -18349,6 +18422,98 @@ function beFillFromCosts(){
     var n=document.getElementById('be-fill-note');if(n)n.textContent='✅ '+lines.join(' • ');
     if(!any)alert('لا توجد وصفات منيو بتكلفة. استورد وصفات حباق أولاً من «الوصفات وبطاقات التكلفة».');
   }).catch(function(e){alert('تعذر تحميل بطاقات التكلفة: '+e.message);});
+}
+
+
+/* ---------- نقطة التعادل: تحليل ملف مبيعات الأصناف (رواء) ---------- */
+var _beSales=null;
+function beMatchMenu(name){
+  var menu=menuItems(), keys=hbKeys(name);
+  if(!keys.length)return null;
+  var hit=menu.find(function(r){var rk=hbKeys(r.name).concat(r.nameEn?hbKeys(r.nameEn):[]);return rk.some(function(k){return keys.indexOf(k)>=0;});});
+  if(hit)return hit;
+  var cand=menu.filter(function(r){
+    var rk=hbKeys(r.name)[0]||'';
+    return keys.some(function(k){return k.length>=5&&rk.length>=5&&(k.indexOf(rk)>=0||rk.indexOf(k)>=0);});
+  });
+  return cand.length===1?cand[0]:null;
+}
+function beFixedTotal(){
+  var g=function(id){var e=document.getElementById(id);return parseFloat(e?e.value:0)||0;};
+  return BE_EMP_FIELDS.concat(BE_OP_FIELDS).reduce(function(t,id){return t+g(id);},0);
+}
+function beLoadSales(){
+  var f=(document.getElementById('be-sales-file')||{}).files;
+  if(!f||!f[0]){alert('اختر ملف مبيعات الأصناف من رواء (xlsx أو csv)');return;}
+  var file=f[0];
+  ccEnsureLoaded().then(function(){
+    if(!menuItems().length){alert('لا توجد أصناف منيو. استورد وصفات ومنيو حباق أولاً من «الوصفات وبطاقات التكلفة».');return null;}
+    return (/\.xlsx$/i.test(file.name)?file.arrayBuffer().then(invReadXlsx):file.text().then(fxParseCSV));
+  }).then(function(rows){
+    if(!rows)return;
+    if(!rows.length){alert('الملف فارغ');return;}
+    var cName=invPickCol(rows[0],['اسم المنتج','المنتج','اسم الصنف','الصنف','Product','Item','الاسم']);
+    var cQty=invPickCol(rows[0],['الكمية المباعة','الكمية','Quantity','Qty','العدد'],[cName]);
+    if(!cName||!cQty){alert('لم أجد عمودي "اسم المنتج" و"الكمية المباعة" في الملف. الأعمدة الموجودة: '+Object.keys(rows[0]).join('، '));return;}
+    var items={},unmatched=[],cats={drk:{n:'المشروبات',u:0,rev:0,cu:0,crev:0,cogs:0},bkr:{n:'المخبوزات',u:0,rev:0,cu:0,crev:0,cogs:0},dsr:{n:'الحلى',u:0,rev:0,cu:0,crev:0,cogs:0},oth:{n:'أخرى',u:0,rev:0,cu:0,crev:0,cogs:0}};
+    var totRev=0,totCogs=0,totUnits=0,noCostRev=0;
+    rows.forEach(function(r){
+      var nm=String(r[cName]||'').trim(),q=fxNum(r[cQty]);
+      if(!nm||q<=0)return;
+      var rec=beMatchMenu(nm);
+      if(!rec){unmatched.push({name:nm,qty:q});return;}
+      var c=ccRecCost(rec),hasCost=!rec.noCost&&c.unit>0,rev=q*c.net,cogs=hasCost?q*c.unit:0;
+      var it=items[rec._id]||(items[rec._id]={rec:rec,qty:0,rev:0,cogs:0,hasCost:hasCost,unitCost:c.unit});
+      it.qty+=q;it.rev+=rev;it.cogs+=cogs;
+      var ck=cats[rec.bepCat]?rec.bepCat:'oth',ct=cats[ck];
+      ct.u+=q;ct.rev+=rev;if(hasCost){ct.cu+=q;ct.crev+=rev;ct.cogs+=cogs;}
+      totRev+=rev;totUnits+=q;if(hasCost)totCogs+=cogs;else noCostRev+=rev;
+    });
+    _beSales={items:items,cats:cats,unmatched:unmatched,totRev:totRev,totCogs:totCogs,totUnits:totUnits,noCostRev:noCostRev};
+    beRenderSales();
+  }).catch(function(e){console.error(e);alert('تعذر قراءة الملف: '+e.message);});
+}
+function beRenderSales(){
+  var S=_beSales,box=document.getElementById('be-sales-out');if(!S||!box)return;
+  var days=parseFloat((document.getElementById('be-sales-days')||{}).value)||30;
+  var monthDays=parseFloat((document.getElementById('be-days')||{}).value)||30;
+  var fixed=beFixedTotal()*days/monthDays;
+  var costedRev=S.totRev-S.noCostRev, fcPct=costedRev>0?S.totCogs/costedRev*100:0;
+  var opPct=S.totRev>0?fixed/S.totRev*100:0;
+  var profit=S.totRev-S.totCogs-fixed;
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:10px 0">'
+    +'<div class="kpi"><div class="kv">'+invMoney(S.totRev)+'</div><div class="kl">صافي المبيعات (بدون ضريبة) ﷼</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#B71C1C">'+invMoney(S.totCogs)+'</div><div class="kl">تكلفة الأصناف المباعة ﷼</div></div>'
+    +'<div class="kpi"><div class="kv">'+fcPct.toFixed(1)+'%</div><div class="kl">Food Cost الفعلي</div></div>'
+    +'<div class="kpi"><div class="kv">'+invMoney(fixed)+'</div><div class="kl">التكاليف التشغيلية للفترة ﷼</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:#E65100">'+opPct.toFixed(1)+'%</div><div class="kl">نسبة التكاليف التشغيلية من المبيعات</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:'+(profit>=0?'#1B5E20':'#B71C1C')+'">'+invMoney(profit)+'</div><div class="kl">الربح التشغيلي التقديري ﷼</div></div>'
+    +'</div>';
+  if(S.noCostRev>0)h+='<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border:1px solid #FFE082;border-radius:7px;padding:6px 10px;margin-bottom:8px">⚠️ مبيعات أصناف بلا وصفة وتكلفة ('+invMoney(S.noCostRev)+' ﷼) محسوبة في المبيعات وليست في التكلفة، فالربح أعلى من الواقع قليلاً حتى تُدخل وصفاتها.</div>';
+  h+='<div style="font-weight:700;margin:8px 0 4px">📊 الفئات (تُملأ بها حقول نقطة التعادل)</div><table class="dt"><thead><tr><th>الفئة</th><th>الوحدات المباعة</th><th>متوسط سعر البيع الصافي</th><th>متوسط التكلفة</th><th>حصة المبيعات %</th></tr></thead><tbody>';
+  ['drk','bkr','dsr','oth'].forEach(function(k){
+    var c=S.cats[k];if(!c.u)return;
+    h+='<tr><td style="font-weight:700">'+c.n+'</td><td>'+invFmt(c.u)+'</td><td>'+(c.cu?invMoney(c.crev/c.cu):'—')+'</td><td>'+(c.cu?invMoney(c.cogs/c.cu):'<span style="color:var(--tl)">بلا وصفة</span>')+'</td><td>'+(S.totRev>0?(c.rev/S.totRev*100).toFixed(1)+'%':'—')+'</td></tr>';
+  });
+  h+='</tbody></table><div style="margin:10px 0"><button class="btn bp" onclick="beApplySales()">✅ تطبيق على نقطة التعادل (سعر + تكلفة + حصة المبيعات)</button></div>';
+  var list=Object.keys(S.items).map(function(k){return S.items[k];}).sort(function(a,b){return b.rev-a.rev;});
+  h+='<div style="font-weight:700;margin:8px 0 4px">🧾 الأصناف المباعة</div><div style="max-height:300px;overflow:auto"><table class="dt"><thead><tr><th>الصنف</th><th>الكمية</th><th>المبيعات الصافية</th><th>تكلفة الوحدة</th><th>إجمالي التكلفة</th><th>Food Cost</th></tr></thead><tbody>'
+    +list.map(function(it){return '<tr><td style="font-weight:700">'+invEsc(it.rec.name)+'</td><td>'+invFmt(it.qty)+'</td><td>'+invMoney(it.rev)+'</td><td>'+(it.hasCost?invMoney(it.unitCost):'—')+'</td><td>'+(it.hasCost?invMoney(it.cogs):'—')+'</td><td>'+(it.hasCost&&it.rev>0?(it.cogs/it.rev*100).toFixed(1)+'%':'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
+  if(S.unmatched.length)h+='<div style="font-weight:700;margin:10px 0 4px;color:#B71C1C">⚠️ أصناف في الملف لم تطابق المنيو ('+S.unmatched.length+') — لم تُحسب. غيّر اسمها في المنيو ليطابق رواء:</div><div style="font-size:11px">'+S.unmatched.map(function(u){return invEsc(u.name)+' ('+invFmt(u.qty)+')';}).join(' • ')+'</div>';
+  box.style.display='block';box.innerHTML=h;
+}
+function beApplySales(){
+  var S=_beSales;if(!S)return;
+  var cats=['drk','bkr','dsr'],three=cats.reduce(function(t,k){return t+S.cats[k].rev;},0),applied=[],skipped=[];
+  cats.forEach(function(k){
+    var c=S.cats[k];if(!c.u){skipped.push(c.n);return;}
+    var pi=document.getElementById('be-'+k+'-price'),ci=document.getElementById('be-'+k+'-cost'),mi=document.getElementById('be-'+k+'-mix');
+    if(c.cu){if(pi)pi.value=(c.crev/c.cu).toFixed(2);if(ci)ci.value=(c.cogs/c.cu).toFixed(2);}else{skipped.push(c.n+' (بلا تكلفة)');}
+    if(mi&&three>0)mi.value=(c.rev/three*100).toFixed(1);
+    applied.push(c.n);
+  });
+  if(typeof calcBreakeven==='function')calcBreakeven();
+  alert('✅ طُبّقت بيانات المبيعات الفعلية على: '+(applied.join('، ')||'—')+(skipped.length?'\nلم يتغير: '+skipped.join('، '):'')+'\n\nحصة المبيعات حُسبت من المبيعات الصافية للفئات الثلاث (بدون "أخرى").');
 }
 
 /* ---------- HABAQ LEGACY IMPORT (نقل أصناف ووصفات منصة حباق السابقة) ---------- */
@@ -19288,10 +19453,13 @@ function invApplySales(){
     return invReload();
   }).catch(function(e){alert('خطأ: '+e.message);});
 }
-function invCountValue(c){
-  if(c.totalValue!=null&&c.totalValue!=='')return Number(c.totalValue)||0;
-  return (c.lines||[]).reduce(function(t,l){return t+(l.value!=null?Number(l.value):(Number(l.counted)||0)*(Number(l.unitCost)||0));},0);
+function invLineUC(l){var u=Number(l.unitCost)||0;if(u>0)return u;var g=invIng(l.itemId);return g?ccUnitCost(g):0;}
+function invCountTotals(c){
+  var v=0,sh=0,ov=0;
+  (c.lines||[]).forEach(function(l){var uc=invLineUC(l),dv=(Number(l.diff)||0)*uc;v+=(Number(l.counted)||0)*uc;if(dv<0)sh+=-dv;else ov+=dv;});
+  return {value:v,short:sh,over:ov};
 }
+function invCountValue(c){return invCountTotals(c).value;}
 function invRevalueCount(id){
   if(!invCanCount()){alert('صلاحية مدير الفرع أو مسؤول المخازن');return;}
   var c=INV_COUNTS.find(function(x){return x._id===id;});if(!c)return;
@@ -19400,17 +19568,18 @@ function invRenderCountHistory(){
   var list=INV_COUNTS.slice().sort(function(a,b){return a.month<b.month?1:-1;});
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--tl);padding:12px;font-size:12px">لا توجد جردات محفوظة</div>';return;}
   el.innerHTML='<table class="dt"><thead><tr><th>الشهر</th><th>التاريخ</th><th>الأصناف</th><th>قيمة الجرد (﷼)</th><th>العجز (﷼)</th><th>الزيادة (﷼)</th><th>بواسطة</th><th></th></tr></thead><tbody>'+list.map(function(c){
-    return '<tr><td style="font-weight:700">'+c.month+'</td><td>'+(c.date||'')+'</td><td>'+(c.lines||[]).length+'</td><td style="font-weight:700">'+invMoney(invCountValue(c))+'</td><td style="color:#B71C1C">'+invMoney(c.totalShort)+'</td><td style="color:#1B5E20">'+invMoney(c.totalOver)+'</td><td>'+invEsc(c.savedByName||'')+'</td><td style="white-space:nowrap"><button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ طباعة</button>'+(invCanCount()?' <button class="btn bsm bo" onclick="invOpenCountMonth(\''+c.month+'\')">✏️ تعديل</button>':'')+'</td></tr>';
+    return '<tr><td style="font-weight:700">'+c.month+'</td><td>'+(c.date||'')+'</td><td>'+(c.lines||[]).length+'</td><td style="font-weight:700">'+invMoney(invCountValue(c))+'</td><td style="color:#B71C1C">'+invMoney(invCountTotals(c).short)+'</td><td style="color:#1B5E20">'+invMoney(invCountTotals(c).over)+'</td><td>'+invEsc(c.savedByName||'')+'</td><td style="white-space:nowrap"><button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ طباعة</button>'+(invCanCount()?' <button class="btn bsm bo" onclick="invOpenCountMonth(\''+c.month+'\')">✏️ تعديل</button>':'')+'</td></tr>';
   }).join('')+'</tbody></table>';
 }
 function invPrintCount(id){
   var c=INV_COUNTS.find(function(x){return x._id===id;});if(!c)return;
-  var rows=(c.lines||[]).map(function(l){var col=l.diff<0?'#B71C1C':(l.diff>0?'#1B5E20':'#555');return '<tr><td>'+invEsc(l.name)+'</td><td>'+invEsc(l.unit)+'</td><td>'+invFmt(l.system)+'</td><td><b>'+invFmt(l.counted)+'</b></td><td style="color:'+col+'">'+(l.diff>0?'+':'')+invFmt(l.diff)+'</td><td>'+Number(l.unitCost||0).toFixed(4)+'</td><td style="color:'+col+'">'+invMoney(l.diffValue)+'</td></tr>';}).join('');
+  var ct=invCountTotals(c);
+  var rows=(c.lines||[]).map(function(l){var col=l.diff<0?'#B71C1C':(l.diff>0?'#1B5E20':'#555'),uc=invLineUC(l);return '<tr><td>'+invEsc(l.name)+'</td><td>'+invEsc(l.unit)+'</td><td>'+invFmt(l.system)+'</td><td><b>'+invFmt(l.counted)+'</b></td><td style="color:'+col+'">'+(l.diff>0?'+':'')+invFmt(l.diff)+'</td><td>'+uc.toFixed(4)+'</td><td><b>'+invMoney((Number(l.counted)||0)*uc)+'</b></td><td style="color:'+col+'">'+invMoney((Number(l.diff)||0)*uc)+'</td></tr>';}).join('');
   var html='<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>محضر جرد '+c.month+'</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#222}h1{color:#8B2F2B;font-size:18px;margin:0}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:right}th{background:#f3e9e8}.tot{display:flex;gap:16px;margin-top:12px;font-size:13px;font-weight:700}.sig{display:flex;justify-content:space-between;margin-top:40px;font-size:12px}.np{margin-bottom:12px}@media print{.np{display:none}}</style></head><body>'
     +'<div class="np"><button onclick="window.print()">🖨️ طباعة</button></div>'
     +'<h1>حباق — محضر الجرد الشهري للمخزون</h1><div style="font-size:12px;color:#666;margin-top:4px">الشهر: '+c.month+' | تاريخ الجرد: '+(c.date||'')+' | أُعدّ بواسطة: '+invEsc(c.savedByName||'')+'</div>'
-    +'<table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الرصيد الدفتري</th><th>الجرد الفعلي</th><th>الفرق</th><th>تكلفة الوحدة</th><th>قيمة الفرق (﷼)</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<div class="tot"><div>قيمة الجرد الإجمالية: <span>'+invMoney(invCountValue(c))+' ﷼</span></div><div>إجمالي العجز: <span style="color:#B71C1C">'+invMoney(c.totalShort)+' ﷼</span></div><div>إجمالي الزيادة: <span style="color:#1B5E20">'+invMoney(c.totalOver)+' ﷼</span></div><div>الصافي: '+invMoney((c.totalOver||0)-(c.totalShort||0))+' ﷼</div></div>'
+    +'<table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الرصيد الدفتري</th><th>الجرد الفعلي</th><th>الفرق</th><th>تكلفة الوحدة</th><th>قيمة الجرد (﷼)</th><th>قيمة الفرق (﷼)</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="tot"><div>قيمة الجرد الإجمالية: <span>'+invMoney(ct.value)+' ﷼</span></div><div>إجمالي العجز: <span style="color:#B71C1C">'+invMoney(ct.short)+' ﷼</span></div><div>إجمالي الزيادة: <span style="color:#1B5E20">'+invMoney(ct.over)+' ﷼</span></div><div>الصافي: '+invMoney(ct.over-ct.short)+' ﷼</div></div>'
     +'<div class="sig"><div>مسؤول المخازن: ______________</div><div>مدير الفرع: ______________</div><div>نَسَق — المراجعة: ______________</div></div>'
     +'<div style="margin-top:24px;font-size:10px;color:#888">حباق — تحت إشراف نَسَق لحلول الأعمال والتشغيل</div></body></html>';
   var w=window.open('','_blank','width=900,height=800');if(w){w.document.write(html);w.document.close();}
@@ -19483,8 +19652,8 @@ function invRenderReports(){
   var rows=months.map(function(m){
     var c=INV_COUNTS.find(function(x){return x.month===m;}), d=invDraftFor(m), dn=d&&d.lines?Object.keys(d.lines).length:0, st, act='';
     if(c){
-      done++;short+=Number(c.totalShort)||0;over+=Number(c.totalOver)||0;
-      (c.lines||[]).forEach(function(l){if(!(l.diffValue<0))return;var a=itemAgg[l.itemId]||(itemAgg[l.itemId]={name:l.name,unit:l.unit,times:0,qty:0,val:0});a.times++;a.qty+=-(Number(l.diff)||0);a.val+=-(Number(l.diffValue)||0);});
+      var tt=invCountTotals(c);done++;short+=tt.short;over+=tt.over;
+      (c.lines||[]).forEach(function(l){var dv=(Number(l.diff)||0)*invLineUC(l);if(!(dv<0))return;var a=itemAgg[l.itemId]||(itemAgg[l.itemId]={name:l.name,unit:l.unit,times:0,qty:0,val:0});a.times++;a.qty+=-(Number(l.diff)||0);a.val+=-dv;});
       st='<span style="color:#1B5E20;font-weight:700">✅ معتمد</span>';
       if(!lastVal||m>lastVal.m)lastVal={m:m,v:invCountValue(c)};
       act='<button class="btn bsm bo" onclick="invPrintCount(\''+c._id+'\')">🖨️ عرض / طباعة</button> <button class="btn bsm bo" onclick="invExportCount(\''+c._id+'\')">⬇️ Excel</button>'+(invCanCount()?' <button class="btn bsm bo" onclick="invOpenCountMonth(\''+m+'\')">✏️ تعديل</button> <button class="btn bsm bo" title="تحديث تكلفة الوحدة في هذا الجرد بالأسعار الحالية" onclick="invRevalueCount(\''+c._id+'\')">🔄 تقييم بالأسعار الحالية</button>':'');
@@ -19500,8 +19669,8 @@ function invRenderReports(){
       +'<td style="font-weight:700">'+(c?invMoney(invCountValue(c)):'—')+'</td>'
       +'<td>'+(c?invEsc(c.firstSavedByName||c.savedByName||'')+(c.editCount?'<div style="font-size:10px;color:#1565C0">عُدّل '+c.editCount+'× — آخرها '+invEsc(c.savedByName||'')+'</div>':''):(dn?invEsc(d.updatedByName||''):'—'))+'</td>'
       +'<td style="font-size:11px">'+(c?invTs(c.savedAt)||c.date||'':(dn?invTs(d.updatedAt):'—'))+'</td>'
-      +'<td style="color:#B71C1C">'+(c?invMoney(c.totalShort):'—')+'</td><td style="color:#1B5E20">'+(c?invMoney(c.totalOver):'—')+'</td>'
-      +'<td>'+(c?invMoney((c.totalOver||0)-(c.totalShort||0)):'—')+'</td><td style="white-space:nowrap">'+act+'</td></tr>';
+      +'<td style="color:#B71C1C">'+(c?invMoney(invCountTotals(c).short):'—')+'</td><td style="color:#1B5E20">'+(c?invMoney(invCountTotals(c).over):'—')+'</td>'
+      +'<td>'+(c?invMoney(invCountTotals(c).over-invCountTotals(c).short):'—')+'</td><td style="white-space:nowrap">'+act+'</td></tr>';
   }).join('');
   var k=document.getElementById('invr-kpis');
   if(k)k.innerHTML='<div class="kpi"><div class="kv" style="color:#1B5E20">'+done+'</div><div class="kl">جرد معتمد</div></div>'
