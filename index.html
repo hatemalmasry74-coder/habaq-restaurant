@@ -18137,7 +18137,7 @@ var HB_SEED={
     {k:'onion',name:'بصل مفروم',unit:'جم',price:3.5,pack:1000,alias:['بصل','بصل ابيض','بصل أبيض']},
     {k:'sumac',name:'سماق',unit:'جم',price:55,pack:1000,alias:[]},
     {k:'bpepper',name:'فلفل أسود',unit:'جم',price:70,pack:1000,alias:['فلفل اسود مطحون']},
-    {k:'maggi',name:'مرقة ماجي (كيس)',unit:'قطعة',price:1.5,pack:1,alias:['ماجي','مرقة دجاج','مكعبات ماجي']},
+    {k:'maggi',name:'مرقة ماجي (كيس)',unit:'قطعة',price:1.5,pack:1,alias:['ماجي','مرقة دجاج','مكعبات ماجي','مكعب ماجي']},
     {k:'salt',name:'ملح',unit:'جم',price:1.5,pack:1000,alias:['ملح ناعم','ملح طعام']},
     {k:'olive',name:'زيت زيتون',unit:'مل',price:34,pack:1000,alias:[]},
     {k:'pmol',name:'دبس رمان',unit:'جم',price:32,pack:1000,alias:['دبس الرمان']},
@@ -18146,12 +18146,12 @@ var HB_SEED={
     {k:'garlic',name:'ثوم',unit:'جم',price:12,pack:1000,alias:[]},
     {k:'sugar',name:'سكر',unit:'جم',price:3.5,pack:1000,alias:['سكر ابيض','سكر أبيض']},
     {k:'butter',name:'زبدة غير مملحة',unit:'جم',price:38,pack:1000,alias:['زبدة']},
-    {k:'figs',name:'تين مجفف',unit:'جم',price:55,pack:1000,alias:['تين']},
+    {k:'figs',name:'تين مجفف',unit:'جم',price:55,pack:1000,gpp:500,alias:['تين']},
     {k:'feta',name:'جبنة فيتا (قطعة)',unit:'قطعة',price:0.8,pack:1,alias:['فيتا','جبنة فيتا']},
     {k:'dmol',name:'دبس تمر',unit:'مل',price:22,pack:1000,alias:['دبس التمر']},
     {k:'mint',name:'نعناع مجفف مطحون',unit:'جم',price:80,pack:1000,alias:['نعناع مجفف','نعناع']},
-    {k:'gonion',name:'بصل أخضر',unit:'جم',price:8,pack:1000,alias:['بصل اخضر','كراث']},
-    {k:'spinach',name:'سبانخ',unit:'جم',price:9,pack:1000,alias:[]},
+    {k:'gonion',name:'بصل أخضر',unit:'جم',price:8,pack:1000,gpp:150,alias:['بصل اخضر','كراث']},
+    {k:'spinach',name:'سبانخ',unit:'جم',price:9,pack:1000,gpp:250,alias:[]},
     {k:'labnah',name:'لبنة',unit:'جم',price:22,pack:1000,alias:['لبنه']},
     {k:'cheese',name:'جبنة موزاريلا',unit:'جم',price:29,pack:1000,alias:['موزاريلا','جبنة','جبنه','جبن']},
     {k:'sesame',name:'سمسم',unit:'جم',price:18,pack:1000,alias:[]},
@@ -18179,9 +18179,9 @@ var HB_SEED={
   recs:[
     // ===== دفعات التحضير (batch) — الكمية لدفعة كاملة، yield = الوزن/الأكواب الناتجة =====
     {k:'b_chicken',name:'مسخن — دجاج مسلوق متبّل (دفعة 2.5 كجم)',batch:true,yield:2500,items:[['chicken',2500],['maggi',2],['bpepper',18],['salt',12]]},
-    {k:'b_sumac',name:'مسخن — صلصة البصل والسماق (دفعة)',batch:true,yield:1272.5,items:[['onion',1000],['sumac',90],['olive',115],['pmol',65],['pomeg',2.5]]},
-    {k:'b_spinach',name:'سباريلا — حشوة السبانخ (دفعة)',batch:true,yield:967,items:[['gonion',100],['spinach',400],['sumac',13],['oil',25],['salt',5],['labnah',400],['garlic',3],['cheese',20],['sesame',0.5],['bseed',0.5]]},
-    {k:'b_fitsauce',name:'فيتاتين — صلصة نابوليتانية (دفعة)',batch:true,yield:1228.5,items:[['tpaste',1000],['olive',45],['garlic',3],['sugar',130],['butter',32],['salt',2],['figs',14],['dmol',2.5],['mint',0.5]]},
+    {k:'b_sumac',name:'مسخن — صلصة البصل والسماق (دفعة)',alias:['صوص السماق'],batch:true,yield:1272.5,items:[['onion',1000],['sumac',90],['olive',115],['pmol',65],['pomeg',2.5]]},
+    {k:'b_spinach',name:'سباريلا — حشوة السبانخ (دفعة)',alias:['سبانخ'],batch:true,yield:967,items:[['gonion',100],['spinach',400],['sumac',13],['oil',25],['salt',5],['labnah',400],['garlic',3],['cheese',20],['sesame',0.5],['bseed',0.5]]},
+    {k:'b_fitsauce',name:'فيتاتين — صلصة نابوليتانية (دفعة)',alias:['صوص بيتزا نابوليتان','صوص بيتزا نابوليتانية'],batch:true,yield:1228.5,items:[['tpaste',1000],['olive',45],['garlic',3],['sugar',130],['butter',32],['salt',2],['figs',14],['dmol',2.5],['mint',0.5]]},
     {k:'b_talq',name:'شاي تلقيمة — دفعة 10 لتر (27 كوب)',batch:true,yield:27,items:[['water',10000],['tea',110]]},
     {k:'b_bokhar',name:'شاي بخار — دفعة (27 كوب)',batch:true,yield:27,items:[['water',1500],['tea',130]]},
     {k:'b_karak',name:'كرك — دفعة (2 لتر ماء + حليب مبخر)',batch:true,yield:9.54,items:[['water',2000],['tea',7.5],['milk',385],['cardamom',20],['saffron',1],['vanilla',1]]},
@@ -18204,6 +18204,21 @@ var HB_SEED={
     {k:'m_basbousa',name:'بسبوسة تشيز',en:'Cheese Basbousa',menu:true,cat:'dessert',bep:'dsr',price:18,yield:1,noCost:true,items:[],note:'الوصفة لم تُدخل بعد'},
     {k:'m_nuts1',name:'مكسرات مدخنة',en:'Smoked Nuts',menu:true,cat:'nuts',price:8,yield:1,noCost:true,items:[],note:'تُضاف لاحقاً'},
     {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,noCost:true,items:[],note:'تُضاف لاحقاً'}
+  ],
+
+  stock:[
+    // [الاسم في مخزونكم، أسماء بديلة، السعر بدون ضريبة، لكل: kg | l | u(= لكل وحدة المادة كما هي عندكم)] — تقديرات جملة أبها
+    ['أكواب بلاستيك',[],0.12,'u'],['أكواب ورقية',[],0.2,'u'],['أكواب القزاز',['أكواب قزاز'],1.2,'u'],['أكياس قمامة مقاس 8',[],6,'u'],
+    ['الدقيق',['دقيق'],2.8,'kg'],['المايونيز',['مايونيز'],14,'kg'],['جوز الهند',[],28,'kg'],['بصل احمر',['بصل أحمر'],3,'kg'],
+    ['اوراق بوكسات السفري',[],0.35,'u'],['حامل رباعي',[],0.45,'u'],['حليب لونا 385ml',[],3,'u'],['زعتر',[],35,'kg'],
+    ['سكر استيفيا',[],60,'kg'],['سكر اظرف',[],45,'u'],['شاهي ربيع',[],40,'kg'],['شاهي مفتل',[],45,'kg'],['صندوق ديليفري',[],2.5,'u'],
+    ['طحينه',['طحينة'],22,'kg'],['عصير الليمون',[],14,'l'],['علب مكسرات',[],0.9,'u'],['عويدي',[],40,'kg'],
+    ['غطاء اكواب',[],9,'u'],['غطاء راس',[],8,'u'],['غطاء علب مكسرات',[],0.25,'u'],['فحم',[],55,'u'],['فيارات',[],0.5,'u'],
+    ['قمامه',['قمامة'],0.4,'u'],['كيس قمامه',['كيس قمامة'],0.4,'u'],['كيس قمامه مقاس 30',[],6,'u'],['مسكه اكواب القزاز',[],0.6,'u'],
+    ['ملاعق + شوك بلاستيك',[],0.08,'u'],['ملاعق خشبيه',['ملاعق خشبية'],35,'u'],['مناديل',[],2.5,'u'],['نايلون',[],18,'u'],
+    ['ورق زبده',['ورق زبدة'],0.6,'u'],['ورق طابعه',['ورق طابعة'],3.5,'u'],
+    ['منظفات ( كلوركس + مطهر + فلاش + ديتول + فيري+ ملمع قراز+صابون يد )',['منظفات'],12,'l'],
+    ['كيس قمامة',[],0.4,'u']
   ],
   cats:[['tea','الشاهي'],['saudi-coffee','القهوة السعودية'],['milk','الحليب'],['cold','المشروبات الباردة'],['napoli','نابولي'],['babka','بابكا'],['dessert','الحلى'],['nuts','المكسرات']]
 };
@@ -18236,7 +18251,7 @@ function hbUnitFamily(u){
   if(['كجم','كيلو','كيلوجرام','kg','kilo'].indexOf(u)>=0)return 'kg';
   if(['مل','ml','ملل'].indexOf(u)>=0)return 'ml';
   if(['لتر','l','liter','ليتر','litre'].indexOf(u)>=0)return 'l';
-  if(['قطعة','حبة','حبه','piece','pc','pcs','كيس','علبة','رول','roll','كرتون','pieces'].indexOf(u)>=0)return 'pc';
+  if(['قطعة','حبة','حبه','piece','pc','pcs','كيس','علبة','رول','roll','كرتون','pieces','packet','packets','باكيت','عبوة','قارورة','طرد'].indexOf(u)>=0)return 'pc';
   return 'other:'+u;
 }
 function hbUnitFactor(seedUnit,exUnit){ // كمية بوحدة الوصفة → كمية بوحدة المادة الموجودة
@@ -18264,11 +18279,12 @@ function hbSeedImport(){
     // ---- المواد الخام ----
     HB_SEED.ings.forEach(function(sg){
       var ex=findEx(nonSeed,[sg.name].concat(sg.alias||[]));
-      var f=ex?hbUnitFactor(sg.unit,ex.unit):0;
+      var f=ex?hbUnitFactor(sg.unit,ex.unit):0, pcPrice=null;
+      if(ex&&!f&&sg.gpp&&hbUnitFamily(sg.unit)==='g'&&hbUnitFamily(ex.unit)==='pc'){f=1/sg.gpp;pcPrice=sg.price*sg.gpp/1000;}
       if(ex&&f){
         usedEx[ex._id]=1; ingMap[sg.k]={id:ex._id,f:f};
         if(!(parseFloat(ex.price)>0)){
-          writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:{price:sg.price,pack:sg.pack*f,updatedAt:now,updatedBy:by},merge:true});rep.ingFill++;
+          writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:{price:pcPrice!=null?pcPrice:sg.price,pack:pcPrice!=null?1:sg.pack*f,updatedAt:now,updatedBy:by},merge:true});rep.ingFill++;
         }else{rep.ingKeep.push(ex.name);}
         return;
       }
@@ -18280,6 +18296,19 @@ function hbSeedImport(){
       writes.push({ref:ref,data:{name:sg.name,unit:sg.unit,price:sg.price,pack:sg.pack,waste:0,seed:'habaq',updatedAt:now,updatedBy:by}});
       ingMap[sg.k]={id:ref.id,f:1};rep.ingNew++;
     });
+    // ---- تسعير بقية مواد المخزون (قائمة الأسعار التقديرية) ----
+    rep.stockPriced=0;
+    (HB_SEED.stock||[]).forEach(function(st){
+      var ex=findEx(nonSeed,[st[0]].concat(st[1]||[]));
+      if(!ex)return; usedEx[ex._id]=1;
+      if(parseFloat(ex.price)>0)return;
+      var fam=hbUnitFamily(ex.unit),p=st[2],per=st[3],price=null,pack=1;
+      if(per==='u'){price=p;pack=1;}
+      else if(per==='kg'){if(fam==='g'){price=p;pack=1000;}else if(fam==='kg'){price=p;pack=1;}}
+      else if(per==='l'){if(fam==='ml'){price=p;pack=1000;}else if(fam==='l'){price=p;pack=1;}}
+      if(price===null){rep.ingMismatch.push(ex.name+' ('+ex.unit+')');return;}
+      writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:{price:price,pack:pack,updatedAt:now,updatedBy:by},merge:true});rep.stockPriced++;
+    });
     // ---- حذف نسخ مكررة أُنشئت سابقاً وصار لها مقابل موجود في المخزون ----
     var targets={};Object.keys(ingMap).forEach(function(k){targets[ingMap[k].id]=1;});
     var usedByUser={};
@@ -18289,11 +18318,24 @@ function hbSeedImport(){
       writes.push({ref:db.collection('cost_ingredients').doc(g._id),del:true});rep.ingDel++;
     });
     // ---- الوصفات ----
-    var recMap={};
+    var recMap={}, usedR={};
+    var seedRecs=exRec.filter(function(r){return r.seed==='habaq';}), legacyRecs=exRec.filter(function(r){return r.seed!=='habaq';});
     HB_SEED.recs.forEach(function(sr){
-      var keys=hbKeys(sr.name);
-      var ex=exRec.find(function(r){return hbKeys(r.name).some(function(k){return keys.indexOf(k)>=0;});});
+      // 1) بالمعرّف الداخلي  2) بالاسم الكامل المطابق تماماً (بدون تقسيم الاسم)  3) وصفة قديمة بنفس الاسم أو اسم بديل
+      var full=hbKey(sr.name);
+      var ex=seedRecs.find(function(r){return !usedR[r._id]&&r.seedKey===sr.k;})
+        ||seedRecs.find(function(r){return !usedR[r._id]&&!r.seedKey&&hbKey(r.name)===full;});
+      if(!ex){var nk=[sr.name].concat(sr.alias||[]).map(hbKey);ex=legacyRecs.find(function(r){return !usedR[r._id]&&nk.indexOf(hbKey(r.name))>=0;});}
+      if(ex)usedR[ex._id]=1;
       recMap[sr.k]={id:ex?ex._id:db.collection('cost_recipes').doc().id,exists:!!ex};
+    });
+    // وصفات حباق مكررة (من استيراد سابق) لم يُختر مقابل لها → تُحذف
+    var userRefRec={};
+    legacyRecs.forEach(function(r){(r.items||[]).forEach(function(it){if(it.recId)userRefRec[it.recId]=1;});});
+    rep.recDel=0;
+    seedRecs.forEach(function(r){
+      if(usedR[r._id]||userRefRec[r._id])return;
+      writes.push({ref:db.collection('cost_recipes').doc(r._id),del:true});rep.recDel++;
     });
     HB_SEED.recs.forEach(function(sr){
       var items=[];
@@ -18303,7 +18345,7 @@ function hbSeedImport(){
       });
       var data={name:sr.name,yield:sr.yield,price:sr.price||0,target:35,items:items,
         batch:!!sr.batch,menu:!!sr.menu,cat:sr.cat||'',bepCat:sr.bep||'',bepExclude:!!sr.bepEx,noCost:!!sr.noCost,
-        nameEn:sr.en||'',note:sr.note||'',seed:'habaq',updatedAt:now,updatedBy:by};
+        nameEn:sr.en||'',note:sr.note||'',seed:'habaq',seedKey:sr.k,updatedAt:now,updatedBy:by};
       var rm=recMap[sr.k];
       writes.push({ref:db.collection('cost_recipes').doc(rm.id),data:data,merge:rm.exists});
       if(rm.exists)rep.recUpd++;else rep.recNew++;
@@ -18313,7 +18355,8 @@ function hbSeedImport(){
       +'🥕 مواد خام جديدة: '+rep.ingNew+(rep.ingReuse?' | مواد مستوردة سابقاً أُعيد استخدامها: '+rep.ingReuse:'')+'\n'
       +'🔗 مواد موجودة في مخزونكم طُوبقت وسُعِّرت (كانت بلا سعر): '+rep.ingFill+'\n'
       +'🔒 مواد موجودة بسعرها (لن يُغيَّر سعرها): '+rep.ingKeep.length+'\n'
-      +'🧹 نسخ مكررة أُنشئت سابقاً ستُحذف لأن لها مقابلاً في مخزونكم: '+rep.ingDel+'\n'
+      +'💵 مواد مخزونكم الأخرى التي ستُسعَّر بتقدير جملة أبها: '+rep.stockPriced+'\n'
+      +'🧹 مواد مكررة ستُحذف: '+rep.ingDel+' | وصفات/أصناف منيو مكررة ستُحذف: '+rep.recDel+'\n'
       +'📖 وصفات ومنيو جديدة: '+rep.recNew+' | وصفات موجودة بنفس الاسم ستُحدَّث: '+rep.recUpd+'\n'
       +(rep.ingMismatch.length?'\n⚠️ مواد موجودة بوحدة لا تتوافق مع الوصفة (لم تُربط): '+rep.ingMismatch.slice(0,8).join('، ')+'\n':'')
       +'\n⚠️ الأسعار تقديرية لأسعار الجملة بأبها (بدون ضريبة) — راجعها بعد الاستيراد.\n'
@@ -18327,7 +18370,7 @@ function hbSeedImport(){
     return chain.then(function(){return rep;});
   }).then(function(rep){
     if(rep==='cancel'||!rep)return;
-    alert('✅ تم الاستيراد\n\nمواد جديدة: '+rep.ingNew+' | مواد سُعِّرت: '+rep.ingFill+' | نسخ مكررة حُذفت: '+rep.ingDel+'\nوصفات ومنيو جديدة: '+rep.recNew+' | محدَّثة: '+rep.recUpd+'\n\nلتسعير ما تبقى بلا سعر استخدم «💰 تسعير سريع». ثم في «الجرد» اضغط «🔄 تقييم بالأسعار الحالية».');
+    alert('✅ تم الاستيراد\n\nمواد جديدة: '+rep.ingNew+' | مواد سُعِّرت: '+(rep.ingFill+rep.stockPriced)+' | مواد مكررة حُذفت: '+rep.ingDel+' | وصفات مكررة حُذفت: '+rep.recDel+'\nوصفات ومنيو جديدة: '+rep.recNew+' | محدَّثة: '+rep.recUpd+'\n\nلتسعير ما تبقى بلا سعر استخدم «💰 تسعير سريع». ثم في «الجرد» اضغط «🔄 تقييم بالأسعار الحالية».');
     _ccLoaded=false;ccInit();
   }).catch(function(e){alert('خطأ أثناء الاستيراد: '+(e.message||e.code||e));console.error('hbSeedImport',e);});
 }
