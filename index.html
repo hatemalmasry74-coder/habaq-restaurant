@@ -1664,14 +1664,14 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
             </div>
           </div>
 
-          <!-- 4. Barista Daily Cleaning -->
+          <!-- 4. Tea Bar Daily Cleaning -->
           <div class="card" style="cursor:pointer;border:2px solid var(--br);transition:all .15s" onmouseover="this.style.borderColor='var(--r)'" onmouseout="this.style.borderColor='var(--br)'" onclick="openForm('barista-daily')">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-              <div style="width:44px;height:44px;border-radius:10px;background:#F3E5F5;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">☕</div>
-              <div><div style="font-size:14px;font-weight:900;color:#6B3FA0">Daily Barista Area Cleaning</div><div style="font-size:11px;color:var(--tl)">قائمة تنظيف منطقة البار اليومية</div></div>
+              <div style="width:44px;height:44px;border-radius:10px;background:#F3E5F5;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🫖</div>
+              <div><div style="font-size:14px;font-weight:900;color:#6B3FA0">Daily Tea Bar Cleaning</div><div style="font-size:11px;color:var(--tl)">قائمة تنظيف ركن الشاي اليومية</div></div>
             </div>
             <div style="display:flex;gap:6px">
-              <span class="bdg bg-s">يومي</span><span class="bdg bg-p">بار</span>
+              <span class="bdg bg-s">يومي</span><span class="bdg bg-p">شاي</span>
             </div>
           </div>
 
@@ -9039,20 +9039,20 @@ var FORMS_DATA = {
   },
 
   'barista-daily': {
-    title:'Daily Barista Area Cleaning Checklist',
-    titleAr:'قائمة تنظيف منطقة البار اليومية',
-    color:'#6B3FA0', freq:'يومي', area:'البار',
+    title:'Daily Tea Bar Cleaning Checklist',
+    titleAr:'قائمة تنظيف ركن الشاي اليومية',
+    color:'#6B3FA0', freq:'يومي', area:'ركن الشاي',
     sections:[
-      {title:'☕ ماكينة الإسبريسو — Espresso Machine', items:[
-        'Backflush وتنظيف Group Head | Backflush & brush group head',
-        'تنظيف Portafilter وSteam Wand | Clean portafilters & steam wand',
-        'تفريغ وتنظيف Drip Tray وخارج الماكينة | Empty drip tray & wipe exterior',
+      {title:'🫖 معدات الشاي — Tea Equipment', items:[
+        'تنظيف الغلايات وأباريق الشاي من الداخل والخارج | Clean kettles & teapots inside & out',
+        'تنظيف سخان الماء / المبرّد وإزالة الترسبات | Clean water heater/dispenser & descale',
+        'غسيل وتعقيم الأكواب والملاعق والصواني | Wash & sanitize cups, spoons & trays',
       ]},
-      {title:'🔧 المعدات والمنطقة — Equipment & Area', items:[
-        'تنظيف المطحنة والبلندر وماكينة الثلج | Clean grinder, blender & ice machine',
-        'تنظيف السيروب والمضخات وغسيل الأكواب | Clean syrups & pumps, wash cups',
+      {title:'🧹 المنطقة والمواد — Area & Supplies', items:[
+        'تنظيف أوعية الشاي والسكر والنعناع والأعشاب | Clean tea, sugar & herb containers',
         'تنظيف الكاونتر والثلاجة وغسيل الأرضية | Clean counter, fridge & mop floor',
-        'التحقق من صلاحية الحليب والكريمة | Check milk & cream expiry',
+        'التحقق من صلاحية الحليب والمواد المبردة | Check milk & chilled items expiry',
+        'تجهيز مستلزمات الغد (أكواب، أغطية، سكر) | Stock cups, lids & sugar for tomorrow',
       ]}
     ]
   },
@@ -9240,7 +9240,7 @@ var FORMS_DATA = {
       {title:'🌅 الافتتاح — Opening',items:[
         'فتح الأنوار والتكييف والشاشات | Turn on lights, AC & screens',
         'فحص نظافة الصالة والمطبخ والمخبز | Inspect hall, kitchen & bakery cleanliness',
-        'تشغيل المعدات (فراير، فرن، ماكينة قهوة) | Power on equipment (fryers, ovens, coffee machine)',
+        'تشغيل المعدات (فراير، فرن، سخانات الشاي) | Power on equipment (fryers, ovens, tea heaters)',
         'تسجيل درجات حرارة الثلاجات | Record fridge temperatures',
         'فتح الكاشير وتجهيز الفكة | Open cashier & prepare change',
         'التأكد من جاهزية قائمة الطعام والأسعار | Menu & prices ready',
