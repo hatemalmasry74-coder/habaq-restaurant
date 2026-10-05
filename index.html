@@ -1969,7 +1969,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 
       <!-- ===== REVENUE RECEIPT PAGE ===== -->
       <div class="page" id="pg-revenue-receipt">
-        <div class="ph"><h1>💰 استلام الإيرادات اليومية</h1><p>نقد + تحويل بنكي + دفتر تسليم + سجل الخزينة</p></div>
+        <div class="ph"><h1>💰 استلام الإيرادات اليومية</h1><p>نقد + تحويل بنكي + دفتر تسليم + سجل الخزينة — <span style="color:var(--r);font-weight:700">البيانات المعروضة اعتباراً من <span dir="ltr">2026-10-01</span> (بدء استلام الإيراد بالمنصة)</span></p></div>
 
         <!-- TABS -->
         <div class="tabs" id="rr-tabs" style="margin-bottom:16px">
@@ -11060,10 +11060,10 @@ function loadRevenueLedger(){
   var tbody=document.getElementById('rr-ledger-body');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
   db.collection('revenue_receipts').orderBy('createdAt','desc').limit(60).get().then(function(snap){
-    if(snap.empty){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات بعد</td></tr>';return;}
     var rows='';
     snap.forEach(function(doc){
       var d=doc.data();
+      if((d.date||'')<RR_START)return;
       var diffColor=d.diff===null?'#888':d.diff>=0?'#1B5E20':'#B71C1C';
       var diffText=d.diff===null?'—':d.diff===0?'✓':d.diff>0?'+'+d.diff.toFixed(2):d.diff.toFixed(2);
       var rIdx=_rrLedgerData.length;
@@ -11083,10 +11083,11 @@ function loadRevenueLedger(){
         +'<td style="font-weight:900;color:#A83C38">'+(d.totalAmount||0).toFixed(2)+'</td>'
         +'<td style="font-weight:700">'+(d.receiverName||'—')+'</td>'
         +'<td style="font-weight:700;color:'+diffColor+'">'+diffText+'</td>'
-        +'<td><button class="btn bsm" style="background:#D4444D;color:#fff" onclick="printRR2FromIndex('+rIdx+')">🖨️</button></td>'
+        +'<td style="white-space:nowrap"><button class="btn bsm" style="background:#D4444D;color:#fff" onclick="printRR2FromIndex('+rIdx+')">🖨️</button>'
+        +(d.linkedCashierReport?'':' <button class="btn bsm" style="background:#E65100;color:#fff" title="هذا الاستلام غير مربوط بتقفيل كاشير — اربطه ليُحتسب اليوم مستلَماً" onclick="rrLinkReceipt(\''+doc.id+'\')">🔗 ربط</button>')+'</td>'
         +'</tr>';
     });
-    tbody.innerHTML=rows;
+    tbody.innerHTML=rows||'<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات منذ '+RR_START+'</td></tr>';
   }).catch(function(e){tbody.innerHTML='<tr><td colspan="10" style="color:red;padding:12px">خطأ: '+e.message+'</td></tr>';});
 }
 
@@ -11095,8 +11096,11 @@ function loadVaultSummary(){
   tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
   SDCache.snapOrdered('revenue_receipts','createdAt','asc').then(function(snap){
     var totalIn=0,totalInv=0,rows='',balance=0;
+    var shown=0;
     snap.forEach(function(doc){
       var d=doc.data();
+      if((d.date||'')<RR_START)return;
+      shown++;
       var amt=d.totalAmount||0;
       totalIn+=amt;
       totalInv+=d.invoicesAmount||0;
@@ -11111,7 +11115,7 @@ function loadVaultSummary(){
         +'<td style="font-size:10px;color:var(--tl)">'+(d.notes||'—')+'</td>'
         +'</tr>';
     });
-    if(snap.empty){rows='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات</td></tr>';}
+    if(!shown){rows='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات منذ '+RR_START+'</td></tr>';}
     tbody.innerHTML=rows;
     var s=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
     s('vault-total-in',totalIn.toFixed(2)+' ﷼');
@@ -11126,6 +11130,9 @@ function loadVaultSummary(){
 // MISSING REVENUE DAYS DETECTION
 // ===========================
 var _rrMissingDays=[];
+// بداية استلام الإيراد الفعلي على المنصة — ما قبله لا يُعرض في صفحة الاستلام ولا في تنبيه الأيام غير المستلمة
+// (البيانات القديمة لا تُحذف وتبقى في تقارير المبيعات)
+var RR_START='2026-10-01';
 // المنطق: نأخذ كل يوم له تقفيل كاشير (مبيعات فعلية) ثم نتحقق هل
 // تم استلام إيراده في أي مصدر:
 //   1) custody_ledger  (زر "استلام إيراد ← عهدة" — source: cashier_revenue / revenue_receipt)
@@ -11158,7 +11165,11 @@ function checkMissingRevenueDays(){
       var d=doc.data();
       if(RECEIVE_SOURCES[d.source]|| d.type==='receive')mark(d);
     });
-    res[2].forEach(function(doc){mark(doc.data());});
+    var unlinkedByDay={};
+    res[2].forEach(function(doc){
+      var d=doc.data();mark(d);
+      if(d.date&&!(d.linkedCashierReport&&closureDay[d.linkedCashierReport]))(unlinkedByDay[d.date]=unlinkedByDay[d.date]||[]).push(doc.id);
+    });
     // القاعدة: قبل STRICT_FROM تكفي مطابقة التاريخ (بيانات قديمة بلا ربط)؛ من STRICT_FROM يلزم الربط بالتقفيلة
     Object.keys(receivedDays).forEach(function(ds){
       if(ds>=STRICT_FROM&&!linkedDays[ds])delete receivedDays[ds];
@@ -11171,6 +11182,8 @@ function checkMissingRevenueDays(){
       renderMissingAlert([],null);
       return;
     }
+    saleKeys=saleKeys.filter(function(ds){return ds>=RR_START;});
+    if(saleKeys.length===0){renderMissingAlert([],null);return;}
     saleKeys.sort();
     var today=new Date();today.setHours(0,0,0,0);
     var todayStr=today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
@@ -11179,7 +11192,7 @@ function checkMissingRevenueDays(){
       if(ds===todayStr)return; // اليوم الحالي قد لا يكون أُغلق بعد
       if(!receivedDays[ds]){
         var dt=new Date(ds+'T00:00:00');
-        missing.push({date:ds,dow:dt.getDay()});
+        missing.push({date:ds,dow:dt.getDay(),unlinked:unlinkedByDay[ds]||null});
       }
     });
     missing.sort(function(a,b){return a.date<b.date?-1:1;});
@@ -11210,6 +11223,14 @@ function renderMissingAlert(missing,startStr){
     var chips='';
     missing.forEach(function(m,i){
       if(i>=maxShow)return;
+      if(m.unlinked){
+        chips+='<button onclick="rrLinkReceipt(\''+m.unlinked[0]+'\')" title="يوجد استلام لهذا اليوم لكنه غير مربوط بتقفيل الكاشير — اضغط للربط" '
+          +'style="border:1px solid #E65100;background:#FFF3E0;color:#E65100;border-radius:9px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;'
+          +'display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.3">'
+          +'<span style="font-size:9px">'+dayNames[m.dow]+' — 🔗 مستلَم بدون ربط</span>'
+          +'<span dir="ltr">'+m.date+'</span></button>';
+        return;
+      }
       chips+='<button onclick="prefillMissingDay(\''+m.date+'\')" '
         +'style="border:1px solid rgba(117,82,59,.35);background:#fff;color:#A83C38;'
         +'border-radius:9px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;'
@@ -11248,6 +11269,49 @@ function renderMissingAlert(missing,startStr){
   });
 }
 
+// ربط استلام إيراد محفوظ بتقفيل كاشير (للاستلامات التي حُفظت دون اختيار التقفيلة)
+function rrLinkReceipt(rid){
+  db.collection('revenue_receipts').doc(rid).get().then(function(rd){
+    if(!rd.exists){alert('لم يتم العثور على الاستلام');return;}
+    var r=rd.data();
+    return Promise.all([
+      db.collection('cashier_reports').where('date','==',r.date).get(),
+      db.collection('revenue_receipts').where('date','==',r.date).get()
+    ]).then(function(res){
+      var taken={};res[1].forEach(function(x){var v=x.data().linkedCashierReport;if(v)taken[v]=true;});
+      var list=[];res[0].forEach(function(c){var d=c.data();d._id=c.id;list.push(d);});
+      if(!list.length){alert('لا يوجد تقفيل كاشير بتاريخ '+r.date+' لربطه');return;}
+      window._rrLinkCtx={rid:rid,r:r,list:list};
+      var html='<div style="font-size:12px;margin-bottom:10px">الاستلام: <b dir="ltr">'+r.date+'</b> — '+(r.shiftName||'')+' — المستلم '+(r.receiverName||'—')+' — الإجمالي <b>'+(Number(r.totalAmount)||0).toFixed(2)+' ﷼</b></div>'
+        +'<div style="font-weight:700;font-size:12px;margin-bottom:6px">اختر تقفيل الكاشير الخاص بهذا الاستلام:</div>'
+        +list.map(function(c,i){
+          return '<label style="display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--br);border-radius:8px;margin-bottom:6px;cursor:pointer'+(taken[c._id]?';opacity:.55':'')+'">'
+            +'<input type="radio" name="rr-link-pick" value="'+i+'"'+(!taken[c._id]&&!list.some(function(x,j){return j<i&&!taken[x._id];})?' checked':'')+'>'
+            +'<span>'+(c.cashierName||c.branch||'الكاشير')+((c.shiftName||c.shift)?' — '+(c.shiftName||c.shift):'')+' — الإجمالي '+(Number(c.grandTotal)||0).toFixed(2)+' ﷼ — نقد '+(Number(c.totalCash)||0).toFixed(2)+' ﷼'+(taken[c._id]?' <span style="color:#888">(مربوط باستلام آخر)</span>':'')+'</span></label>';
+        }).join('')
+        +'<button class="btn bp" style="margin-top:6px" onclick="rrSaveReceiptLink()">🔗 حفظ الربط</button>';
+      psShowModal('🔗 ربط الاستلام بتقفيل الكاشير',html);
+    });
+  }).catch(function(e){alert('خطأ: '+e.message);});
+}
+function rrSaveReceiptLink(){
+  var ctx=window._rrLinkCtx;if(!ctx)return;
+  var pick=document.querySelector('input[name="rr-link-pick"]:checked');if(!pick){alert('اختر التقفيلة');return;}
+  var c=ctx.list[+pick.value], r=ctx.r;
+  var sales=Number(c.grandTotal)||0, cashExp=parseFloat(((c.totalCash||0)-(c.purchaseInvoices||0)-(c.returns||0)).toFixed(2)), span=Number(c.totalSpan)||0;
+  var total=Number(r.totalAmount)||0, m=r.method||'cash';
+  var expected=m==='cash'?cashExp:m==='transfer'?span:sales;
+  var diff=sales>0?parseFloat((total-expected).toFixed(2)):null;
+  db.collection('revenue_receipts').doc(ctx.rid).update({
+    linkedCashierReport:c._id,cashierSales:sales,diff:diff,
+    linkedBy:CU.name||'',linkedAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(){
+    psCloseModal();window._rrLinkCtx=null;
+    alert('✅ تم ربط الاستلام بتقفيل '+(c.cashierName||'الكاشير')+(diff!==null?'\nالفرق: '+(diff>0?'+':'')+diff.toFixed(2)+' ﷼':''));
+    if(typeof checkMissingRevenueDays==='function')checkMissingRevenueDays();
+    var lg=document.getElementById('rr-tab-ledger');if(lg&&lg.style.display!=='none')loadRevenueLedger();
+  }).catch(function(e){alert('خطأ: '+e.message);});
+}
 function prefillMissingDay(ds){
   // إذا كنا في صفحة التقارير، انتقل لصفحة استلام الإيرادات أولاً
   var onReports=document.getElementById('pg-reports')&&document.getElementById('pg-reports').classList.contains('active');
@@ -14728,6 +14792,7 @@ var _rrClosures=[];
 function rrLoadClosures(){
   var sel=document.getElementById('rr-closure'); if(!sel)return;
   var cutoff=new Date(Date.now()-45*86400000).toISOString().split('T')[0];
+  if(cutoff<RR_START)cutoff=RR_START;
   Promise.all([
     db.collection('cashier_reports').where('date','>=',cutoff).orderBy('date','desc').limit(60).get(),
     db.collection('custody_ledger').where('date','>=',cutoff).get(),
