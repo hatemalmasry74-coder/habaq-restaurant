@@ -1969,7 +1969,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 
       <!-- ===== REVENUE RECEIPT PAGE ===== -->
       <div class="page" id="pg-revenue-receipt">
-        <div class="ph"><h1>💰 استلام الإيرادات اليومية</h1><p>نقد + تحويل بنكي + دفتر تسليم + سجل الخزينة</p></div>
+        <div class="ph"><h1>💰 استلام الإيرادات اليومية</h1><p>نقد + تحويل بنكي + دفتر تسليم + سجل الخزينة — <span style="color:var(--r);font-weight:700">البيانات المعروضة اعتباراً من <span dir="ltr">2026-10-01</span> (بدء استلام الإيراد بالمنصة)</span></p></div>
 
         <!-- TABS -->
         <div class="tabs" id="rr-tabs" style="margin-bottom:16px">
@@ -11060,10 +11060,10 @@ function loadRevenueLedger(){
   var tbody=document.getElementById('rr-ledger-body');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
   db.collection('revenue_receipts').orderBy('createdAt','desc').limit(60).get().then(function(snap){
-    if(snap.empty){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات بعد</td></tr>';return;}
     var rows='';
     snap.forEach(function(doc){
       var d=doc.data();
+      if((d.date||'')<RR_START)return;
       var diffColor=d.diff===null?'#888':d.diff>=0?'#1B5E20':'#B71C1C';
       var diffText=d.diff===null?'—':d.diff===0?'✓':d.diff>0?'+'+d.diff.toFixed(2):d.diff.toFixed(2);
       var rIdx=_rrLedgerData.length;
@@ -11086,7 +11086,7 @@ function loadRevenueLedger(){
         +'<td><button class="btn bsm" style="background:#D4444D;color:#fff" onclick="printRR2FromIndex('+rIdx+')">🖨️</button></td>'
         +'</tr>';
     });
-    tbody.innerHTML=rows;
+    tbody.innerHTML=rows||'<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات منذ '+RR_START+'</td></tr>';
   }).catch(function(e){tbody.innerHTML='<tr><td colspan="10" style="color:red;padding:12px">خطأ: '+e.message+'</td></tr>';});
 }
 
@@ -11095,8 +11095,11 @@ function loadVaultSummary(){
   tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
   SDCache.snapOrdered('revenue_receipts','createdAt','asc').then(function(snap){
     var totalIn=0,totalInv=0,rows='',balance=0;
+    var shown=0;
     snap.forEach(function(doc){
       var d=doc.data();
+      if((d.date||'')<RR_START)return;
+      shown++;
       var amt=d.totalAmount||0;
       totalIn+=amt;
       totalInv+=d.invoicesAmount||0;
@@ -11111,7 +11114,7 @@ function loadVaultSummary(){
         +'<td style="font-size:10px;color:var(--tl)">'+(d.notes||'—')+'</td>'
         +'</tr>';
     });
-    if(snap.empty){rows='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات</td></tr>';}
+    if(!shown){rows='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات منذ '+RR_START+'</td></tr>';}
     tbody.innerHTML=rows;
     var s=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
     s('vault-total-in',totalIn.toFixed(2)+' ﷼');
@@ -11126,6 +11129,9 @@ function loadVaultSummary(){
 // MISSING REVENUE DAYS DETECTION
 // ===========================
 var _rrMissingDays=[];
+// بداية استلام الإيراد الفعلي على المنصة — ما قبله لا يُعرض في صفحة الاستلام ولا في تنبيه الأيام غير المستلمة
+// (البيانات القديمة لا تُحذف وتبقى في تقارير المبيعات)
+var RR_START='2026-10-01';
 // المنطق: نأخذ كل يوم له تقفيل كاشير (مبيعات فعلية) ثم نتحقق هل
 // تم استلام إيراده في أي مصدر:
 //   1) custody_ledger  (زر "استلام إيراد ← عهدة" — source: cashier_revenue / revenue_receipt)
@@ -11171,6 +11177,8 @@ function checkMissingRevenueDays(){
       renderMissingAlert([],null);
       return;
     }
+    saleKeys=saleKeys.filter(function(ds){return ds>=RR_START;});
+    if(saleKeys.length===0){renderMissingAlert([],null);return;}
     saleKeys.sort();
     var today=new Date();today.setHours(0,0,0,0);
     var todayStr=today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
@@ -14728,6 +14736,7 @@ var _rrClosures=[];
 function rrLoadClosures(){
   var sel=document.getElementById('rr-closure'); if(!sel)return;
   var cutoff=new Date(Date.now()-45*86400000).toISOString().split('T')[0];
+  if(cutoff<RR_START)cutoff=RR_START;
   Promise.all([
     db.collection('cashier_reports').where('date','>=',cutoff).orderBy('date','desc').limit(60).get(),
     db.collection('custody_ledger').where('date','>=',cutoff).get(),
