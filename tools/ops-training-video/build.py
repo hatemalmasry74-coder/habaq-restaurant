@@ -19,6 +19,7 @@ TAIL = 0.3          # pause after each beat
 INTRO = 2.5         # title card
 OUTRO = 3.0         # closing card
 SR = 48000
+DEFAULT_SCRIPT = HERE / "scripts" / "m1-part2.json"
 SOURCE_URL = "https://raw.githubusercontent.com/hatemattia1982-dot/-hatem-ops-training-/main/index.html"
 
 
@@ -170,8 +171,33 @@ SETUP_JS = r"""
   if (cfg.wm) { const w = document.getElementById('vwm'); w.innerHTML = cfg.wm; w.style.display = 'flex'; }
   window.scrollTo(0, 0);
 
-  // ---- named targets inside module m1
-  const m1 = document.getElementById('m1');
+  // ---- targets: generic keys work in any module; the m1-part2 script also uses legacy names
+  const M = document.getElementById(cfg.module || 'm1');
+  const outside = e => !e.closest('.box') && !e.closest('table');
+  const nth = (sel, n, f) => [...M.querySelectorAll(sel)].filter(f || (() => true))[n - 1];
+  window.__R = key => {
+    if (window.__T && window.__T[key]) return window.__T[key];
+    const [head, sub] = key.split('/');
+    const [k, a] = head.split(':');
+    let els = k === 'head' ? [M.querySelector('.mhead')]
+      : k === 'h3' ? [nth('h3', +a)]
+      : k === 'lead' ? [nth('p.lead', +a)]
+      : k === 'p' ? [nth('p', +a, outside)]
+      : k === 'table' ? [nth('table', +a)]
+      : (k === 'ol' || k === 'ul') ? [nth(k, +a, outside)]
+      : k === 'box' ? [M.querySelector('.box.' + a)] : [];
+    if (sub && els[0]) {
+      const [s, b] = sub.split(':'), el = els[0];
+      els = s === 'row' ? [[...el.querySelectorAll('tr')][+b]]          // row:1 = first row under the header
+        : s === 'col' ? [...el.querySelectorAll('tr')].map(r => r.children[+b - 1])
+        : s === 'li' ? [el.querySelectorAll('li')[+b - 1]]
+        : s === 'p' ? [el.querySelectorAll('p')[+b - 1]] : [];
+    }
+    if (!els.length || els.some(x => !x)) throw new Error('target not found: ' + key);
+    return els;
+  };
+  if ((cfg.module || 'm1') !== 'm1') return;
+  const m1 = M;
   const h3 = t => [...m1.querySelectorAll('h3')].find(h => h.textContent.includes(t));
   const nextTable = h => { let e = h.nextElementSibling; while (e && e.tagName !== 'TABLE') e = e.nextElementSibling; return e; };
   const kh = h3('ماذا يعرف'), ph = h3('الإدارة الوقائية');
@@ -192,14 +218,14 @@ SETUP_JS = r"""
 
 RECT_JS = r"""
 (spec) => {
-  const T = window.__T, cam = document.getElementById('cam');
+  const cam = document.getElementById('cam');
   const prev = cam.style.transform; cam.style.transform = 'none';
   const u = rs => { const r = {l:1e9,t:1e9,r:-1e9,b:-1e9};
     for (const x of rs) { r.l = Math.min(r.l, x.left); r.t = Math.min(r.t, x.top); r.r = Math.max(r.r, x.right); r.b = Math.max(r.b, x.bottom); }
     return {x:r.l + scrollX, y:r.t + scrollY, w:r.r - r.l, h:r.b - r.t}; };
-  const rectOf = key => u(T[key].map(e => e.getBoundingClientRect()));
+  const rectOf = key => u(window.__R(key).map(e => e.getBoundingClientRect()));
   const phrase = (key, text) => {
-    for (const el of T[key]) {
+    for (const el of window.__R(key)) {
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       let full = '', nodes = [];
       while (walker.nextNode()) { nodes.push([walker.currentNode, full.length]); full += walker.currentNode.data; }
@@ -228,7 +254,7 @@ MARK_JS = r"""
 (spec) => {
   document.querySelectorAll('.vmark').forEach(m => { const p = m.parentNode; m.replaceWith(...m.childNodes); p.normalize(); });
   if (!spec || typeof spec === 'string') return;
-  for (const el of window.__T[spec.in]) {
+  for (const el of window.__R(spec.in)) {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     let full = '', nodes = [];
     while (walker.nextNode()) { nodes.push([walker.currentNode, full.length]); full += walker.currentNode.data; }
@@ -367,7 +393,8 @@ def narration(script, beats, work, voice_dir=None, no_tts=False):
 
 def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromium=None,
            intro_card=None, intro=INTRO, outro_card=None, outro=OUTRO, hook=None,
-           cam_top=90, cam_bottom=CAP_SPACE, cap_bottom=44, lead=MOVE, dpr=1, css="", watermark=""):
+           cam_top=90, cam_bottom=CAP_SPACE, cap_bottom=44, lead=MOVE, dpr=1, css="", watermark="",
+           module="m1"):
     """Drive the page and write an MP4 whose picture follows the narration beat by beat."""
     global W, H
     W, H = size
@@ -403,7 +430,7 @@ def render(page, beats, narr, out, work, *, size=(1920, 1080), badge="", chromiu
         url = page if re.match(r"https?://", page) else Path(page).resolve().as_uri()
         pg.goto(url, wait_until="load", timeout=90000)
         pg.wait_for_timeout(2500)
-        pg.evaluate(SETUP_JS, {"badge": badge, "wm": watermark})
+        pg.evaluate(SETUP_JS, {"badge": badge, "wm": watermark, "module": module})
         pg.evaluate(f"document.documentElement.style.setProperty('--capb','{cap_bottom}px')")
         if css:
             pg.add_style_tag(content=css)
@@ -509,18 +536,33 @@ def brand_html(script):
     return wm, card
 
 
-def load_script():
-    script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
+def load_script(path=None):
+    script = json.loads(Path(path or DEFAULT_SCRIPT).read_text(encoding="utf-8"))
+    script.setdefault("id", Path(path or DEFAULT_SCRIPT).stem)
+    script.setdefault("module", "m1")
     for k, b in enumerate(script["beats"]):
         b["n"] = k + 1
     return script
+
+
+def cards(script):
+    """Title and closing cards for the full video, from the script's intro/outro fields."""
+    wm, contact = brand_html(script)
+    by = f"<div class='d'>تقديم: <bdi dir='ltr'>{script['brand']['name']}</bdi></div>" if script.get("brand") else ""
+    intro = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
+             f"<div class='d'>{script.get('intro_sub', '')}</div>{by}")
+    o = script.get("outro", {})
+    outro = (f"<div class='k'>{o.get('k', '')}</div><div class='t'>{o.get('t', '')}</div>"
+             f"<div class='d'>{o.get('d', '')}</div>{contact}")
+    return wm, intro, outro
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--page", default=None,
                     help="local path or site URL of the platform page (default: download SOURCE_URL)")
-    ap.add_argument("--out", default=str(HERE / "out" / "m1-part2.mp4"))
+    ap.add_argument("--script", default=str(DEFAULT_SCRIPT), help="beats file (scripts/*.json)")
+    ap.add_argument("--out", help="output mp4 (default: out/<script id>.mp4)")
     ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
     ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
                     "(any audio format); captions then show each beat's key points")
@@ -529,7 +571,7 @@ def main():
     ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
     args = ap.parse_args()
 
-    script = load_script()
+    script = load_script(args.script)
     beats = script["beats"]
     if args.voice_dir and args.skip_missing:
         have = {int(f.stem[:2]) for f in Path(args.voice_dir).iterdir() if f.stem[:2].isdigit()}
@@ -537,18 +579,14 @@ def main():
         beats = [b for b in beats if b["n"] in have]
         if skipped:
             print("skipping beats without recordings:", skipped)
-    work = HERE / "out" / "work"
+    work = HERE / "out" / script["id"] / "work"
     work.mkdir(parents=True, exist_ok=True)
     page = fetch_page(work, args.page)
     narr = narration(script, beats, work, args.voice_dir, args.no_tts)
-    wm, contact = brand_html(script)
-    by = f"<div class='d'>تقديم: <bdi dir='ltr'>{script['brand']['name']}</bdi></div>" if script.get("brand") else ""
-    intro = (f"<div class='k'>{script['badge']}</div><div class='t'>{script['title']}</div>"
-             f"<div class='d'>ماذا يعرف؟ ماذا يراجع؟ ماذا يكتشف؟ ماذا يرفع؟</div>{by}")
-    outro = ("<div class='k'>نهاية الجزء الثاني</div><div class='t'>المشكلة التي تتكرر مرتين<br>مشكلة نظام</div>"
-             f"<div class='d'>نلقاك في الوحدة الثانية</div>{contact}")
-    render(page, beats, narr, args.out, work, badge=script["badge"], chromium=args.chromium,
-           intro_card=intro, outro_card=outro, outro=OUTRO + 1.5, watermark=wm)
+    wm, intro, outro = cards(script)
+    render(page, beats, narr, args.out or HERE / "out" / f"{script['id']}.mp4", work, badge=script["badge"],
+           chromium=args.chromium, intro_card=intro, outro_card=outro, outro=OUTRO + 1.5, watermark=wm,
+           module=script["module"])
 
 
 if __name__ == "__main__":

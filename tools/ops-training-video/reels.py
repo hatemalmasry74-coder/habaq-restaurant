@@ -23,16 +23,18 @@ REEL_CSS = """
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--script", default=str(build.DEFAULT_SCRIPT), help="beats file with a 'reels' list")
     ap.add_argument("--voice-dir", required=True)
     ap.add_argument("--page")
-    ap.add_argument("--out-dir", default=str(build.HERE / "out" / "reels"))
+    ap.add_argument("--out-dir", help="default: out/<script id>-reels/")
     ap.add_argument("--only", nargs="*", help="reel ids to build")
     ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
     args = ap.parse_args()
 
-    script = build.load_script()
-    cfg = json.loads((build.HERE / "reels.json").read_text(encoding="utf-8"))
-    work = build.HERE / "out" / "work-reels"
+    script = build.load_script(args.script)
+    cfg = script
+    out_dir = Path(args.out_dir or build.HERE / "out" / f"{script['id']}-reels")
+    work = build.HERE / "out" / script["id"] / "work-reels"
     work.mkdir(parents=True, exist_ok=True)
     page = build.fetch_page(work, args.page)
     wm, contact = build.brand_html(script)
@@ -45,7 +47,7 @@ def main():
             continue
         beats = [script["beats"][n - 1] for n in r["beats"]]
         narr = build.narration(script, beats, work, args.voice_dir)
-        build.render(page, beats, narr, Path(args.out_dir) / f"{r['id']}.mp4", work,
+        build.render(page, beats, narr, out_dir / f"{r['id']}.mp4", work, module=script["module"],
                      size=(540, 960), dpr=2, css=REEL_CSS, chromium=args.chromium,
                      hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
                      cam_top=205, cam_bottom=150, cap_bottom=70, lead=0.5)
