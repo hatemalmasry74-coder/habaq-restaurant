@@ -1,56 +1,241 @@
 rules_version = '2';
-
 // قواعد Firestore لمنصة حباق — مشروع habaq-b707c
-// كل المجموعات متاحة للمستخدمين المسجّلين دخولهم فقط (Firebase Auth بالبريد وكلمة المرور).
-// المجموعات الجديدة لميزة التنبؤ الذكي بالطلبيات: fc_daily و fc_meta و fc_snapshots (في آخر الملف).
-
+// نسخة مرجعية مطابقة للقواعد المنشورة في Firebase Console (صلاحيات حسب الدور)،
+// مضافاً إليها: مجموعات التنبؤ الذكي بالطلبيات (fc_daily, fc_meta, fc_snapshots) ومسودات الجرد (inv_count_drafts).
+// هذا الملف لا يُطبَّق تلقائياً من GitHub — يُلصق في Firebase Console ← Firestore ← Rules ثم Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() {
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    match /audit_logs/{docId} { allow read, write: if signedIn(); }
-    match /breakeven_calc/{docId} { allow read, write: if signedIn(); }
-    match /cashier_names/{docId} { allow read, write: if signedIn(); }
-    match /cashier_reports/{docId} { allow read, write: if signedIn(); }
-    match /cost_ingredients/{docId} { allow read, write: if signedIn(); }
-    match /cost_recipes/{docId} { allow read, write: if signedIn(); }
-    match /custody_ledger/{docId} { allow read, write: if signedIn(); }
-    match /custody_users/{docId} { allow read, write: if signedIn(); }
-    match /daily_reports/{docId} { allow read, write: if signedIn(); }
-    match /hr_advances/{docId} { allow read, write: if signedIn(); }
-    match /hr_employees/{docId} { allow read, write: if signedIn(); }
-    match /hr_eval_settings/{docId} { allow read, write: if signedIn(); }
-    match /hr_evaluations/{docId} { allow read, write: if signedIn(); }
-    match /hr_payroll/{docId} { allow read, write: if signedIn(); }
-    match /hr_schedule_assignments/{docId} { allow read, write: if signedIn(); }
-    match /hr_schedules/{docId} { allow read, write: if signedIn(); }
-    match /hr_violations/{docId} { allow read, write: if signedIn(); }
-    match /inv_count_drafts/{docId} { allow read, write: if signedIn(); }
-    match /inv_counts/{docId} { allow read, write: if signedIn(); }
-    match /inv_movements/{docId} { allow read, write: if signedIn(); }
-    match /items/{docId} { allow read, write: if signedIn(); }
-    match /monthly_report_chunks/{docId} { allow read, write: if signedIn(); }
-    match /monthly_reports/{docId} { allow read, write: if signedIn(); }
-    match /operational_forms/{docId} { allow read, write: if signedIn(); }
-    match /purchase_requests/{docId} { allow read, write: if signedIn(); }
-    match /purchases_audit_log/{docId} { allow read, write: if signedIn(); }
-    match /purchases_invoices/{docId} { allow read, write: if signedIn(); }
-    match /purchases_payments/{docId} { allow read, write: if signedIn(); }
-    match /purchases_suppliers/{docId} { allow read, write: if signedIn(); }
-    match /recipes/{docId} { allow read, write: if signedIn(); }
-    match /revenue_receipts/{docId} { allow read, write: if signedIn(); }
-    match /users/{docId} { allow read, write: if signedIn(); }
-    match /visit_reports/{docId} { allow read, write: if signedIn(); }
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function hasRole(wanted) {
+      return isSignedIn() && userRole() in wanted;
+    }
+
+    function isManager() {
+      return hasRole(['branch_manager']);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isManager() || (isSignedIn() && request.auth.uid == userId);
+      allow delete: if isManager();
+    }
+
+    match /cashier_reports/{id} {
+      allow read: if isSignedIn();
+      allow create: if hasRole(['branch_manager', 'cashier']);
+      allow update, delete: if isManager();
+    }
+
+    match /cashier_names/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /custody_ledger/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create, update: if isManager();
+      allow delete: if isManager();
+    }
+
+    match /custody_users/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /revenue_receipts/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create, update: if isManager();
+      allow delete: if isManager();
+    }
+
+    match /daily_reports/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole(['branch_manager', 'cashier', 'visit_supervisor']);
+      allow delete: if isManager();
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isManager();
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    match /hr_employees/{id} {
+      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /hr_payroll/{id} {
+      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if false;
+    }
+
+    match /hr_advances/{id} {
+      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /hr_violations/{id} {
+      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']);
+      allow create: if hasRole(['branch_manager', 'hr_manager', 'visit_supervisor']);
+      allow update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /hr_evaluations/{id} {
+      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /hr_eval_settings/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if hasRole(['branch_manager', 'hr_manager']);
+    }
+
+    match /hr_schedules/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /hr_schedule_assignments/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow delete: if isManager();
+    }
+
+    match /purchases_invoices/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
+      allow delete: if isManager();
+    }
+
+    match /purchases_suppliers/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
+      allow delete: if isManager();
+    }
+
+    match /purchases_payments/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
+      allow delete: if isManager();
+    }
+
+    match /purchases_audit_log/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create: if hasRole(['branch_manager', 'purchases_rep', 'accountant']);
+      allow update, delete: if false;
+    }
+
+    match /purchase_requests/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow delete: if isManager();
+    }
+
+    match /inv_movements/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep']);
+      allow delete: if hasRole(['branch_manager', 'store_manager']);
+    }
+
+    match /inv_counts/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow delete: if isManager();
+    }
+
+    // المواد الخام = دليل أصناف المخزون — إضافة الأصناف مسموحة لمدير الفرع ومسؤول المخازن ومندوب المشتريات
+    match /cost_ingredients/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep']);
+      allow delete: if isManager();
+    }
+
+    match /cost_recipes/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
+      allow create, update, delete: if isManager();
+    }
+
+    match /cost_settings/{id} {
+      allow read: if hasRole(['branch_manager', 'owner']);
+      allow create, update, delete: if isManager();
+    }
+
+    match /breakeven_calc/{id} {
+      allow read: if hasRole(['branch_manager', 'owner']);
+      allow create, update, delete: if isManager();
+    }
+
+    match /visit_reports/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole(['branch_manager', 'visit_supervisor']);
+      allow delete: if isManager();
+    }
+
+    match /operational_forms/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole(['branch_manager', 'visit_supervisor', 'cashier']);
+      allow delete: if isManager();
+    }
+
+    match /items/{id} {
+      allow read: if isManager();
+      allow write: if false;
+    }
+
+    match /recipes/{id} {
+      allow read: if isManager();
+      allow write: if false;
+    }
+
+    match /monthly_reports/{id} {
+      allow read: if hasRole(['branch_manager', 'owner']);
+      allow create, update, delete: if isManager();
+    }
+
+    match /monthly_report_chunks/{id} {
+      allow read: if hasRole(['branch_manager', 'owner']);
+      allow create, update, delete: if isManager();
+    }
 
     // ===== التنبؤ الذكي بالطلبيات =====
-    // المبيعات اليومية لكل صنف من ملفات رواء (مستند لكل يوم)
-    match /fc_daily/{day} { allow read, write: if signedIn(); }
-    // أسماء الأصناف + الإعدادات (ربط الوصفات، المواسم، مخزون الأمان)
-    match /fc_meta/{docId} { allow read, write: if signedIn(); }
-    // التوقعات المحفوظة لقياس الدقة أسبوعياً
-    match /fc_snapshots/{startDate} { allow read, write: if signedIn(); }
+    match /fc_daily/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
+      allow create, update, delete: if hasRole(['branch_manager', 'store_manager']);
+    }
+
+    match /fc_meta/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow delete: if isManager();
+    }
+
+    match /fc_snapshots/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow delete: if isManager();
+    }
+
+    // ===== مسودات الجرد الشهري =====
+    match /inv_count_drafts/{id} {
+      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']);
+      allow delete: if hasRole(['branch_manager', 'store_manager']);
+    }
+
   }
 }
