@@ -456,6 +456,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         <div class="ni" onclick="go('purchase',this)" data-perm="purchase"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>طلبات المشتريات<span class="nbdg" style="display:none">0</span></div>
         <div class="ni" onclick="go('purchase-system',this)" data-perm="purchase-system"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M6 12h4M6 16h6"/></svg>المشتريات والموردين<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('inventory',this)" data-perm="inventory"><svg viewBox="0 0 24 24"><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>المخازن والجرد<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        <div class="ni" onclick="go('forecast',this)" data-perm="forecast"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l3-4 3 2 4-6"/><path d="M17 7h3v3"/></svg>التنبؤ بالطلبيات<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('production',this)" data-perm="purchase"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>طلبات الإنتاج</div>
       </div>
       <div><div class="sl">الموارد البشرية</div>
@@ -3645,6 +3646,105 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         </div>
       </div>
 
+      <!-- ===========================================================
+           FORECAST - التنبؤ الذكي بالطلبيات
+           =========================================================== -->
+      <div class="page" id="pg-forecast">
+        <div class="ph"><h1>التنبؤ الذكي بالطلبيات</h1><p>توقع مبيعات كل صنف للأيام السبعة القادمة من سجل مبيعات رواء اليومي، ثم تحويلها إلى كميات خامات وطلب شراء مقترح</p></div>
+        <div id="fc-status" style="font-size:12px;margin-bottom:10px"></div>
+        <div class="tabs" id="fc-tabs">
+          <button class="tab active" onclick="fcTab('fc-t-forecast',this)">📈 توقع 7 أيام</button>
+          <button class="tab" onclick="fcTab('fc-t-order',this)">🛒 طلب الشراء المقترح</button>
+          <button class="tab" onclick="fcTab('fc-t-acc',this)">🎯 دقة التنبؤ</button>
+          <button class="tab" onclick="fcTab('fc-t-data',this)">⚙️ البيانات والإعدادات</button>
+        </div>
+
+        <div id="fc-t-forecast">
+          <div class="card">
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <span>📈 التوقع اليومي لكل صنف</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px">
+                <label for="fc-start">بداية التوقع</label>
+                <input type="date" id="fc-start" onchange="fcRenderForecast()" style="padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
+                <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="fc-show-all" onchange="fcRenderForecast()"> عرض الأصناف غير النشطة</label>
+              </div>
+            </div>
+            <div id="fc-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
+            <div id="fc-days" style="overflow-x:auto;margin-bottom:10px"></div>
+            <div style="overflow-x:auto"><table class="dt" id="fc-table"></table></div>
+            <div style="font-size:11px;color:var(--tl);margin-top:8px;line-height:1.8">الأرقام بالقطع المتوقع بيعها. السبب المختصر يظهر عند وجود أثر واضح (10% أو أكثر): يوم الأسبوع، رمضان والعيدان بالتقويم الهجري، صرف الرواتب ونهاية الشهر، الإجازات والمواسم، واتجاه الأسابيع الأخيرة.</div>
+          </div>
+        </div>
+
+        <div id="fc-t-order" style="display:none">
+          <div class="card">
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <span>🛒 طلب الشراء المقترح للأيام السبعة القادمة</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px">
+                <label for="fc-safety">مخزون أمان %</label>
+                <input type="number" id="fc-safety" min="0" max="200" step="5" value="15" oninput="fcRenderOrder()" style="width:70px;padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px">
+              </div>
+            </div>
+            <div id="fc-order-info" style="font-size:11px;color:var(--tl);margin-bottom:8px;line-height:1.8"></div>
+            <div style="overflow-x:auto"><table class="dt" id="fc-order-table"></table></div>
+            <div id="fc-order-gaps" style="margin-top:10px"></div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button class="btn bp" onclick="fcCreatePR('pending')">📤 إنشاء طلب شراء وإرساله للاعتماد</button>
+              <button class="btn bo" onclick="fcCreatePR('draft')">💾 حفظ كمسودة طلب شراء</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="fc-t-acc" style="display:none">
+          <div class="card">
+            <div class="ct">🎯 دقة التنبؤ — اختبار على الأسابيع الأخيرة</div>
+            <div style="font-size:11px;color:var(--tl);margin-bottom:8px;line-height:1.8">لكل أسبوع من الأسابيع الأخيرة: يُبنى التوقع من البيانات السابقة له فقط، ثم يُقارن بالمبيعات الفعلية. نسبة الخطأ = مجموع الفروقات المطلقة ÷ مجموع المبيعات الفعلية (WAPE).</div>
+            <div id="fc-acc-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
+            <div style="overflow-x:auto" id="fc-acc-weeks"></div>
+          </div>
+          <div class="card">
+            <div class="ct">📌 الدقة حسب الصنف (آخر 4 أسابيع)</div>
+            <div style="overflow-x:auto" id="fc-acc-items"></div>
+          </div>
+          <div class="card">
+            <div class="ct">🗓️ التوقعات المحفوظة مقابل الفعلي</div>
+            <div style="font-size:11px;color:var(--tl);margin-bottom:8px">كل مرة تُفتح فيها شاشة التوقع يُحفظ توقع الأيام السبعة القادمة، وبعد رفع ملف رواء الجديد تظهر المقارنة هنا أسبوعياً.</div>
+            <div style="overflow-x:auto" id="fc-acc-live"></div>
+          </div>
+        </div>
+
+        <div id="fc-t-data" style="display:none">
+          <div class="card" id="fc-import-card">
+            <div class="ct">📥 رفع ملف مبيعات رواء اليومي</div>
+            <div style="font-size:11px;color:var(--tm);line-height:1.8;margin-bottom:10px">ارفع تقرير رواء الذي يحتوي الأعمدة: «تاريخ العملية» و«رقم المنتج» و«اسم المنتج/الرقم التعريفي» و«الكمية» و«المبيعات (شامل الضريبة)». الأصناف تُعرَّف باسمها لأن رواء قد يعيد استخدام رقم المنتج لصنف آخر. يمكن رفع ملف شهر واحد أو عدة أشهر؛ الأيام الموجودة في الملف تُستبدل بالكامل، وباقي الأيام تبقى كما هي.</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="fc-file" accept=".xlsx,.csv">
+              <button class="btn bp" onclick="fcImport()">📥 قراءة الملف ومعاينة الاستيراد</button>
+            </div>
+            <div id="fc-import-preview" style="margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <div class="ct">🗂️ تغطية البيانات</div>
+            <div id="fc-coverage"></div>
+          </div>
+          <div class="card">
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>🔗 ربط أصناف رواء بوصفات المنصة</span><button class="btn bsm bp" onclick="fcSaveMapping()">💾 حفظ الربط</button></div>
+            <div style="font-size:11px;color:var(--tl);margin-bottom:8px;line-height:1.8">الربط يحوّل مبيعات الصنف إلى مواد خام. «المعامل» = عدد وحدات الوصفة لكل قطعة (مثال: البراد = 2.97 كوب). «دمج في» يجمع سجلات الصنف الواحد المكررة (اكتب اسم الصنف الأساسي كما يظهر في الجدول). «استبعاد» يخرج الصنف من التوقع (خدمات، أرقام أجهزة، أصناف متوقفة).</div>
+            <div style="overflow-x:auto" id="fc-mapping"></div>
+          </div>
+          <div class="card">
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>📅 المواسم والإجازات</span><button class="btn bsm bp" onclick="fcSaveSeasons()">💾 حفظ المواسم</button></div>
+            <div style="font-size:11px;color:var(--tl);margin-bottom:8px;line-height:1.8">رمضان والعيدان تُحسب تلقائياً بتقويم أم القرى الهجري. الفترات أدناه بالتاريخ الميلادي وتتكرر سنوياً. أثر كل موسم يُتعلَّم من البيانات التاريخية، ويمكن تعديل الفترات حسب التقويم الدراسي.</div>
+            <div id="fc-seasons"></div>
+            <button class="btn bsm bo" style="margin-top:8px" onclick="fcAddSeason()">➕ إضافة فترة</button>
+          </div>
+          <div class="card">
+            <div class="ct">🧮 الآثار المتعلَّمة من البيانات</div>
+            <div id="fc-factors"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="pg-production">
         <div class="ph"><h1>طلبات الإنتاج</h1><p>تجهيز الوصفات والإنتاج — تُعتمد من مدير الفرع</p></div>
         <div class="card">
@@ -4548,14 +4648,14 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 <script>
 // ===== PERMISSIONS =====
 var PERMS = {
-  branch_manager: ['dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','menu','breakeven','monthlyreports','inventory'],
+  branch_manager: ['dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','menu','breakeven','monthlyreports','inventory','forecast'],
   cashier: ['dashboard','opening','closing','cashier','custody','forms','revenue-receipt'],
   visit_supervisor: ['dashboard','opening','visit','vreports','forms','hr-violations'],
-  store_manager: ['dashboard','purchase','production','inventory'],
+  store_manager: ['dashboard','purchase','production','inventory','forecast'],
   hr_manager: ['dashboard','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen'],
   purchases_rep: ['purchase-system','inventory'],
   accountant: ['purchase-system','inventory','reports','salesreport','custodyreport','finance','opreports','backup'],
-  owner: ['dashboard','reports','salesreport','custodyreport','vreports','opreports','finance','costcards','menu','breakeven','monthlyreports','purchase-system','inventory','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen']
+  owner: ['dashboard','reports','salesreport','custodyreport','vreports','opreports','finance','costcards','menu','breakeven','monthlyreports','purchase-system','inventory','forecast','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen']
 };
 var ROLE_NAMES = {
   branch_manager:'مدير الفرع',
@@ -4571,7 +4671,7 @@ var ROLE_HINTS = {
   branch_manager:'سيحصل على صلاحيات كاملة: الفتح، الغلق، الكاشير، الزيارات، المشتريات، التقارير، وإدارة المستخدمين',
   cashier:'سيحصل على صلاحيات: مهام الفتح، مهام الغلق، وتقفيل الكاشير فقط',
   visit_supervisor:'سيحصل على صلاحيات: مهام الوردية، نموذج الزيارة، تقارير الزيارات، النماذج التشغيلية، وتسجيل مخالفات الموظفين',
-  store_manager:'سيحصل على صلاحيات: طلبات المشتريات وطلبات الإنتاج والمخازن والجرد الشهري',
+  store_manager:'سيحصل على صلاحيات: طلبات المشتريات وطلبات الإنتاج والمخازن والجرد الشهري والتنبؤ بالطلبيات',
   hr_manager:'سيحصل على صلاحيات: سجل الموظفين، مسير الرواتب، تقييم الموظفين، واعتماد جزاء المخالفات وفق اللائحة',
   purchases_rep:'سيحصل على صلاحيات: تسجيل فواتير الموردين ببنودها والمدفوعات وحركة المخازن',
   accountant:'سيحصل على صلاحيات: مراجعة المشتريات والمدفوعات (قراءة فقط) + كل التقارير المالية والتشغيلية',
@@ -8305,6 +8405,7 @@ function go(pid,el){
   if(pid==='costcards'){setTimeout(function(){ccInit();},80);}
   if(pid==='menu'){setTimeout(function(){ccEnsureLoaded().then(menuRender);},80);}
   if(pid==='breakeven'){setTimeout(function(){beInit();},80);}
+  if(pid==='forecast'){setTimeout(function(){fcInit();},80);}
   if(pid==='revenue-receipt'){setTimeout(function(){initRR2Page();},80);}
   if(pid==='vreports'){setTimeout(function(){loadVisitReports();},80);}
   if(pid==='finance'){setTimeout(function(){
@@ -19463,6 +19564,482 @@ function invMatchRecipe(prodName,sku){
   }
   return null;
 }
+// =================================================================
+// FORECAST MODULE — التنبؤ الذكي بالطلبيات
+// Firestore: fc_daily/{YYYY-MM-DD} = {date,items:{pid:{q,v}},total,...}
+//            fc_meta/items = {names:{pid:name}} · fc_meta/config = {map,seasons,safety}
+//            fc_snapshots/{startDate} = توقع الأيام السبعة المحفوظ لقياس الدقة
+// النموذج إحصائي بالكامل داخل المتصفح (بدون ذكاء اصطناعي خارجي):
+//   التوقع = المستوى الحديث للصنف × أثر يوم الأسبوع × أثر الموسم/المناسبة × أثر صرف الرواتب
+// =================================================================
+var FC_HL=7; // نصف عمر الوزن بالأيام: الأسبوع الأخير له ضعف وزن الذي قبله
+var FC={days:{},names:{},cfg:null,snaps:[],loaded:false,model:null,preview:null};
+var FC_DOW=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+// المفتاح = اسم الصنف كما في رواء (بعد توحيد المسافات والأحرف اللاتينية الصغيرة)
+// لأن رواء يعيد استخدام رقم المنتج نفسه لأصناف مختلفة مع الوقت (مثال: الرقم 00010 كان «لوز قرين» ثم صار «سباريلا»)
+var FC_DEFAULT_MAP={
+  'كوب شاي بخار - cup tea bokhar':{rec:'seed:m_bokhar'},'كوب شاي تلقيمة - cup tea talqima':{rec:'seed:m_talq'},
+  'براد شاي حبّاق':{rec:'seed:m_bokhar',f:2.97},'مسخن دجاج - chiken':{rec:'seed:m_musakhan'},'فيتا تين - fitatin':{rec:'seed:m_fitateen'},
+  'سباريلا - sbarila':{rec:'seed:m_sbarella'},'آيس تي حبّاق - ice tea':{rec:'seed:m_icetea'},'كركدية حبق - hibiscus':{rec:'seed:m_hib'},
+  'قهوة سعودي دلة مع تمر - saudi coffee dallah':{rec:'seed:m_dallah'},'قهوة سعودي كوب - saudi coffee cup':{rec:'seed:m_coffee'},
+  'بوكس جمعات حبّاق - big box':{rec:'seed:m_box'},'كرك حبّاق - karak':{rec:'seed:m_karak'},
+  '2 بابكا زعتر - babka zaatar 2':{rec:'seed:m_babka_z'},'2 بابكا شوكليت - babka chocolate2':{rec:'seed:m_babka_c'},
+  'بسبوسة تشيز - basbusah':{rec:'seed:m_basbousa'},'مكسرات مدخنة':{rec:'seed:m_nuts1'},'مكسرات يابانية - nuts jaban':{rec:'seed:m_nuts2'},
+  'سمبوسة حبّاق':{merge:'سمبوسة حبّاق - sambosah'},'أم علي - umm ali':{merge:'أم علي حبّاق - om ali'},
+  'رقم الجهاز - number device':{ex:true},'مقعد مباريات':{ex:true},'مقعد لمشاهدة مباريات':{ex:true},'مقعد لمشاهدة مباريات كأس العالم':{ex:true},
+  'سمبوسة حبّاق - sambosah':{ex:true},'كاروت بيكان - carrot bican':{ex:true}
+};
+function fcKey(name){return String(name||'').trim().replace(/\s+/g,' ').toLowerCase();}
+var FC_DEFAULT_SEASONS=[{label:'موسم الصيف والسياحة بأبها',type:'summer',from:'07-01',to:'08-22'}];
+var FC_SEASON_TYPES={summer:'موسم الصيف والسياحة',school:'إجازة مدرسية',other:'موسم آخر'};
+var FC_EVENT_LABEL={ramadan:'رمضان',eid_fitr1:'أول أيام عيد الفطر',eid_fitr2:'أيام عيد الفطر',arafah:'يوم عرفة',eid_adha1:'أول أيام عيد الأضحى',eid_adha2:'أيام عيد الأضحى',national:'اليوم الوطني',founding:'يوم التأسيس',payday:'صرف الرواتب ونهاية الشهر'};
+
+function fcCanWrite(){return CU&&['branch_manager','store_manager'].indexOf(CU.role)>=0;}
+function fcEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function fcD(s){var p=s.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));}
+function fcS(d){return d.toISOString().slice(0,10);}
+function fcAdd(s,n){var d=fcD(s);d.setUTCDate(d.getUTCDate()+n);return fcS(d);}
+function fcDiff(a,b){return Math.round((fcD(b)-fcD(a))/86400000);}
+function fcToday(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fcPct(f){var p=Math.round((f-1)*100);return (p>0?'+':'')+p+'%';}
+function fcNum(x){x=Number(x)||0;return x<10?(Math.round(x*10)/10).toLocaleString('en-US'):Math.round(x).toLocaleString('en-US');}
+
+// ---------- التقويم: الهجري (أم القرى) + المناسبات الميلادية ----------
+var _fcHijriFmt=null,_fcHijriCache={};
+function fcHijri(s){
+  if(_fcHijriCache[s])return _fcHijriCache[s];
+  try{
+    if(!_fcHijriFmt)_fcHijriFmt=new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura',{day:'numeric',month:'numeric',timeZone:'UTC'});
+    var o={};_fcHijriFmt.formatToParts(fcD(s)).forEach(function(p){if(p.type==='month'||p.type==='day')o[p.type]=parseInt(p.value,10);});
+    return (_fcHijriCache[s]={m:o.month,d:o.day});
+  }catch(e){return (_fcHijriCache[s]={m:0,d:0});}
+}
+function fcSeasonOf(s){
+  var md=s.slice(5);
+  var list=(FC.cfg&&FC.cfg.seasons)||[];
+  for(var i=0;i<list.length;i++){var x=list[i];if(!x.from||!x.to)continue;
+    var inside=x.from<=x.to?(md>=x.from&&md<=x.to):(md>=x.from||md<=x.to);
+    if(inside)return {key:'season_'+(x.type||'other'),label:x.label||FC_SEASON_TYPES[x.type]||'موسم'};}
+  return null;
+}
+// المناسبة الأساسية لليوم (واحدة فقط، لتجنّب احتساب الأثر مرتين)
+function fcPrimary(s){
+  var h=fcHijri(s), md=s.slice(5);
+  if(h.m===10&&h.d===1)return {key:'eid_fitr1',label:FC_EVENT_LABEL.eid_fitr1,long:false};
+  if(h.m===10&&h.d>=2&&h.d<=4)return {key:'eid_fitr2',label:FC_EVENT_LABEL.eid_fitr2,long:false};
+  if(h.m===12&&h.d===9)return {key:'arafah',label:FC_EVENT_LABEL.arafah,long:false};
+  if(h.m===12&&h.d===10)return {key:'eid_adha1',label:FC_EVENT_LABEL.eid_adha1,long:false};
+  if(h.m===12&&h.d>=11&&h.d<=13)return {key:'eid_adha2',label:FC_EVENT_LABEL.eid_adha2,long:false};
+  if(md==='09-23')return {key:'national',label:FC_EVENT_LABEL.national,long:false};
+  if(md==='02-22')return {key:'founding',label:FC_EVENT_LABEL.founding,long:false};
+  if(h.m===9)return {key:'ramadan',label:FC_EVENT_LABEL.ramadan,long:true};
+  var se=fcSeasonOf(s);if(se){se.long=true;return se;}
+  return null;
+}
+function fcIsPayday(s){var d=+s.slice(8);return d>=27||d<=3;}
+function fcWd(s){return fcD(s).getUTCDay();}
+
+// ---------- تحميل البيانات ----------
+function fcInit(){
+  var st=document.getElementById('fc-start');if(st&&!st.value)st.value=fcToday();
+  if(!fcCanWrite()){var c=document.getElementById('fc-import-card');if(c)c.style.display='none';}
+  fcSetStatus('⏳ جارٍ تحميل بيانات المبيعات والوصفات…');
+  return fcLoad().then(function(){fcRefresh();}).catch(function(e){console.error(e);fcSetStatus('<span style="color:#B71C1C">تعذر تحميل بيانات التنبؤ: '+fcEsc(e.message)+' — تأكد من إضافة قواعد Firestore الخاصة بمجموعات fc_</span>');});
+}
+function fcLoad(){
+  return Promise.all([
+    db.collection('fc_daily').get().then(function(snap){FC.days={};snap.forEach(function(d){var x=d.data();FC.days[x.date||d.id]=x.items||{};});}),
+    db.collection('fc_meta').get().then(function(snap){
+      var cfg=null;snap.forEach(function(d){if(d.id==='items')FC.names=(d.data().names)||{};if(d.id==='config')cfg=d.data();});
+      FC.cfg=cfg||{};
+      if(!FC.cfg.map)FC.cfg.map=JSON.parse(JSON.stringify(FC_DEFAULT_MAP));
+      if(!FC.cfg.seasons)FC.cfg.seasons=JSON.parse(JSON.stringify(FC_DEFAULT_SEASONS));
+      if(FC.cfg.safety==null)FC.cfg.safety=15;
+    }),
+    db.collection('fc_snapshots').get().then(function(snap){FC.snaps=[];snap.forEach(function(d){var x=d.data();x._id=d.id;FC.snaps.push(x);});}).catch(function(){FC.snaps=[];}),
+    (typeof ccEnsureLoaded==='function'?ccEnsureLoaded():Promise.resolve()),
+    SDCache.snap('purchases_invoices').then(function(snap){PS_INVOICES=[];snap.forEach(function(d){var x=d.data();x._id=d.id;PS_INVOICES.push(x);});}).catch(function(){}),
+    SDCache.snap('inv_movements').then(function(snap){INV_MOVES=[];snap.forEach(function(d){var x=d.data();x._id=d.id;INV_MOVES.push(x);});}).catch(function(){})
+  ]).then(function(){FC.loaded=true;var s=document.getElementById('fc-safety');if(s)s.value=FC.cfg.safety;});
+}
+function fcSetStatus(h){var e=document.getElementById('fc-status');if(e)e.innerHTML=h;}
+function fcTab(id,el){
+  ['fc-t-forecast','fc-t-order','fc-t-acc','fc-t-data'].forEach(function(x){var e=document.getElementById(x);if(e)e.style.display=x===id?'block':'none';});
+  document.querySelectorAll('#fc-tabs .tab').forEach(function(t){t.classList.remove('active');});if(el)el.classList.add('active');
+  if(!FC.model)return;
+  if(id==='fc-t-forecast')fcRenderForecast();
+  if(id==='fc-t-order')fcRenderOrder();
+  if(id==='fc-t-acc')fcRenderAccuracy();
+  if(id==='fc-t-data')fcRenderData();
+}
+function fcDates(){return Object.keys(FC.days).sort();}
+
+// ---------- تجميع السلاسل بعد الدمج والاستبعاد ----------
+function fcCanon(pid){var m=FC.cfg.map[pid];var g=0;while(m&&m.merge&&g<5){pid=m.merge;m=FC.cfg.map[pid];g++;}return pid;}
+function fcSeries(){
+  var dates=fcDates();if(!dates.length)return null;
+  var first=dates[0],last=dates[dates.length-1],n=fcDiff(first,last)+1;
+  var all=[];for(var i=0;i<n;i++)all.push(fcAdd(first,i));
+  var items={},total=new Array(n).fill(0),has=new Array(n).fill(false);
+  all.forEach(function(s,i){
+    var day=FC.days[s];if(!day)return;has[i]=true;
+    Object.keys(day).forEach(function(pid){
+      var x=day[pid];total[i]+=Number(x.v)||0;
+      var cp=fcCanon(pid),m=FC.cfg.map[cp]||{};if(m.ex)return;
+      if(!items[cp])items[cp]={q:new Array(n).fill(0),v:new Array(n).fill(0)};
+      items[cp].q[i]+=Number(x.q)||0;items[cp].v[i]+=Number(x.v)||0;
+    });
+  });
+  return {all:all,first:first,last:last,n:n,items:items,total:total,has:has};
+}
+
+// ---------- تعلّم الآثار من إجمالي المبيعات (حتى تاريخ القطع) ----------
+function fcLearn(S,cut){
+  var V=S.total.slice(0,cut),A=S.all.slice(0,cut),N=V.length;
+  var prim=A.map(fcPrimary),pay=A.map(fcIsPayday),ok=S.has.slice(0,cut);
+  var normal=A.map(function(s,i){return ok[i]&&!prim[i]&&V[i]>0;});
+  // 1) يوم الأسبوع: نسبة اليوم إلى متوسط الأيام العادية المحيطة (±3)
+  var acc=[0,0,0,0,0,0,0],cnt=[0,0,0,0,0,0,0];
+  for(var i=0;i<N;i++){if(!normal[i])continue;var s=0,c=0;for(var j=i-3;j<=i+3;j++){if(j>=0&&j<N&&normal[j]){s+=V[j];c++;}}if(c>=5){acc[fcWd(A[i])]+=V[i]/(s/c);cnt[fcWd(A[i])]++;}}
+  var dow=acc.map(function(a,k){return cnt[k]?a/cnt[k]:1;});var mdw=dow.reduce(function(a,b){return a+b;},0)/7;dow=dow.map(function(x){return x/mdw;});
+  var Z=V.map(function(v,i){return v/dow[fcWd(A[i])];});
+  function base(i,from,to){var s=0,c=0;for(var j=Math.max(0,from);j<=Math.min(N-1,to);j++){if(normal[j]){s+=Z[j];c++;}}return c>=5?s/c:null;}
+  // 2) صرف الرواتب ونهاية الشهر
+  var pS=0,pC=0,nS=0,nC=0;
+  for(i=0;i<N;i++){if(!normal[i])continue;var b=base(i,i-14,i+14);if(!b)continue;var r=Z[i]/b;if(pay[i]){pS+=r;pC++;}else{nS+=r;nC++;}}
+  var payF=(pC>=5&&nC>=5)?(pS/pC)/(nS/nC):1;
+  // 3) المناسبات القصيرة والمواسم الطويلة
+  var ev={};
+  for(i=0;i<N;i++){
+    var p=prim[i];if(!p||!ok[i])continue;var b2;
+    if(p.long){var st=i;while(st>0&&prim[st-1]&&prim[st-1].key===p.key)st--;b2=base(i,st-28,st-1);if(!b2){var en=i;while(en<N-1&&prim[en+1]&&prim[en+1].key===p.key)en++;b2=base(i,en+1,en+28);}}
+    else b2=base(i,i-14,i+14);
+    if(!b2)continue;
+    if(!ev[p.key])ev[p.key]={s:0,n:0,label:p.label};ev[p.key].s+=Z[i]/b2;ev[p.key].n++;
+  }
+  Object.keys(ev).forEach(function(k){ev[k].f=Math.max(0.05,Math.min(3,ev[k].s/ev[k].n));});
+  return {dow:dow,payF:payF,payN:pC,ev:ev};
+}
+function fcEvF(L,s){var p=fcPrimary(s);if(!p)return {f:1,p:null};var e=L.ev[p.key];return {f:e?e.f:1,p:p,known:!!e};}
+
+// ---------- نموذج الصنف ----------
+function fcFitItem(S,L,it,cut){
+  var q=it.q.slice(0,cut),N=q.length,A=S.all;
+  var firstSale=-1;for(var i=0;i<N;i++){if(q[i]>0){firstSale=i;break;}}
+  if(firstSale<0)return null;
+  var lastSale=-1;for(i=N-1;i>=0;i--){if(q[i]>0){lastSale=i;break;}}
+  var tot120=0,days120=0;for(i=Math.max(firstSale,N-120);i<N;i++){tot120+=q[i];days120++;}
+  var avg=days120?tot120/days120:0;
+  // فترات انقطاع (نفاد أو توقف): 7 أيام صفر متتالية أو أكثر لصنف متوسطه ≥ 0.5 يومياً
+  var avail=new Array(N).fill(true);
+  for(i=0;i<firstSale;i++)avail[i]=false;
+  if(avg>=0.5){var run=0;for(i=firstSale;i<=N;i++){if(i<N&&q[i]===0&&S.has[i]){run++;}else{if(run>=7){for(var k=i-run;k<i;k++)avail[k]=false;}run=0;}}}
+  for(i=0;i<N;i++){if(!S.has[i])avail[i]=false;}
+  // نمط يوم الأسبوع للصنف (مدموج مع نمط المحل حسب حجم البيانات)
+  var acc=[0,0,0,0,0,0,0],cnt=[0,0,0,0,0,0,0];
+  for(i=Math.max(firstSale,N-180);i<N;i++){if(!avail[i]||fcPrimary(A[i]))continue;var s=0,c=0;for(var j=i-3;j<=i+3;j++){if(j>=0&&j<N&&avail[j]&&!fcPrimary(A[j])){s+=q[j];c++;}}if(c>=5&&s>0){acc[fcWd(A[i])]+=q[i]/(s/c);cnt[fcWd(A[i])]++;}}
+  var idow=acc.map(function(a,k){return cnt[k]?a/cnt[k]:1;});var m=idow.reduce(function(a,b){return a+b;},0)/7||1;idow=idow.map(function(x){return x/m;});
+  var w=Math.max(0,Math.min(0.8,tot120/1500));
+  var dow=L.dow.map(function(d,k){return w*idow[k]+(1-w)*d;});
+  function adj(s){return dow[fcWd(s)]*fcEvF(L,s).f*(fcIsPayday(s)?L.payF:1);}
+  // المستوى الحديث: متوسط مرجّح بعد إزالة الآثار، الوزن يتضاعف كل أسبوعين أحدث
+  var sw=0,sz=0,r14=[],rPrev=[];
+  for(i=Math.max(firstSale,N-56);i<N;i++){if(!avail[i])continue;var z=q[i]/adj(A[i]);var age=N-1-i;var wt=Math.pow(0.5,age/FC_HL);sw+=wt;sz+=wt*z;if(age<14)r14.push(z);else rPrev.push(z);}
+  var level=sw>0?sz/sw:0;
+  var mean=function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:0;};
+  var trend=(r14.length>=5&&rPrev.length>=10&&mean(rPrev)>0)?mean(r14)/mean(rPrev):1;
+  var active=lastSale>=N-28;
+  var priceV=0,priceQ=0;for(i=Math.max(0,N-28);i<N;i++){priceV+=it.v[i]||0;priceQ+=q[i];}
+  return {level:active?level:0,dow:dow,trend:trend,active:active,avg:avg,lastSale:lastSale>=0?A[lastSale]:'',price:priceQ>0?priceV/priceQ:0,adj:adj,stockout:avail.slice(-28).filter(function(x){return !x;}).length};
+}
+function fcBuild(cut){
+  var S=fcSeries();if(!S)return null;
+  if(cut==null)cut=S.n;
+  var L=fcLearn(S,cut),items={};
+  Object.keys(S.items).forEach(function(pid){var m=fcFitItem(S,L,S.items[pid],cut);if(m)items[pid]=m;});
+  return {S:S,L:L,items:items,cut:cut};
+}
+function fcPredict(M,pid,s){var it=M.items[pid];if(!it||!it.active)return 0;return Math.max(0,it.level*it.adj(s));}
+function fcReasons(M,pid,s){
+  var it=M.items[pid],out=[];if(!it)return out;
+  var d=it.dow[fcWd(s)];if(Math.abs(d-1)>=0.10)out.push(FC_DOW[fcWd(s)]+' '+fcPct(d));
+  var e=fcEvF(M.L,s);if(e.p){if(e.known&&Math.abs(e.f-1)>=0.10)out.push(e.p.label+' '+fcPct(e.f));else if(!e.known)out.push(e.p.label+' (لا توجد بيانات سابقة)');}
+  if(fcIsPayday(s)&&Math.abs(M.L.payF-1)>=0.05)out.push('صرف الرواتب ونهاية الشهر '+fcPct(M.L.payF));
+  return out;
+}
+function fcName(pid){return FC.names[pid]||pid;}
+
+function fcRefresh(){
+  FC.model=fcBuild();
+  var dates=fcDates();
+  if(!dates.length){fcSetStatus('<div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;color:#8D6E00">لا توجد بيانات مبيعات بعد. افتح تبويب «البيانات والإعدادات» وارفع ملف مبيعات رواء اليومي (يناير–سبتمبر 2026).</div>');fcTab('fc-t-data',document.querySelectorAll('#fc-tabs .tab')[3]);return;}
+  var last=dates[dates.length-1],age=fcDiff(last,fcToday());
+  fcSetStatus('البيانات: من <b dir="ltr">'+dates[0]+'</b> إلى <b dir="ltr">'+last+'</b> ('+dates.length+' يوماً)'+(age>7?' — <span style="color:#B71C1C;font-weight:700">آخر بيانات قبل '+age+' يوماً، ارفع ملف رواء الأحدث لتحسين الدقة</span>':''));
+  var act=document.querySelector('#fc-tabs .tab.active'),ids=['fc-t-forecast','fc-t-order','fc-t-acc','fc-t-data'];
+  var idx=Array.prototype.indexOf.call(document.querySelectorAll('#fc-tabs .tab'),act);fcTab(ids[idx>=0?idx:0],act);
+}
+function fcHorizon(){var st=(document.getElementById('fc-start')||{}).value||fcToday();var a=[];for(var i=0;i<7;i++)a.push(fcAdd(st,i));return a;}
+function fcActivePids(all){
+  var M=FC.model;return Object.keys(M.items).filter(function(p){return all||M.items[p].active;}).sort(function(a,b){return (M.items[b].level*M.items[b].price||M.items[b].level)-(M.items[a].level*M.items[a].price||M.items[a].level);});
+}
+
+// ---------- شاشة التوقع ----------
+function fcRenderForecast(){
+  var M=FC.model;if(!M)return;
+  var H=fcHorizon(),all=(document.getElementById('fc-show-all')||{}).checked,pids=fcActivePids(all);
+  var dayTot=H.map(function(){return 0;}),dayVal=H.map(function(){return 0;});
+  var rows=pids.map(function(pid){
+    var it=M.items[pid],sum=0,reasonsAll={};
+    var cells=H.map(function(s,k){var f=fcPredict(M,pid,s);sum+=f;dayTot[k]+=f;dayVal[k]+=f*it.price;var r=fcReasons(M,pid,s);r.forEach(function(x){reasonsAll[x]=1;});
+      var col=r.length?(r.some(function(x){return /\-\d/.test(x);})?'#B71C1C':'#1B5E20'):'inherit';
+      return '<td title="'+fcEsc(r.join(' · '))+'" style="text-align:center;font-weight:700;color:'+col+'">'+(it.active?fcNum(f):'—')+'</td>';}).join('');
+    var tr=Math.abs(it.trend-1)>=0.10?'<span class="bdg '+(it.trend>1?'bg-s':'bg-d')+'">اتجاه الأسابيع الأخيرة '+fcPct(it.trend)+'</span>':'';
+    var st=!it.active?'<span class="bdg bg-d">غير نشط منذ '+fcEsc(it.lastSale)+'</span>':(it.stockout?'<span class="bdg bg-w">انقطاع '+it.stockout+' يوماً مؤخراً</span>':'');
+    return '<tr><td style="font-weight:700;white-space:nowrap">'+fcEsc(fcName(pid))+'</td>'+cells+'<td style="text-align:center;font-weight:900">'+(it.active?fcNum(sum):'—')+'</td><td style="font-size:10px;line-height:1.7">'+tr+' '+st+'</td></tr>';
+  }).join('');
+  var hdr='<thead><tr><th>الصنف</th>'+H.map(function(s){return '<th style="text-align:center;white-space:nowrap">'+FC_DOW[fcWd(s)]+'<div style="font-size:10px;font-weight:400" dir="ltr">'+s.slice(5)+'</div></th>';}).join('')+'<th style="text-align:center">مجموع 7 أيام</th><th>ملاحظات</th></tr></thead>';
+  var foot='<tr style="background:var(--b)"><td style="font-weight:900">القيمة المتوقعة (ر.س)</td>'+dayVal.map(function(v){return '<td style="text-align:center;font-weight:900">'+Math.round(v).toLocaleString('en-US')+'</td>';}).join('')+'<td style="text-align:center;font-weight:900">'+Math.round(dayVal.reduce(function(a,b){return a+b;},0)).toLocaleString('en-US')+'</td><td></td></tr>';
+  document.getElementById('fc-table').innerHTML=hdr+'<tbody>'+(rows||'<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--tl)">لا توجد أصناف نشطة</td></tr>')+foot+'</tbody>';
+  // بطاقات الأيام: أسباب على مستوى اليوم
+  document.getElementById('fc-days').innerHTML='<div style="display:flex;gap:8px;min-width:max-content">'+H.map(function(s,k){
+    var d=M.L.dow[fcWd(s)],e=fcEvF(M.L,s),tags=[];
+    if(Math.abs(d-1)>=0.10)tags.push(FC_DOW[fcWd(s)]+' '+fcPct(d));
+    if(e.p)tags.push(e.p.label+(e.known?' '+fcPct(e.f):''));
+    if(fcIsPayday(s)&&Math.abs(M.L.payF-1)>=0.05)tags.push('رواتب '+fcPct(M.L.payF));
+    return '<div style="border:1px solid var(--br);border-radius:10px;padding:8px 12px;min-width:120px;background:#fff"><div style="font-weight:700">'+FC_DOW[fcWd(s)]+' <span dir="ltr" style="font-size:11px;color:var(--tl)">'+s.slice(5)+'</span></div><div style="font-size:18px;font-weight:900;color:var(--r)">'+Math.round(dayVal[k]).toLocaleString('en-US')+' <span style="font-size:11px">ر.س</span></div><div style="font-size:10px;color:var(--tl);min-height:14px">'+(tags.join(' · ')||'يوم عادي')+'</div></div>';
+  }).join('')+'</div>';
+  var wk=dayVal.reduce(function(a,b){return a+b;},0);
+  var last28=0,S=M.S;for(var i=Math.max(0,S.n-28);i<S.n;i++)last28+=S.total[i];
+  document.getElementById('fc-kpis').innerHTML='<div class="kpi"><div class="kv">'+Math.round(wk).toLocaleString('en-US')+'</div><div class="kl">مبيعات متوقعة للأيام السبعة (ر.س)</div></div>'
+    +'<div class="kpi"><div class="kv">'+Math.round(wk/7).toLocaleString('en-US')+'</div><div class="kl">متوسط يومي متوقع (ر.س)</div></div>'
+    +'<div class="kpi"><div class="kv">'+Math.round(last28/28).toLocaleString('en-US')+'</div><div class="kl">متوسط آخر 28 يوماً فعلياً (ر.س)</div></div>'
+    +'<div class="kpi"><div class="kv">'+pids.filter(function(p){return M.items[p].active;}).length+'</div><div class="kl">صنف نشط في التوقع</div></div>';
+  fcSaveSnapshot(H,pids);
+}
+function fcSaveSnapshot(H,pids){
+  if(!fcCanWrite()||!FC.model)return;
+  var M=FC.model,lastData=M.S.last;if(H[0]<=lastData)return; // لا نحفظ توقعاً لأيام بياناتها موجودة
+  var items={};pids.forEach(function(pid){if(!M.items[pid].active)return;var o={};H.forEach(function(s){o[s]=Math.round(fcPredict(M,pid,s)*100)/100;});items[pid]=o;});
+  var id=H[0];
+  var ex=FC.snaps.find(function(x){return x._id===id;});if(ex)return;
+  var doc={start:H[0],end:H[6],madeAt:new Date().toISOString(),madeBy:CU.name||'',dataUntil:lastData,items:items};
+  db.collection('fc_snapshots').doc(id).set(doc).then(function(){doc._id=id;FC.snaps.push(doc);}).catch(function(e){console.warn('fc snapshot: '+e.message);});
+}
+
+// ---------- طلب الشراء المقترح ----------
+function fcResolveRec(ref){
+  if(!ref)return null;
+  if(ref.indexOf('seed:')===0){var k=ref.slice(5);return _ccRecs.find(function(r){return r.seedKey===k;})||null;}
+  return _ccRecs.find(function(r){return r._id===ref;})||null;
+}
+function fcComputeOrder(){
+  var M=FC.model,H=fcHorizon(),need={},gaps=[],used=[];
+  fcActivePids(false).forEach(function(pid){
+    var units=0;H.forEach(function(s){units+=fcPredict(M,pid,s);});if(units<=0)return;
+    var m=FC.cfg.map[pid]||{},rec=fcResolveRec(m.rec);
+    if(!rec){gaps.push({pid:pid,units:units,why:'غير مربوط بوصفة'});return;}
+    if(!(rec.items||[]).length){gaps.push({pid:pid,units:units,why:'الوصفة «'+rec.name+'» بلا مكونات'});return;}
+    used.push({pid:pid,units:units,rec:rec.name});
+    ccExpandRec(rec,units*(Number(m.f)||1),need);
+  });
+  var safety=(parseFloat((document.getElementById('fc-safety')||{}).value)||0)/100;
+  var rows=Object.keys(need).map(function(id){
+    var g=invIng(id);if(!g)return null;
+    var use=need[id],withS=use*(1+safety),stock=0;try{stock=invBalance(invEvents(id),null);}catch(e){}
+    var miss=Math.max(0,withS-Math.max(0,stock)),pack=parseFloat(g.pack)||1;
+    var packs=miss>0?Math.ceil(miss/pack-1e-9):0;
+    return {id:id,name:g.name,unit:g.unit||'',use:use,withS:withS,stock:stock,miss:miss,pack:pack,packs:packs,qty:packs*pack,cost:packs*(parseFloat(g.price)||0)};
+  }).filter(Boolean).sort(function(a,b){return b.cost-a.cost||a.name.localeCompare(b.name,'ar');});
+  return {rows:rows,gaps:gaps,used:used,H:H,safety:safety};
+}
+function fcRenderOrder(){
+  if(!FC.model)return;
+  var O=fcComputeOrder();FC._order=O;
+  var tot=O.rows.reduce(function(a,r){return a+r.cost;},0);
+  document.getElementById('fc-order-info').innerHTML='الفترة: <b dir="ltr">'+O.H[0]+'</b> إلى <b dir="ltr">'+O.H[6]+'</b>. الكمية المقترحة = الاستهلاك المتوقع من وصفات '+O.used.length+' صنفاً + مخزون أمان '+Math.round(O.safety*100)+'% − الرصيد الحالي في المخازن، مقرّبة لأعلى إلى حجم العبوة. يمكنك تعديل أي كمية قبل الإنشاء. التكلفة التقديرية: <b>'+Math.round(tot).toLocaleString('en-US')+' ر.س</b>.'
+    +' <span style="color:#8D6E00">الرصيد الحالي يعتمد على حركة المخازن والجرد في المنصة؛ إذا لم تُسجَّل المشتريات والجرد بانتظام فسيكون المقترح أعلى من الحاجة.</span>';
+  document.getElementById('fc-order-table').innerHTML='<thead><tr><th>المادة</th><th>الاستهلاك المتوقع</th><th>مع مخزون الأمان</th><th>الرصيد الحالي</th><th>العجز</th><th>المقترح للشراء</th><th>الوحدة</th><th>العبوات</th><th>تكلفة تقديرية</th></tr></thead><tbody>'
+    +(O.rows.map(function(r,i){return '<tr'+(r.qty>0?'':' style="opacity:.55"')+'><td style="font-weight:700">'+fcEsc(r.name)+'</td><td>'+fcNum(r.use)+'</td><td>'+fcNum(r.withS)+'</td><td>'+fcNum(r.stock)+'</td><td style="color:'+(r.miss>0?'#B71C1C':'#1B5E20')+';font-weight:700">'+fcNum(r.miss)+'</td>'
+      +'<td><input type="number" class="fc-oq" data-i="'+i+'" value="'+(Math.round(r.qty*100)/100)+'" min="0" step="any" style="width:100px;padding:4px 6px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif"></td><td>'+fcEsc(r.unit)+'</td><td>'+(r.packs?r.packs+' × '+fcNum(r.pack):'—')+'</td><td>'+(r.cost?Math.round(r.cost).toLocaleString('en-US'):'—')+'</td></tr>';}).join('')
+    ||'<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--tl)">لا توجد مواد — تحقق من ربط الأصناف بالوصفات</td></tr>')+'</tbody>';
+  document.getElementById('fc-order-gaps').innerHTML=O.gaps.length?'<div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;font-size:12px;color:#8D6E00"><b>أصناف متوقعة لا تدخل في الطلب لأنها بلا وصفة صالحة:</b><br>'+O.gaps.map(function(g){return fcEsc(fcName(g.pid))+' ('+fcNum(g.units)+' قطعة — '+fcEsc(g.why)+')';}).join(' · ')+'<br>اربطها أو أكمل وصفاتها من تبويب «البيانات والإعدادات» وصفحة الوصفات وبطاقات التكلفة.</div>':'';
+}
+function fcCreatePR(status){
+  if(typeof prCanCreate==='function'&&!prCanCreate()){alert('إنشاء طلبات الشراء لمدير الفرع أو مسؤول المخازن');return;}
+  var O=FC._order;if(!O){alert('افتح تبويب طلب الشراء المقترح أولاً');return;}
+  var items=[];document.querySelectorAll('#fc-order-table .fc-oq').forEach(function(inp){var r=O.rows[+inp.getAttribute('data-i')],q=parseFloat(inp.value)||0;if(r&&q>0)items.push({itemId:r.id,name:r.name,qty:Math.round(q*1000)/1000,unit:r.unit});});
+  if(!items.length){alert('لا توجد كميات مقترحة للشراء');return;}
+  if(!confirm((status==='draft'?'حفظ مسودة':'إنشاء وإرسال')+' طلب شراء بعدد '+items.length+' مادة؟'))return;
+  prLoad().then(function(){
+    var d={number:prNextNo(),branch:'حباق — الفرع الرئيسي',needDate:O.H[0],type:'مواد خام',priority:'عادية',items:items,
+      notes:'طلب مقترح من التنبؤ الذكي للفترة '+O.H[0]+' إلى '+O.H[6]+' (مخزون أمان '+Math.round(O.safety*100)+'%)',status:status,source:'forecast',
+      createdBy:CU._id,createdByName:CU.name,createdAtStr:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+      history:[{at:new Date().toISOString(),by:CU.name,action:(status==='draft'?'حفظ مسودة':'إرسال للاعتماد')+' — من التنبؤ الذكي'}]};
+    return db.collection('purchase_requests').add(d).then(function(){alert('✅ تم إنشاء طلب الشراء '+d.number+(status==='draft'?' كمسودة':' وإرساله للاعتماد')+'\nتجده في صفحة «طلبات المشتريات».');return prLoad();});
+  }).catch(function(e){alert('خطأ: '+e.message);});
+}
+
+// ---------- قياس الدقة ----------
+function fcRenderAccuracy(){
+  var base=FC.model;if(!base)return;
+  var S=base.S,weeks=[],perItem={};
+  for(var k=0;k<8;k++){
+    var end=S.n-1-7*k,start=end-6;if(start<90)break;
+    var M=fcBuild(start),F=0,A=0,E=0;
+    Object.keys(M.items).forEach(function(pid){
+      if(!M.items[pid].active)return;var f=0,a=0;
+      for(var i=start;i<=end;i++){f+=fcPredict(M,pid,S.all[i]);a+=S.items[pid]?S.items[pid].q[i]:0;}
+      F+=f;A+=a;E+=Math.abs(f-a);
+      if(k<4){if(!perItem[pid])perItem[pid]={f:0,a:0,e:0};perItem[pid].f+=f;perItem[pid].a+=a;perItem[pid].e+=Math.abs(f-a);}
+    });
+    weeks.push({from:S.all[start],to:S.all[end],F:F,A:A,wape:A>0?E/A:0});
+  }
+  var avg4=weeks.slice(0,4),w4=avg4.length?avg4.reduce(function(a,w){return a+w.wape;},0)/avg4.length:0;
+  var wAll=weeks.length?weeks.reduce(function(a,w){return a+w.wape;},0)/weeks.length:0;
+  document.getElementById('fc-acc-kpis').innerHTML='<div class="kpi"><div class="kv" style="color:'+(w4<=0.25?'#1B5E20':w4<=0.4?'#8D6E00':'#B71C1C')+'">'+Math.round(w4*100)+'%</div><div class="kl">متوسط نسبة الخطأ — آخر 4 أسابيع</div></div>'
+    +'<div class="kpi"><div class="kv">'+Math.round(Math.max(0,1-w4)*100)+'%</div><div class="kl">الدقة — آخر 4 أسابيع</div></div>'
+    +'<div class="kpi"><div class="kv">'+Math.round(wAll*100)+'%</div><div class="kl">متوسط الخطأ — آخر '+weeks.length+' أسابيع</div></div>';
+  document.getElementById('fc-acc-weeks').innerHTML='<table class="dt"><thead><tr><th>الأسبوع</th><th>المتوقع (قطعة)</th><th>الفعلي (قطعة)</th><th>الفرق</th><th>نسبة الخطأ</th><th>الدقة</th></tr></thead><tbody>'
+    +weeks.map(function(w){var c=w.wape<=0.25?'#1B5E20':w.wape<=0.4?'#8D6E00':'#B71C1C';return '<tr><td dir="ltr" style="text-align:right">'+w.from+' → '+w.to+'</td><td>'+Math.round(w.F).toLocaleString('en-US')+'</td><td>'+Math.round(w.A).toLocaleString('en-US')+'</td><td>'+(w.F-w.A>=0?'+':'')+Math.round(w.F-w.A).toLocaleString('en-US')+'</td><td style="font-weight:900;color:'+c+'">'+Math.round(w.wape*100)+'%</td><td>'+Math.round(Math.max(0,1-w.wape)*100)+'%</td></tr>';}).join('')+'</tbody></table>';
+  var ip=Object.keys(perItem).filter(function(p){return perItem[p].a>=20;}).sort(function(a,b){return perItem[b].a-perItem[a].a;});
+  document.getElementById('fc-acc-items').innerHTML='<table class="dt"><thead><tr><th>الصنف</th><th>المتوقع</th><th>الفعلي</th><th>نسبة الخطأ</th></tr></thead><tbody>'+ip.map(function(p){var x=perItem[p],w=x.e/x.a,c=w<=0.25?'#1B5E20':w<=0.4?'#8D6E00':'#B71C1C';return '<tr><td style="font-weight:700">'+fcEsc(fcName(p))+'</td><td>'+Math.round(x.f).toLocaleString('en-US')+'</td><td>'+Math.round(x.a).toLocaleString('en-US')+'</td><td style="font-weight:900;color:'+c+'">'+Math.round(w*100)+'%</td></tr>';}).join('')+'</tbody></table>';
+  // التوقعات المحفوظة مقابل الفعلي
+  var idx={};S.all.forEach(function(s,i){idx[s]=i;});
+  var live=FC.snaps.slice().sort(function(a,b){return a._id<b._id?1:-1;}).map(function(sn){
+    var F=0,A=0,E=0,days=0;
+    Object.keys(sn.items||{}).forEach(function(pid){Object.keys(sn.items[pid]).forEach(function(s){var i=idx[s];if(i==null||!S.has[i])return;var f=sn.items[pid][s],a=S.items[pid]?S.items[pid].q[i]:0;F+=f;A+=a;E+=Math.abs(f-a);});});
+    Object.keys(sn.items&&sn.items[Object.keys(sn.items)[0]]||{}).forEach(function(s){if(idx[s]!=null&&S.has[idx[s]])days++;});
+    return '<tr><td dir="ltr" style="text-align:right">'+sn.start+' → '+sn.end+'</td><td style="font-size:11px">'+fcEsc(sn.madeBy||'')+' · '+(sn.madeAt||'').slice(0,10)+'</td><td>'+(days?Math.round(F).toLocaleString('en-US'):'—')+'</td><td>'+(days?Math.round(A).toLocaleString('en-US'):'—')+'</td><td style="font-weight:900">'+(days&&A>0?Math.round(E/A*100)+'%':'بانتظار بيانات الفعلي')+'</td><td>'+days+'/7</td></tr>';
+  }).join('');
+  document.getElementById('fc-acc-live').innerHTML=live?'<table class="dt"><thead><tr><th>فترة التوقع</th><th>حُفظ بواسطة</th><th>المتوقع</th><th>الفعلي</th><th>نسبة الخطأ</th><th>أيام متاحة</th></tr></thead><tbody>'+live+'</tbody></table>':'<div style="text-align:center;color:var(--tl);padding:12px;font-size:12px">لا توجد توقعات محفوظة بعد</div>';
+}
+
+// ---------- البيانات والإعدادات ----------
+function fcRenderData(){
+  var S=FC.model?FC.model.S:null,el=document.getElementById('fc-coverage');
+  if(S){
+    var miss=S.all.filter(function(s,i){return !S.has[i];});
+    var mo={};S.all.forEach(function(s,i){var m=s.slice(0,7);if(!mo[m])mo[m]={d:0,v:0};if(S.has[i]){mo[m].d++;mo[m].v+=S.total[i];}});
+    el.innerHTML='<div style="font-size:12px;margin-bottom:8px">من <b dir="ltr">'+S.first+'</b> إلى <b dir="ltr">'+S.last+'</b> — '+(S.n-miss.length)+' يوماً بها بيانات'+(miss.length?' — <span style="color:#B71C1C">أيام ناقصة: '+miss.length+' ('+miss.slice(0,10).join('، ')+(miss.length>10?'…':'')+')</span>':' — لا توجد أيام ناقصة')+'</div>'
+      +'<table class="dt"><thead><tr><th>الشهر</th><th>أيام البيانات</th><th>المبيعات (ر.س)</th><th>المتوسط اليومي</th></tr></thead><tbody>'+Object.keys(mo).map(function(m){return '<tr><td>'+m+'</td><td>'+mo[m].d+'</td><td>'+Math.round(mo[m].v).toLocaleString('en-US')+'</td><td>'+(mo[m].d?Math.round(mo[m].v/mo[m].d).toLocaleString('en-US'):'—')+'</td></tr>';}).join('')+'</tbody></table>';
+  }else el.innerHTML='<div style="color:var(--tl);font-size:12px">لا توجد بيانات بعد</div>';
+  fcRenderMapping();fcRenderSeasons();fcRenderFactors();
+}
+function fcRenderMapping(){
+  var pids={};Object.keys(FC.days).forEach(function(s){Object.keys(FC.days[s]).forEach(function(p){if(!pids[p])pids[p]={q:0};pids[p].q+=Number(FC.days[s][p].q)||0;});});
+  var list=Object.keys(pids).sort(function(a,b){return pids[b].q-pids[a].q;});
+  var recs=_ccRecs.filter(function(r){return r.menu||!r.batch;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
+  var can=fcCanWrite();
+  document.getElementById('fc-mapping').innerHTML='<table class="dt"><thead><tr><th>صنف رواء</th><th>الكمية</th><th>الوصفة في المنصة</th><th>المعامل</th><th>دمج في</th><th>استبعاد</th></tr></thead><tbody>'+list.map(function(p){
+    var m=FC.cfg.map[p]||{},cur=fcResolveRec(m.rec);
+    var opts='<option value="">— بدون وصفة —</option>'+recs.map(function(r){return '<option value="'+r._id+'"'+(cur&&cur._id===r._id?' selected':'')+'>'+fcEsc(r.name)+((r.items||[]).length?'':' (بلا مكونات)')+'</option>';}).join('');
+    var warn=m.rec&&!cur?'<div style="font-size:10px;color:#B71C1C">الوصفة الافتراضية غير موجودة — استورد وصفات حباق</div>':'';
+    return '<tr data-pid="'+fcEsc(p)+'"><td style="font-weight:700">'+fcEsc(fcName(p))+'</td><td>'+Math.round(pids[p].q).toLocaleString('en-US')+'</td>'
+      +'<td><select class="fc-m-rec" '+(can?'':'disabled')+' style="max-width:230px">'+opts+'</select>'+warn+'</td>'
+      +'<td><input type="number" class="fc-m-f" step="0.01" min="0" value="'+(m.f||1)+'" '+(can?'':'disabled')+' style="width:70px"></td>'
+      +'<td><input type="text" class="fc-m-merge" value="'+fcEsc(m.merge||'')+'" placeholder="اسم الصنف كما في رواء" '+(can?'':'disabled')+' style="width:170px"></td>'
+      +'<td style="text-align:center"><input type="checkbox" class="fc-m-ex" '+(m.ex?'checked':'')+' '+(can?'':'disabled')+'></td></tr>';
+  }).join('')+'</tbody></table>';
+}
+function fcSaveMapping(){
+  if(!fcCanWrite()){alert('صلاحية مدير الفرع أو مسؤول المخازن');return;}
+  var map={};
+  document.querySelectorAll('#fc-mapping tr[data-pid]').forEach(function(tr){
+    var p=tr.getAttribute('data-pid'),old=FC.cfg.map[p]||{},sel=tr.querySelector('.fc-m-rec').value,f=parseFloat(tr.querySelector('.fc-m-f').value)||1,mg=fcKey(tr.querySelector('.fc-m-merge').value),ex=tr.querySelector('.fc-m-ex').checked;
+    var cur=fcResolveRec(old.rec),rec=sel?(cur&&cur._id===sel?old.rec:sel):'';
+    var o={};if(rec)o.rec=rec;if(f!==1)o.f=f;if(mg&&mg!==p)o.merge=mg;if(ex)o.ex=true;if(Object.keys(o).length)map[p]=o;
+  });
+  FC.cfg.map=map;
+  fcSaveCfg().then(function(){alert('✅ تم حفظ الربط');fcRefresh();});
+}
+function fcSaveCfg(){
+  return db.collection('fc_meta').doc('config').set({map:FC.cfg.map,seasons:FC.cfg.seasons,safety:FC.cfg.safety,updatedBy:CU.name||'',updatedAt:new Date().toISOString()}).catch(function(e){alert('خطأ في الحفظ: '+e.message);throw e;});
+}
+function fcRenderSeasons(){
+  var can=fcCanWrite();
+  document.getElementById('fc-seasons').innerHTML='<table class="dt"><thead><tr><th>الوصف</th><th>النوع</th><th>من (شهر-يوم)</th><th>إلى (شهر-يوم)</th><th></th></tr></thead><tbody>'+FC.cfg.seasons.map(function(x,i){
+    return '<tr data-i="'+i+'"><td><input type="text" class="fc-s-label" value="'+fcEsc(x.label||'')+'" '+(can?'':'disabled')+'></td><td><select class="fc-s-type" '+(can?'':'disabled')+'>'+Object.keys(FC_SEASON_TYPES).map(function(k){return '<option value="'+k+'"'+(x.type===k?' selected':'')+'>'+FC_SEASON_TYPES[k]+'</option>';}).join('')+'</select></td>'
+      +'<td><input type="text" class="fc-s-from" value="'+fcEsc(x.from||'')+'" placeholder="07-01" dir="ltr" style="width:80px" '+(can?'':'disabled')+'></td><td><input type="text" class="fc-s-to" value="'+fcEsc(x.to||'')+'" placeholder="08-22" dir="ltr" style="width:80px" '+(can?'':'disabled')+'></td>'
+      +'<td>'+(can?'<button class="btn bsm bo" style="color:#B71C1C" onclick="this.closest(\'tr\').remove()">🗑️</button>':'')+'</td></tr>';
+  }).join('')+'</tbody></table>';
+}
+function fcAddSeason(){FC.cfg.seasons=fcReadSeasons();FC.cfg.seasons.push({label:'إجازة مدرسية',type:'school',from:'',to:''});fcRenderSeasons();}
+function fcReadSeasons(){var out=[];document.querySelectorAll('#fc-seasons tr[data-i]').forEach(function(tr){out.push({label:tr.querySelector('.fc-s-label').value.trim(),type:tr.querySelector('.fc-s-type').value,from:tr.querySelector('.fc-s-from').value.trim(),to:tr.querySelector('.fc-s-to').value.trim()});});return out;}
+function fcSaveSeasons(){
+  if(!fcCanWrite()){alert('صلاحية مدير الفرع أو مسؤول المخازن');return;}
+  var s=fcReadSeasons(),bad=s.filter(function(x){return !/^\d\d-\d\d$/.test(x.from)||!/^\d\d-\d\d$/.test(x.to);});
+  if(bad.length){alert('اكتب التواريخ بصيغة شهر-يوم مثل 07-01');return;}
+  FC.cfg.seasons=s;FC.cfg.safety=parseFloat((document.getElementById('fc-safety')||{}).value)||FC.cfg.safety;
+  fcSaveCfg().then(function(){alert('✅ تم حفظ المواسم');fcRefresh();});
+}
+function fcRenderFactors(){
+  var M=FC.model,el=document.getElementById('fc-factors');if(!M){el.innerHTML='';return;}
+  var L=M.L;
+  var rows='<tr><td style="font-weight:700">أيام الأسبوع</td><td colspan="2">'+L.dow.map(function(f,k){return FC_DOW[k]+' '+fcPct(f);}).join(' · ')+'</td></tr>'
+    +'<tr><td style="font-weight:700">'+FC_EVENT_LABEL.payday+' (27 إلى 3)</td><td>'+fcPct(L.payF)+'</td><td>'+L.payN+' يوماً</td></tr>'
+    +Object.keys(L.ev).map(function(k){var e=L.ev[k];return '<tr><td style="font-weight:700">'+fcEsc(e.label)+'</td><td style="font-weight:700;color:'+(e.f<1?'#B71C1C':'#1B5E20')+'">'+fcPct(e.f)+'</td><td>'+e.n+' يوماً</td></tr>';}).join('');
+  el.innerHTML='<table class="dt"><thead><tr><th>العامل</th><th>الأثر على المبيعات</th><th>عدد الأيام في البيانات</th></tr></thead><tbody>'+rows+'</tbody></table><div style="font-size:11px;color:var(--tl);margin-top:6px">الأثر محسوب بمقارنة مبيعات تلك الأيام بالمستوى المعتاد قبلها أو حولها بعد إزالة أثر يوم الأسبوع. المناسبات التي لا توجد لها بيانات سابقة تُعامل بلا أثر حتى تتوفر بياناتها.</div>';
+}
+
+// ---------- استيراد ملف رواء اليومي ----------
+var FC_MONTHS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function fcParseDate(v){
+  if(v==null||v==='')return null;
+  var s=String(v).trim();
+  if(/^\d{4,5}(\.\d+)?$/.test(s)){var d=new Date(Date.UTC(1899,11,30)+Math.floor(parseFloat(s))*86400000);return fcS(d);}
+  var m=s.match(/^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/);if(m&&FC_MONTHS[m[1].toLowerCase()])return m[3]+'-'+String(FC_MONTHS[m[1].toLowerCase()]).padStart(2,'0')+'-'+m[2].padStart(2,'0');
+  m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
+function fcImport(){
+  if(!fcCanWrite()){alert('صلاحية مدير الفرع أو مسؤول المخازن');return;}
+  var f=(document.getElementById('fc-file')||{}).files;if(!f||!f[0]){alert('اختر ملف رواء');return;}
+  var file=f[0],out=document.getElementById('fc-import-preview');out.innerHTML='⏳ جارٍ قراءة الملف…';
+  (/\.xlsx$/i.test(file.name)?file.arrayBuffer().then(invReadXlsx):file.text().then(fxParseCSV)).then(function(rows){
+    if(!rows.length)throw new Error('الملف فارغ');
+    var keys=Object.keys(rows[0]);
+    var col=function(c){return keys.find(function(k){return k.trim()===c;})||keys.find(function(k){return k.indexOf(c)>=0;});};
+    var cDate=col('تاريخ العملية'),cId=col('رقم المنتج'),cName=col('اسم المنتج'),cQty=col('الكمية'),cIncl=col('المبيعات (شامل الضريبة)')||col('شامل الضريبة');
+    if(!cDate||!(cName||cId)||!cQty)throw new Error('هذا ليس تقرير المبيعات اليومي — يجب أن يحتوي أعمدة «تاريخ العملية» و«رقم المنتج» و«الكمية». تقرير مبيعات الأصناف الشهري لا يحتوي التاريخ.');
+    var days={},names={},bad=0,neg=0;
+    rows.forEach(function(r){
+      var d=fcParseDate(r[cDate]),nm=cName?String(r[cName]==null?'':r[cName]).trim():'',pid=nm?fcKey(nm):String(r[cId]==null?'':r[cId]).trim();if(!d||!pid){bad++;return;}
+      var q=parseFloat(r[cQty])||0,v=parseFloat(r[cIncl])||0;if(q<0||v<0)neg++;
+      if(!days[d])days[d]={};if(!days[d][pid])days[d][pid]={q:0,v:0};days[d][pid].q+=q;days[d][pid].v+=v;
+      if(nm)names[pid]=nm;
+    });
+    var ds=Object.keys(days).sort();if(!ds.length)throw new Error('لم أجد تواريخ صالحة في الملف');
+    var tot=0;ds.forEach(function(d){Object.keys(days[d]).forEach(function(p){tot+=days[d][p].v;});});
+    var n=fcDiff(ds[0],ds[ds.length-1])+1,missing=[];for(var i=0;i<n;i++){var s=fcAdd(ds[0],i);if(!days[s])missing.push(s);}
+    var replace=ds.filter(function(d){return FC.days[d];}).length;
+    FC.preview={days:days,names:names};
+    out.innerHTML='<div style="padding:10px 14px;border:1px solid var(--br);border-radius:8px;background:#fff;font-size:12px;line-height:1.9">'
+      +'📄 '+fcEsc(file.name)+'<br>الفترة: <b dir="ltr">'+ds[0]+'</b> إلى <b dir="ltr">'+ds[ds.length-1]+'</b> — '+ds.length+' يوماً، '+Object.keys(names).length+' صنفاً، '+rows.length+' سطراً<br>'
+      +'إجمالي المبيعات شاملة الضريبة: <b>'+Math.round(tot).toLocaleString('en-US')+' ر.س</b>'
+      +(missing.length?'<br><span style="color:#B71C1C">أيام بلا مبيعات داخل الفترة: '+missing.length+' ('+missing.slice(0,8).join('، ')+(missing.length>8?'…':'')+')</span>':'')
+      +(neg?'<br>سطور مرتجعات (سالبة): '+neg+' — تُخصم من يومها':'')+(bad?'<br><span style="color:#B71C1C">سطور بلا تاريخ أو رقم صنف تم تجاهلها: '+bad+'</span>':'')
+      +(replace?'<br>⚠️ '+replace+' يوماً موجودة مسبقاً وستُستبدل ببيانات هذا الملف':'')
+      +'<div style="margin-top:8px"><button class="btn bp" onclick="fcCommitImport()">✅ تأكيد الاستيراد</button></div></div>';
+  }).catch(function(e){out.innerHTML='<div style="color:#B71C1C;font-size:12px">خطأ: '+fcEsc(e.message)+'</div>';});
+}
+function fcCommitImport(){
+  var P=FC.preview;if(!P)return;
+  var ds=Object.keys(P.days).sort(),now=new Date().toISOString(),by=CU.name||'';
+  var ops=ds.map(function(d){var items={},t=0;Object.keys(P.days[d]).forEach(function(p){var x=P.days[d][p];items[p]={q:Math.round(x.q*1000)/1000,v:Math.round(x.v*100)/100};t+=x.v;});
+    return {ref:db.collection('fc_daily').doc(d),data:{date:d,items:items,total:Math.round(t*100)/100,importedAt:now,importedBy:by}};});
+  var names=Object.assign({},FC.names,P.names);
+  ops.push({ref:db.collection('fc_meta').doc('items'),data:{names:names,updatedAt:now}});
+  var out=document.getElementById('fc-import-preview');out.innerHTML='⏳ جارٍ الحفظ ('+ds.length+' يوماً)…';
+  invCommit(ops).then(function(){
+    var cfgP=FC.cfg&&FC.cfg._saved?Promise.resolve():db.collection('fc_meta').doc('config').get().then(function(doc){if(!doc.exists)return fcSaveCfg();});
+    return cfgP;
+  }).then(function(){
+    out.innerHTML='<div style="color:#1B5E20;font-weight:700;font-size:12px">✅ تم استيراد '+ds.length+' يوماً من '+ds[0]+' إلى '+ds[ds.length-1]+'</div>';
+    FC.preview=null;return fcLoad().then(fcRefresh);
+  }).catch(function(e){out.innerHTML='<div style="color:#B71C1C;font-size:12px">خطأ في الحفظ: '+fcEsc(e.message)+'</div>';});
+}
+
 // قارئ xlsx مصغّر (بدون مكتبات): ZIP → sharedStrings + sheet1
 function invReadXlsx(buf){
   var dv=new DataView(buf), u8=new Uint8Array(buf);

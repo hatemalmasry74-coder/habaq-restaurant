@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// قواعد Firestore لمنصة حباق — مشروع habaq-b707c
+// كل المجموعات متاحة للمستخدمين المسجّلين دخولهم فقط (Firebase Auth بالبريد وكلمة المرور).
+// المجموعات الجديدة لميزة التنبؤ الذكي بالطلبيات: fc_daily و fc_meta و fc_snapshots (في آخر الملف).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /audit_logs/{docId} { allow read, write: if signedIn(); }
+    match /breakeven_calc/{docId} { allow read, write: if signedIn(); }
+    match /cashier_names/{docId} { allow read, write: if signedIn(); }
+    match /cashier_reports/{docId} { allow read, write: if signedIn(); }
+    match /cost_ingredients/{docId} { allow read, write: if signedIn(); }
+    match /cost_recipes/{docId} { allow read, write: if signedIn(); }
+    match /custody_ledger/{docId} { allow read, write: if signedIn(); }
+    match /custody_users/{docId} { allow read, write: if signedIn(); }
+    match /daily_reports/{docId} { allow read, write: if signedIn(); }
+    match /hr_advances/{docId} { allow read, write: if signedIn(); }
+    match /hr_employees/{docId} { allow read, write: if signedIn(); }
+    match /hr_eval_settings/{docId} { allow read, write: if signedIn(); }
+    match /hr_evaluations/{docId} { allow read, write: if signedIn(); }
+    match /hr_payroll/{docId} { allow read, write: if signedIn(); }
+    match /hr_schedule_assignments/{docId} { allow read, write: if signedIn(); }
+    match /hr_schedules/{docId} { allow read, write: if signedIn(); }
+    match /hr_violations/{docId} { allow read, write: if signedIn(); }
+    match /inv_count_drafts/{docId} { allow read, write: if signedIn(); }
+    match /inv_counts/{docId} { allow read, write: if signedIn(); }
+    match /inv_movements/{docId} { allow read, write: if signedIn(); }
+    match /items/{docId} { allow read, write: if signedIn(); }
+    match /monthly_report_chunks/{docId} { allow read, write: if signedIn(); }
+    match /monthly_reports/{docId} { allow read, write: if signedIn(); }
+    match /operational_forms/{docId} { allow read, write: if signedIn(); }
+    match /purchase_requests/{docId} { allow read, write: if signedIn(); }
+    match /purchases_audit_log/{docId} { allow read, write: if signedIn(); }
+    match /purchases_invoices/{docId} { allow read, write: if signedIn(); }
+    match /purchases_payments/{docId} { allow read, write: if signedIn(); }
+    match /purchases_suppliers/{docId} { allow read, write: if signedIn(); }
+    match /recipes/{docId} { allow read, write: if signedIn(); }
+    match /revenue_receipts/{docId} { allow read, write: if signedIn(); }
+    match /users/{docId} { allow read, write: if signedIn(); }
+    match /visit_reports/{docId} { allow read, write: if signedIn(); }
+
+    // ===== التنبؤ الذكي بالطلبيات =====
+    // المبيعات اليومية لكل صنف من ملفات رواء (مستند لكل يوم)
+    match /fc_daily/{day} { allow read, write: if signedIn(); }
+    // أسماء الأصناف + الإعدادات (ربط الوصفات، المواسم، مخزون الأمان)
+    match /fc_meta/{docId} { allow read, write: if signedIn(); }
+    // التوقعات المحفوظة لقياس الدقة أسبوعياً
+    match /fc_snapshots/{startDate} { allow read, write: if signedIn(); }
+  }
+}
