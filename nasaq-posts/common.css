@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root{--navy:#0a1330;--navy2:#13224f;--blue:#2d6bff;--orange:#ff8a1f;--gold:#f3c26b;--cream:#fff7ec}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1350px;overflow:hidden}
+body{font-family:'Cairo',sans-serif;direction:rtl;position:relative;color:#fff;background:var(--navy)}
+.logo{display:flex;align-items:center;gap:14px;direction:ltr}
+.logo .mark{width:86px;height:86px;border-radius:24px;border:5px solid #fff;display:grid;place-items:center;position:relative}
+.logo .mark svg{width:52px;height:52px}
+.logo .txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
+.logo .en{font-weight:900;font-size:60px;letter-spacing:3px}
+.logo .en b{color:var(--orange)}
+.logo .tag{font-size:15px;opacity:.85;margin-top:6px;font-family:Georgia,serif;letter-spacing:.5px}
+.card{background:#fff;color:#2a2a2a;border-radius:14px}
