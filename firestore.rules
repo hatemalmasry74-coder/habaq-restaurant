@@ -1,7 +1,8 @@
 rules_version = '2';
 // قواعد Firestore لمنصة حباق — مشروع habaq-b707c
 // نسخة مرجعية مطابقة للقواعد المنشورة في Firebase Console (صلاحيات حسب الدور)،
-// مضافاً إليها: مجموعات التنبؤ الذكي بالطلبيات (fc_daily, fc_meta, fc_snapshots) ومسودات الجرد (inv_count_drafts).
+// مضافاً إليها: مجموعات التنبؤ الذكي بالطلبيات (fc_daily, fc_meta, fc_snapshots) ومسودات الجرد (inv_count_drafts)
+// والمحاسبة المالية (acc_accounts, acc_entries, acc_settings).
 // هذا الملف لا يُطبَّق تلقائياً من GitHub — يُلصق في Firebase Console ← Firestore ← Rules ثم Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -235,6 +236,28 @@ service cloud.firestore {
       allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
       allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']);
       allow delete: if hasRole(['branch_manager', 'store_manager']);
+    }
+
+    // ===== المحاسبة المالية =====
+    // دليل الحسابات: يضيفه ويعدّله المحاسب ومدير الفرع، والحذف لمدير الفرع
+    match /acc_accounts/{code} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create, update: if hasRole(['branch_manager', 'accountant']);
+      allow delete: if isManager();
+    }
+
+    // القيود: المحاسب ينشئ ويعدّل المسودات فقط، والاعتماد وإلغاؤه والحذف لمدير الفرع
+    match /acc_entries/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create: if isManager() || (hasRole(['accountant']) && request.resource.data.status == 'draft');
+      allow update: if isManager() || (hasRole(['accountant']) && resource.data.status == 'draft' && request.resource.data.status == 'draft');
+      allow delete: if isManager();
+    }
+
+    // إعدادات المحاسبة (نسبة الضريبة وتاريخ إقفال الفترات)
+    match /acc_settings/{id} {
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
+      allow create, update, delete: if isManager();
     }
 
   }
