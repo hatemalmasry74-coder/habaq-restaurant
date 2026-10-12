@@ -18343,12 +18343,12 @@ function ccRenderRecs(){
     var c=ccRecCost(r), col=c.fc<=(r.target||35)?'#1B5E20':'#B71C1C';
     h+='<tr style="border-bottom:1px solid var(--bd)">'
       +'<td style="padding:7px;font-weight:700">'+r.name+(r.batch?' <span class="cc-badge" style="background:#FFF3E0;color:#E65100">دفعة تحضير<\/span>':'')+(r.menu?' <span class="cc-badge" style="background:#E3F2FD;color:#1565C0">منيو<\/span>':'')+'<\/td>'
-      +'<td style="padding:7px">'+(r.yield||1)+'<\/td>'
-      +'<td style="padding:7px;color:var(--r);font-weight:700">'+c.unit.toFixed(2)+'<\/td>'
-      +'<td style="padding:7px">'+(r.price||0).toFixed(2)+'<\/td>'
-      +'<td style="padding:7px">'+c.net.toFixed(2)+'<\/td>'
+      +'<td style="padding:7px">'+(r.yield||1)+(r.batch?' '+ccYieldUnit(r):'')+'<\/td>'
+      +'<td style="padding:7px;color:var(--r);font-weight:700">'+ccFmtUnit(c.unit)+(r.batch?'<div style="font-size:10px;color:var(--tl);font-weight:400">الدفعة '+c.batch.toFixed(2)+'<\/div>':'')+'<\/td>'
+      +'<td style="padding:7px">'+(r.batch?'—':(r.price||0).toFixed(2))+'<\/td>'
+      +'<td style="padding:7px">'+(r.batch?'—':c.net.toFixed(2))+'<\/td>'
       +'<td style="padding:7px">'+((r.nonFood||r.batch||r.noCost)?'<span class="cc-badge" style="background:#ECEFF1;color:#546E7A">'+(r.batch?'—':(r.noCost?'بلا وصفة':'غير غذائي'))+'<\/span>':'<span class="cc-badge" style="background:'+(c.fc<=(r.target||35)?'#E8F5E9':'#FFEBEE')+';color:'+col+'">'+c.fc.toFixed(1)+'%<\/span>')+'<\/td>'
-      +'<td style="padding:7px">'+c.cm.toFixed(2)+'<\/td>'
+      +'<td style="padding:7px">'+(r.batch?'—':c.cm.toFixed(2))+'<\/td>'
       +'<td style="padding:7px;white-space:nowrap">'
         +'<button class="btn bsm bo" onclick="ccPrintCard(\''+r._id+'\')">🖨️ بطاقة<\/button> '
         +'<button class="btn bsm bo" onclick="ccEditRec(\''+r._id+'\')">✏️<\/button> '
@@ -18379,6 +18379,9 @@ function ccDelRec(id){
     _ccRecs=_ccRecs.filter(function(x){return x._id!==id;});ccRenderRecs();
   });
 }
+/* وحدة ناتج الدفعة من اسمها (الدفعات تُسجَّل بالجرام أو بالأكواب) */
+function ccYieldUnit(r){var n=String(r&&r.name||'');return /جم|كجم|جرام/.test(n)?'جم':(/كوب/.test(n)?'كوب':'وحدة');}
+function ccFmtUnit(v){v=Number(v)||0;return Math.abs(v)<1?v.toFixed(4):v.toFixed(2);}
 function ccPrintCard(id){
   var r=_ccRecs.find(function(x){return x._id===id;}); if(!r)return;
   var c=ccRecCost(r);
@@ -18405,16 +18408,25 @@ function ccPrintCard(id){
    +'.sg{border-top:1.5px solid #2C1A0E;padding-top:6px}'
    +'@media print{body{padding:10px}}<\/style><\/head><body>'
    +'<div class="hd"><div><h1>بطاقة تكلفة صنف — '+r.name+'<\/h1><div class="sub">حباق — النظام التشغيلي | إعداد نَسَق لحلول الأعمال والتشغيل<\/div><\/div><div style="font-weight:900;font-size:22px">نَسَق<\/div><\/div>'
-   +'<div class="kpi">'
-   +'<div class="k"><div class="kv">'+c.unit.toFixed(2)+' ﷼<\/div><div class="kl">تكلفة الوحدة<\/div><\/div>'
+   +(r.batch?(function(){ // دفعة تحضير: لا سعر بيع لها — تُعرض تكلفة الدفعة والوحدة الناتجة
+       var yu=ccYieldUnit(r);
+       return '<div class="kpi">'
+        +'<div class="k"><div class="kv">'+c.batch.toFixed(2)+' ﷼<\/div><div class="kl">تكلفة الدفعة كاملة<\/div><\/div>'
+        +'<div class="k"><div class="kv">'+(r.yield||1)+' '+yu+'<\/div><div class="kl">ناتج الدفعة<\/div><\/div>'
+        +'<div class="k"><div class="kv">'+c.unit.toFixed(4)+' ﷼<\/div><div class="kl">تكلفة '+(yu==='جم'?'الجرام':(yu==='كوب'?'الكوب':'الوحدة'))+'<\/div><\/div>'
+        +(yu==='جم'?'<div class="k"><div class="kv">'+(c.unit*1000).toFixed(2)+' ﷼<\/div><div class="kl">تكلفة الكيلو (100 جم = '+(c.unit*100).toFixed(2)+' ﷼)<\/div><\/div>'
+                   :'<div class="k"><div class="kv">—<\/div><div class="kl">دفعة تحضير — لا سعر بيع<\/div><\/div>')
+        +'<\/div>';})():
+    '<div class="kpi">'
+   +'<div class="k"><div class="kv">'+ccFmtUnit(c.unit)+' ﷼<\/div><div class="kl">تكلفة الوحدة<\/div><\/div>'
    +'<div class="k"><div class="kv">'+(r.price||0).toFixed(2)+' ﷼<\/div><div class="kl">سعر البيع شامل الضريبة<\/div><\/div>'
    +'<div class="k"><div class="kv" style="color:'+col+'">'+c.fc.toFixed(1)+'%<\/div><div class="kl">Food Cost (المستهدف '+(r.target||35)+'%)<\/div><\/div>'
    +'<div class="k"><div class="kv">'+c.cm.toFixed(2)+' ﷼<\/div><div class="kl">هامش المساهمة للوحدة<\/div><\/div>'
-   +'<\/div>'
+   +'<\/div>')
    +'<table><thead><tr><th>المادة<\/th><th>الكمية<\/th><th>تكلفة الوحدة (﷼)<\/th><th>التكلفة (﷼)<\/th><\/tr><\/thead><tbody>'+rows
-   +'<tr style="font-weight:900;background:#FEF0F0"><td colspan="3">إجمالي تكلفة الدفعة ('+(r.yield||1)+' وحدة)<\/td><td>'+c.batch.toFixed(2)+'<\/td><\/tr>'
+   +'<tr style="font-weight:900;background:#FEF0F0"><td colspan="3">'+(r.batch?'إجمالي تكلفة الدفعة ('+(r.yield||1)+' '+ccYieldUnit(r)+')':'إجمالي التكلفة'+((r.yield||1)>1?' ('+(r.yield)+' وحدة)':''))+'<\/td><td>'+c.batch.toFixed(2)+'<\/td><\/tr>'
    +'<\/tbody><\/table>'
-   +'<div style="font-size:11px;color:#8B6E55">السعر الصافي بعد استبعاد ضريبة القيمة المضافة 15%: '+c.net.toFixed(2)+' ﷼ — التكاليف تشمل نسب الهالك المعتمدة لكل مادة.<\/div>'
+   +'<div style="font-size:11px;color:#8B6E55">'+(r.batch?'دفعة تحضير تُستخدم داخل أصناف المنيو؛ تكلفتها تدخل في بطاقة الصنف حسب الكمية المستخدمة منها.':'السعر الصافي بعد استبعاد ضريبة القيمة المضافة 15%: '+c.net.toFixed(2)+' ﷼')+' — التكاليف تشمل نسب الهالك المعتمدة لكل مادة.<\/div>'
    +'<div class="sig">'
    +'<div class="sg">إعداد وتنفيذ الوصفة<br><b>'+(r.chef||'الشيف')+'<\/b><br>شيف حباق<\/div>'
    +'<div class="sg">مراجعة واعتماد التكلفة<br><b>حاتم عطية<\/b><br>مدير العمليات والشؤون المالية<\/div>'
