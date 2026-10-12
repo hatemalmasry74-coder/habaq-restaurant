@@ -4124,6 +4124,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
           <button class="cc-tab" style="margin-inline-start:auto;background:#8B2F2B;color:#fff;border-color:#8B2F2B" onclick="hbLegacyImport()">📦 نقل بيانات حباق السابقة</button>
           <button class="cc-tab" style="background:#1B5E20;color:#fff;border-color:#1B5E20" onclick="hbSeedImport()">🍽️ استيراد وصفات ومنيو حباق (من الشيف)</button>
           <button class="cc-tab" style="background:#8f2a22;color:#fff;border-color:#8f2a22" onclick="hbApplyInvoiceCosts()">🧾 تطبيق أسعار فواتير الموردين</button>
+          <button class="cc-tab" style="background:#B5621B;color:#fff;border-color:#B5621B" onclick="hbAddMenuItems()">🥪 إضافة الساندوتشات الجديدة</button>
           <button class="cc-tab" style="background:#E65100;color:#fff;border-color:#E65100" onclick="ccQuickPrice()">💰 تسعير سريع للمواد بلا سعر</button>
           <button class="cc-tab" style="background:#0D47A1;color:#fff;border-color:#0D47A1" onclick="fxOpen()">⬇️ استيراد من فودكس</button>
         </div>
@@ -18472,6 +18473,28 @@ var HB_SEED={
     {k:'nuts_mix',name:'مكسرات مشوي نكهات (المدخنة)',unit:'جم',price:191.5,pack:5000,alias:[]},
     {k:'nuts_rice',name:'مكسرات أرز الرشيد (اليابانية)',unit:'جم',price:69.6,pack:5000,alias:[]},
     {k:'dough',name:'عجينة جاهزة 94 جم',unit:'قطعة',price:1,pack:1,alias:['عجينة','عجين جاهز','عجينه']},
+    // ===== مواد الساندوتشات (تقديرات جملة أبها بدون ضريبة — عدّلها بعد الإضافة) =====
+    {k:'walnut',name:'جوز (عين جمل)',unit:'جم',price:48,pack:1000,alias:['جوز','عين جمل']},
+    {k:'parsley',name:'بقدونس طازج (ورق)',unit:'جم',price:12,pack:1000,alias:['بقدونس']},
+    {k:'olivegreen',name:'زيتون أخضر حار شرائح',unit:'جم',price:18,pack:1000,alias:['زيتون أخضر','زيتون اخضر']},
+    {k:'sdtomato',name:'طماطم مجففة بالزيت',unit:'جم',price:45,pack:1000,alias:['طماطم مجففة']},
+    {k:'ciabatta',name:'خبز تشاباتا بني (شريحة 70 جم)',unit:'قطعة',price:1.25,pack:1,alias:['خبز تشاباتا','توست بر']},
+    {k:'halloumi',name:'جبنة حلوم',unit:'جم',price:40,pack:1000,alias:['حلوم','جبنة حلومي']},
+    {k:'tomato',name:'طماطم',unit:'جم',price:4,pack:1000,alias:['طماطم طازجة']},
+    {k:'cucumber',name:'خيار',unit:'جم',price:5,pack:1000,alias:['خيار طازج']},
+    {k:'arugula',name:'جرجير (روكا)',unit:'جم',price:15,pack:1000,alias:['جرجير','روكا']},
+    {k:'wrapsand',name:'ورق تغليف ساندوتش',unit:'قطعة',price:0.35,pack:1,alias:['اوراق بوكسات السفري','ورق تغليف']},
+    {k:'tuna',name:'تونة قطع بالماء (وزن مصفّى)',unit:'جم',price:40,pack:1000,alias:['تونة','تونه']},
+    {k:'mayo',name:'مايونيز',unit:'جم',price:14,pack:1000,alias:['المايونيز']},
+    {k:'sriracha',name:'صلصة سريراتشا',unit:'جم',price:30,pack:1000,alias:['سريراتشا']},
+    {k:'sambal',name:'شطة سومطرا / كريستال',unit:'جم',price:25,pack:1000,alias:['شطة','صلصة حارة']},
+    {k:'sesoil',name:'زيت سمسم محمص',unit:'مل',price:50,pack:1000,alias:['زيت سمسم']},
+    {k:'lemon',name:'عصير ليمون',unit:'مل',price:14,pack:1000,alias:['عصير الليمون','ليمون']},
+    {k:'paprika',name:'بابريكا مدخنة',unit:'جم',price:60,pack:1000,alias:['بابريكا','بابريكا مدخنه']},
+    {k:'ronion',name:'بصل أحمر',unit:'جم',price:3,pack:1000,alias:['بصل احمر']},
+    {k:'gherkin',name:'خيار مخلل كورنيشون',unit:'جم',price:20,pack:1000,alias:['خيار مخلل','كورنيشون']},
+    {k:'focaccia',name:'خبز فوكاتشا (قطعة)',unit:'قطعة',price:2.5,pack:1,alias:['فوكاتشا']},
+    {k:'iceberg',name:'خس آيسبرغ',unit:'جم',price:8,pack:1000,alias:['خس','خس ايسبرغ']},
     // مواد تُسعَّر فقط إن كانت موجودة في مخزونكم (لا تُنشأ)
     {k:'dates',name:'تمر',unit:'جم',price:25,pack:1000,alias:['تمر سكري'],only:true},
     {k:'cupg',name:'أكواب قزاز',unit:'قطعة',price:1.2,pack:1,alias:['كوب قزاز','أكواب القزاز'],only:true},
@@ -18506,7 +18529,12 @@ var HB_SEED={
     {k:'m_babka_c',name:'بابكا شوكلت',en:'Chocolate Babka',menu:true,cat:'babka',bep:'bkr',price:10,yield:1,items:[['babka_c',2]],note:'حبّتان من قهوة السخاء (1.25 للحبة)'},
     {k:'m_basbousa',name:'بسبوسة تشيز',en:'Cheese Basbousa',menu:true,cat:'dessert',bep:'dsr',price:18,yield:1,items:[['basb',1]],note:'قطعة تشيزكيك جوز الهند من قهوة السخاء'},
     {k:'m_nuts1',name:'مكسرات مدخنة',en:'Smoked Nuts',menu:true,cat:'nuts',price:8,yield:1,items:[['nuts_mix',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'},
-    {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'}
+    {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'},
+    // ===== الساندوتشات (أكتوبر 2026) — الزيت بالمل (الجرام × 1.087) =====
+    {k:'b_pesto',name:'بيستو الجوز والطماطم المجففة (دفعة 215 جم)',batch:true,yield:215,items:[['walnut',50],['parsley',15],['olivegreen',40],['sdtomato',60],['pmol',15],['olive',38]],note:'فرم ناعم خشن قليلاً · يُحفظ 5 أيام في علبة زجاج تحت طبقة زيت زيتون'},
+    {k:'b_tuna',name:'سبايسي تونة كريمية (دفعة 384 جم)',batch:true,yield:384,items:[['tuna',200],['mayo',60],['labnah',20],['sriracha',15],['sambal',5],['sesoil',3],['lemon',8],['sumac',3],['paprika',2],['ronion',30],['gherkin',20],['gonion',10],['sesame',8]],note:'حار خفيف للمحل: 10 جم سريراتشا · ثلاجة 30 دقيقة قبل الاستخدام · تُحفظ 3 أيام'},
+    {k:'m_halloumi',name:'ساندوتش حلوم ببيستو الجوز',en:'Halloumi Walnut Pesto Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:35,yield:1,items:[['ciabatta',2],['halloumi',120],['olive',11],['b_pesto',75],['tomato',80],['cucumber',30],['arugula',15],['bpepper',0.5],['wrapsand',1]],note:'حلوم 4 شرائح مشوية · 35–40 جم بيستو لكل شريحة خبز · بانيني دقيقتين'},
+    {k:'m_tuna',name:'ساندوتش سبايسي تونة',en:'Spicy Tuna Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:25,yield:1,items:[['focaccia',1],['b_tuna',150],['iceberg',20],['cucumber',15],['wrapsand',1]],note:'فوكاتشا + 150 جم حشوة + خس آيسبرغ + خيار · يُقدَّم بارداً'}
   ],
 
   stock:[
@@ -18523,7 +18551,7 @@ var HB_SEED={
     ['منظفات ( كلوركس + مطهر + فلاش + ديتول + فيري+ ملمع قراز+صابون يد )',['منظفات'],12,'l'],
     ['كيس قمامة',[],0.4,'u']
   ],
-  cats:[['tea','الشاهي'],['saudi-coffee','القهوة السعودية'],['milk','الحليب'],['cold','المشروبات الباردة'],['napoli','نابولي'],['babka','بابكا'],['dessert','الحلى'],['nuts','المكسرات']]
+  cats:[['tea','الشاهي'],['saudi-coffee','القهوة السعودية'],['milk','الحليب'],['cold','المشروبات الباردة'],['napoli','نابولي'],['babka','بابكا'],['dessert','الحلى'],['nuts','المكسرات'],['sandwich','الساندوتشات']]
 };
 
 /* ---------- تحميل بيانات التكاليف عند الحاجة ---------- */
@@ -18547,6 +18575,16 @@ function hbKeys(name){
   String(name||'').split(/\s[-–—]\s|\s\/\s|\(/).forEach(function(p){var k=hbKey(p);if(k&&keys.indexOf(k)<0)keys.push(k);});
   var full=hbKey(String(name||''));if(full&&keys.indexOf(full)<0)keys.push(full);
   return keys;
+}
+/* مفاتيح مطابقة صارمة: تتجاهل ما بين الأقواس مثل «(قطعة)» و«(حبة)» حتى لا تتطابق مادتان مختلفتان بسببها */
+function hbStrictKeys(name){
+  var keys=[],add=function(t){var k=hbKey(String(t||'').replace(/\([^)]*\)/g,' '));if(k&&keys.indexOf(k)<0)keys.push(k);};
+  String(name||'').split(/\s[-–—]\s|\s\/\s/).forEach(add);add(name);
+  return keys;
+}
+function hbStrictMatch(names,g){
+  var nk=[];names.forEach(function(n){hbStrictKeys(n).forEach(function(k){if(nk.indexOf(k)<0)nk.push(k);});});
+  return hbStrictKeys(g.name).some(function(k){return nk.indexOf(k)>=0;});
 }
 function hbUnitFamily(u){
   u=String(u||'').trim().toLowerCase();
@@ -18703,17 +18741,33 @@ var HB_INVOICE_COSTS={
     m_nuts2:{items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'}
   }
 };
+// مادة تحمل سعر فاتورة لا يخصّها اسمها (من نسخة المطابقة السابقة)
+function hbInvoiceSourceWrong(g){
+  if(!g.priceSource)return false;
+  var srcs=HB_INVOICE_COSTS.ings.filter(function(x){return x.src===g.priceSource;});
+  return srcs.length>0&&!srcs.some(function(x){return hbStrictMatch([x.name].concat(x.alias),g);});
+}
 function hbInvoiceCostsPending(){
   if(!_ccLoaded)return false;
-  return Object.keys(HB_INVOICE_COSTS.recs).some(function(k){var r=_ccRecs.find(function(x){return x.seedKey===k;});return !r||r.noCost||!(r.items||[]).length||r.invoiceCosts!=='2026-10';});
+  var wrong=_ccIngs.some(hbInvoiceSourceWrong);
+  return wrong||Object.keys(HB_INVOICE_COSTS.recs).some(function(k){var r=_ccRecs.find(function(x){return x.seedKey===k;});return !r||r.noCost||!(r.items||[]).length||r.invoiceCosts!=='2026-10b';});
 }
 function hbApplyInvoiceCosts(after){
   if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
   _ccLoaded=false;
   ccEnsureLoaded().then(function(){
     var now=new Date().toISOString(),by=(CU&&CU.name)||'',writes=[],ids={},log=[];
-    var findIng=function(names){var keys=[];names.forEach(function(n){hbKeys(n).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
-      return _ccIngs.find(function(g){return hbKeys(g.name).some(function(k){return keys.indexOf(k)>=0;});});};
+    // إصلاح: نسخة سابقة كانت تطابق بكلمة بين قوسين، فقد تكون حدّثت مادة أخرى (مثل «جبنة فيتا (قطعة)») بسعر فاتورة
+    var fixed=[],review=[],badIds={};
+    _ccIngs.forEach(function(g){
+      if(!g.priceSource)return;
+      if(!hbInvoiceSourceWrong(g))return;
+      badIds[g._id]=1;
+      var sd=HB_SEED.ings.find(function(x){return x.name===g.name;});
+      if(sd){writes.push({ref:db.collection('cost_ingredients').doc(g._id),data:{unit:sd.unit,price:sd.price,pack:sd.pack,priceSource:'',updatedAt:now,updatedBy:by},merge:true});fixed.push(g.name+' ← '+sd.price+' ر.س');}
+      else{writes.push({ref:db.collection('cost_ingredients').doc(g._id),data:{priceSource:'',updatedAt:now,updatedBy:by},merge:true});review.push(g.name);}
+    });
+    var findIng=function(names){return _ccIngs.find(function(g){return !badIds[g._id]&&hbStrictMatch(names,g);});};
     HB_INVOICE_COSTS.ings.forEach(function(sg){
       var ex=findIng([sg.name].concat(sg.alias));
       var data={unit:sg.unit,price:sg.price,pack:sg.pack,priceSource:sg.src,updatedAt:now,updatedBy:by};
@@ -18726,9 +18780,11 @@ function hbApplyInvoiceCosts(after){
       var r=_ccRecs.find(function(x){return x.seedKey===k;}),def=HB_INVOICE_COSTS.recs[k];
       if(!r){miss.push(k);return;}
       var items=def.items.filter(function(it){return ids[it[0]];}).map(function(it){return {ingId:ids[it[0]],qty:it[1]};});
-      writes.push({ref:db.collection('cost_recipes').doc(r._id),data:{items:items,noCost:false,note:def.note,invoiceCosts:'2026-10',updatedAt:now,updatedBy:by},merge:true});
+      writes.push({ref:db.collection('cost_recipes').doc(r._id),data:{items:items,noCost:false,note:def.note,invoiceCosts:'2026-10b',updatedAt:now,updatedBy:by},merge:true});
       log.push('📖 '+r.name+': '+def.note);
     });
+    if(fixed.length)log.unshift('🩹 إصلاح سعر مادة تغيّر بالخطأ سابقاً: '+fixed.join('، '));
+    if(review.length)log.unshift('⚠️ راجع سعر هذه المواد يدوياً (تغيّر بالخطأ سابقاً ولا يوجد سعر أصلي محفوظ): '+review.join('، '));
     if(!confirm('سيتم تطبيق تكاليف فواتير الموردين على بطاقات التكلفة:\n\n'+log.join('\n')+(miss.length?'\n\n⚠️ وصفات غير موجودة (استورد وصفات حباق أولاً): '+miss.join('، '):'')+'\n\nمتابعة؟'))return 'cancel';
     var b=db.batch();writes.forEach(function(w){if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});
     return b.commit();
@@ -18738,6 +18794,63 @@ function hbApplyInvoiceCosts(after){
     _ccLoaded=false;
     if(document.getElementById('pg-costcards')&&document.getElementById('pg-costcards').classList.contains('active'))ccInit();
     if(typeof after==='function')after();
+  }).catch(function(e){alert('خطأ: '+(e.message||e));});
+}
+
+/* ---------- إضافة أصناف منيو جديدة من HB_SEED بدون إعادة الاستيراد الكامل ----------
+   تنشئ المواد الخام الناقصة فقط (المادة الموجودة يُستخدم سعرها كما هو)، ثم تنشئ/تحدّث الوصفات المطلوبة. */
+var HB_NEW_MENU=[{label:'الساندوتشات: حلوم ببيستو الجوز + سبايسي تونة',keys:['b_pesto','b_tuna','m_halloumi','m_tuna']}];
+function hbAddMenuItems(keys){
+  if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
+  keys=keys||HB_NEW_MENU[0].keys;
+  Promise.all([db.collection('cost_ingredients').get(),db.collection('cost_recipes').get()]).then(function(res){
+    var exIng=[],exRec=[];
+    res[0].forEach(function(d){var x=d.data();x._id=d.id;exIng.push(x);});
+    res[1].forEach(function(d){var x=d.data();x._id=d.id;exRec.push(x);});
+    var now=new Date().toISOString(),by=(CU&&CU.name)||'',writes=[],ingMap={},recMap={},log={ingNew:[],ingUse:[],recNew:[],recUpd:[]};
+    var seedRecs=HB_SEED.recs.filter(function(r){return keys.indexOf(r.k)>=0;});
+    var need={};seedRecs.forEach(function(r){r.items.forEach(function(it){if(!HB_SEED.recs.some(function(x){return x.k===it[0];}))need[it[0]]=1;});});
+    Object.keys(need).forEach(function(k){
+      var sg=HB_SEED.ings.find(function(g){return g.k===k;});if(!sg)return;
+      var ex=exIng.find(function(g){return hbStrictMatch([sg.name].concat(sg.alias||[]),g)&&hbUnitFactor(sg.unit,g.unit);});
+      if(ex){
+        ingMap[k]={id:ex._id,f:hbUnitFactor(sg.unit,ex.unit)};log.ingUse.push(ex.name);
+        if(!(parseFloat(ex.price)>0))writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:{price:sg.price,pack:sg.pack*ingMap[k].f,updatedAt:now,updatedBy:by},merge:true});
+        return;
+      }
+      var ref=db.collection('cost_ingredients').doc();
+      writes.push({ref:ref,data:{name:sg.name,unit:sg.unit,price:sg.price,pack:sg.pack,waste:0,seed:'habaq',updatedAt:now,updatedBy:by}});
+      ingMap[k]={id:ref.id,f:1};log.ingNew.push(sg.name);
+    });
+    seedRecs.forEach(function(sr){
+      var ex=exRec.find(function(r){return r.seedKey===sr.k;});
+      recMap[sr.k]={id:ex?ex._id:db.collection('cost_recipes').doc().id,exists:!!ex};
+      (ex?log.recUpd:log.recNew).push(sr.name);
+    });
+    seedRecs.forEach(function(sr){
+      var items=[];
+      sr.items.forEach(function(it){
+        if(ingMap[it[0]])items.push({ingId:ingMap[it[0]].id,qty:Math.round(it[1]*ingMap[it[0]].f*10000)/10000});
+        else if(recMap[it[0]])items.push({recId:recMap[it[0]].id,qty:it[1]});
+        else{var er=exRec.find(function(r){return r.seedKey===it[0];});if(er)items.push({recId:er._id,qty:it[1]});}
+      });
+      var rm=recMap[sr.k];
+      writes.push({ref:db.collection('cost_recipes').doc(rm.id),merge:rm.exists,data:{name:sr.name,yield:sr.yield,price:sr.price||0,target:35,items:items,
+        batch:!!sr.batch,menu:!!sr.menu,cat:sr.cat||'',bepCat:sr.bep||'',bepExclude:!!sr.bepEx,noCost:false,nameEn:sr.en||'',note:sr.note||'',
+        seed:'habaq',seedKey:sr.k,updatedAt:now,updatedBy:by}});
+    });
+    var msg='سيتم إضافة الأصناف الجديدة إلى بطاقات التكلفة والمنيو:\n\n'
+      +'📖 وصفات جديدة: '+(log.recNew.join('، ')||'—')+(log.recUpd.length?'\n🔄 وصفات موجودة ستُحدَّث: '+log.recUpd.join('، '):'')
+      +'\n🥕 مواد خام جديدة ('+log.ingNew.length+'): '+(log.ingNew.join('، ')||'—')
+      +'\n🔗 مواد موجودة ستُستخدم بأسعارها ('+log.ingUse.length+'): '+(log.ingUse.join('، ')||'—')
+      +'\n\n⚠️ أسعار المواد الجديدة تقديرية لجملة أبها (بدون ضريبة) — راجعها من تبويب «المواد الخام».\n\nمتابعة؟';
+    if(!confirm(msg))return 'cancel';
+    var b=db.batch();writes.forEach(function(w){if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});
+    return b.commit();
+  }).then(function(r){
+    if(r==='cancel')return;
+    alert('✅ تمت إضافة الأصناف الجديدة. افتح تبويب «الوصفات» لمراجعة بطاقات التكلفة.');
+    _ccLoaded=false;ccInit();
   }).catch(function(e){alert('خطأ: '+(e.message||e));});
 }
 
@@ -20471,7 +20584,7 @@ function fdBanner(R){
   else if(!R.be.daily)w+='<div class="fd-warnbox">⚠️ حاسبة نقطة التعادل ينقصها سعر وتكلفة وحصة الفئات، فلا يمكن حساب نقطة التعادل اليومية.<\/div>';
   if(R.partial)w+='<div class="fd-warnbox">ℹ️ الشهر غير مكتمل: الأرقام حتى آخر يوم مرفوع ('+R.dates[R.dates.length-1]+')، والتكاليف الثابتة محسوبة للشهر كاملاً.<\/div>';
   if(CU&&CU.role==='branch_manager'&&typeof hbInvoiceCostsPending==='function'&&hbInvoiceCostsPending())
-    w+='<div class="fd-warnbox">🧾 تكاليف فواتير الموردين الجديدة (الآيس تي، الكركديه، البابكا، البسبوسة، المكسرات) لم تُطبَّق على بطاقات التكلفة بعد. <button class="btn bsm bp" onclick="hbApplyInvoiceCosts(function(){fdReload();})">تطبيق الآن<\/button><\/div>';
+    w+='<div class="fd-warnbox">🧾 تكاليف فواتير الموردين (الآيس تي، الكركديه، البابكا، البسبوسة، المكسرات) تحتاج تطبيقاً أو تحديثاً على بطاقات التكلفة (يشمل إصلاح سعر الفيتا إن تغيّر بالخطأ). <button class="btn bsm bp" onclick="hbApplyInvoiceCosts(function(){fdReload();})">تطبيق الآن<\/button><\/div>';
   return w;
 }
 function fdVerdict(R,P){
