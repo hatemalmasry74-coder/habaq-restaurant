@@ -474,6 +474,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
       </div>
       <div><div class="sl">📊 التحليل المالي</div>
         <div class="ni" onclick="go('accounting',this)" data-perm="accounting"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h3M13 14h3M8 18h3M13 18h3"/></svg>المحاسبة المالية<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        <div class="ni" onclick="go('findash',this)" data-perm="findash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>اللوحة المالية<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('finance',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><polyline points="7,16 11,10 15,13 19,7"/></svg>تقارير P&L الشهرية<span class="nbdg" id="nbdg-finance" style="display:none">جديد</span></div>
         <div class="ni" onclick="go('monthlyreports',this)" data-perm="monthlyreports"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>📁 التقارير المالية الشهرية</div>
         <div class="ni" onclick="go('backup',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>نسخ احتياطي Excel</div>
@@ -2769,6 +2770,13 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
             </div>
           </div>
 
+          <!-- TRANSACTIONS COUNT — عدد العمليات (للوحة المالية: متوسط الفاتورة والعمليات اليومية) -->
+          <div style="padding:10px 14px;border-top:1px solid var(--br);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <label for="cc-txcount" style="font-size:12px;font-weight:700;color:var(--tm)">🧾 عدد العمليات (الفواتير) في الوردية</label>
+            <input type="number" id="cc-txcount" placeholder="0" min="0" step="1" style="width:130px;padding:7px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif">
+            <span style="font-size:10.5px;color:var(--tl)">من تقرير رواء للوردية — يُستخدم لحساب متوسط الفاتورة</span>
+          </div>
+
           <!-- NOTES -->
           <div style="padding:12px 14px;border-top:1px solid var(--br)">
             <div style="font-size:11px;font-weight:700;color:var(--tm);margin-bottom:6px">Notes / ملاحظات</div>
@@ -3750,6 +3758,18 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
       <!-- ===========================================================
            ACCOUNTING - المحاسبة المالية
            =========================================================== -->
+      <div class="page" id="pg-findash">
+        <div class="ph"><h1>اللوحة المالية</h1><p>النتائج المالية الشهرية مباشرة من بيانات المنصة: مبيعات رواء، تقفيل الكاشير، بطاقات التكلفة، وحاسبة نقطة التعادل</p></div>
+        <div class="fd-bar">
+          <label for="fd-month" style="font-size:13px;font-weight:700">الشهر</label>
+          <select id="fd-month" class="fd-in" onchange="fdSetMonth(this.value)"></select>
+          <button class="btn bsm bp" onclick="fdPrint()">🖨️ طباعة / PDF</button>
+          <button class="btn bsm" onclick="fdReload()">🔄 تحديث البيانات</button>
+          <span id="fd-status" style="font-size:12px"></span>
+        </div>
+        <div id="fd-body"></div>
+      </div>
+
       <div class="page" id="pg-accounting">
         <div class="ph"><h1>المحاسبة المالية</h1><p>دليل الحسابات، القيود اليومية، القيود التلقائية من عمليات المنصة، دفتر الأستاذ، ميزان المراجعة، والقوائم المالية</p></div>
         <div id="ac-status" style="font-size:12px;margin-bottom:10px"></div>
@@ -4103,6 +4123,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
           <button class="cc-tab" onclick="ccTab('rec',this)">📖 الوصفات وبطاقات التكلفة</button>
           <button class="cc-tab" style="margin-inline-start:auto;background:#8B2F2B;color:#fff;border-color:#8B2F2B" onclick="hbLegacyImport()">📦 نقل بيانات حباق السابقة</button>
           <button class="cc-tab" style="background:#1B5E20;color:#fff;border-color:#1B5E20" onclick="hbSeedImport()">🍽️ استيراد وصفات ومنيو حباق (من الشيف)</button>
+          <button class="cc-tab" style="background:#8f2a22;color:#fff;border-color:#8f2a22" onclick="hbApplyInvoiceCosts()">🧾 تطبيق أسعار فواتير الموردين</button>
           <button class="cc-tab" style="background:#E65100;color:#fff;border-color:#E65100" onclick="ccQuickPrice()">💰 تسعير سريع للمواد بلا سعر</button>
           <button class="cc-tab" style="background:#0D47A1;color:#fff;border-color:#0D47A1" onclick="fxOpen()">⬇️ استيراد من فودكس</button>
         </div>
@@ -4757,14 +4778,14 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 <script>
 // ===== PERMISSIONS =====
 var PERMS = {
-  branch_manager: ['dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','menu','breakeven','monthlyreports','inventory','forecast','accounting'],
+  branch_manager: ['dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','menu','breakeven','monthlyreports','inventory','forecast','accounting','findash'],
   cashier: ['dashboard','opening','closing','cashier','custody','forms','revenue-receipt'],
   visit_supervisor: ['dashboard','opening','visit','vreports','forms','hr-violations'],
   store_manager: ['dashboard','purchase','production','inventory','forecast'],
   hr_manager: ['dashboard','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen'],
   purchases_rep: ['purchase-system','inventory'],
-  accountant: ['purchase-system','inventory','reports','salesreport','custodyreport','finance','opreports','backup','accounting'],
-  owner: ['dashboard','reports','salesreport','custodyreport','vreports','opreports','finance','costcards','menu','breakeven','monthlyreports','purchase-system','inventory','forecast','accounting','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen']
+  accountant: ['purchase-system','inventory','reports','salesreport','custodyreport','finance','opreports','backup','accounting','findash'],
+  owner: ['dashboard','reports','salesreport','custodyreport','vreports','opreports','finance','costcards','menu','breakeven','monthlyreports','purchase-system','inventory','forecast','accounting','findash','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen']
 };
 var ROLE_NAMES = {
   branch_manager:'مدير الفرع',
@@ -8516,6 +8537,7 @@ function go(pid,el){
   if(pid==='breakeven'){setTimeout(function(){beInit();},80);}
   if(pid==='forecast'){setTimeout(function(){fcInit();},80);}
   if(pid==='accounting'){setTimeout(function(){acInit();},80);}
+  if(pid==='findash'){setTimeout(function(){fdInit();},80);}
   if(pid==='revenue-receipt'){setTimeout(function(){initRR2Page();},80);}
   if(pid==='vreports'){setTimeout(function(){loadVisitReports();},80);}
   if(pid==='finance'){setTimeout(function(){
@@ -12038,7 +12060,7 @@ function saveCashierToFirestore(){
       photos:getPhotoBase64List('pg-cc'),
       mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
-      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),netCash:netCash,
+      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
       approved:document.getElementById('mgr-ab').classList.contains('ok'),
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -12062,7 +12084,7 @@ function saveCashierToFirestore(){
       photos:getPhotoBase64List('pg-cc'),
       mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
-      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),netCash:netCash,
+      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
       approved:document.getElementById('mgr-ab').classList.contains('ok'),
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -12130,7 +12152,7 @@ function saveAndPrintCashier(){
       photos:(typeof getPhotoBase64List==='function')?getPhotoBase64List('pg-cc'):[],
       mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
-      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),netCash:netCash,
+      purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
       approved:(document.getElementById('mgr-ab')&&document.getElementById('mgr-ab').classList.contains('ok'))||false,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -12562,7 +12584,7 @@ function ccEnterEdit(docId){
     SN('cc-cash-open',d.cashOpening);SN('cc-cash-sales',d.cashSales);
     SN('cc-invoices',d.purchaseInvoices);S('cc-invoices-note',d.invoicesNote||'');
     SN('cc-returns',d.returns);S('cc-returns-note',d.returnsNote||'');
-    SN('cc-void',d.voidAmount);SN('cc-disc',d.discount);
+    SN('cc-void',d.voidAmount);SN('cc-disc',d.discount);SN('cc-txcount',d.txCount);
     if(typeof _unpaidList!=='undefined'){_unpaidList=Array.isArray(d.unpaidCustomers)?JSON.parse(JSON.stringify(d.unpaidCustomers)):[];var uc=document.getElementById('cc-unpaid-count');if(uc)uc.textContent=_unpaidList.length;}
     // اسم الكاشير — مع إضافة الاسم للقائمة إن لم يكن موجوداً (وإعادة المحاولة بعد بناء القائمة)
     var setCN=function(tries){
@@ -12584,7 +12606,7 @@ function ccEnterEdit(docId){
 function ccExitEdit(){
   _ccEditId=null;_ccEditOrig=null;
   var bn=document.getElementById('cc-edit-banner');if(bn)bn.style.display='none';
-  ['cc-date','cc-branch','cc-mada','cc-visa','cc-master','cc-gulf','cc-mytable','cc-ninja','cc-hunger','cc-transfer','cc-other','cc-unpaid','cc-walkout','cc-walkout-note','cc-cash-open','cc-cash-sales','cc-invoices','cc-invoices-note','cc-returns','cc-returns-note','cc-void','cc-disc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['cc-date','cc-branch','cc-mada','cc-visa','cc-master','cc-gulf','cc-mytable','cc-ninja','cc-hunger','cc-transfer','cc-other','cc-unpaid','cc-walkout','cc-walkout-note','cc-cash-open','cc-cash-sales','cc-invoices','cc-invoices-note','cc-returns','cc-returns-note','cc-void','cc-disc','cc-txcount'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   var cn=document.getElementById('ccn');if(cn)cn.value='';
   if(typeof _unpaidList!=='undefined'){_unpaidList=[];var uc=document.getElementById('cc-unpaid-count');if(uc)uc.textContent='0';}
   if(typeof calcCC2==='function')calcCC2();
@@ -12615,7 +12637,7 @@ function ccUpdateExisting(printAfter){
     unpaidCustomers:(typeof _unpaidList!=='undefined')?JSON.parse(JSON.stringify(_unpaidList)):[],
     mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
     totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
-    purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),netCash:netCash,
+    purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
     grandTotal:grandTotal,voidAmount:g('cc-void'),discount:g('cc-disc'),
     editedBy:CU?CU.name:'',editedAt:firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -18442,8 +18464,13 @@ var HB_SEED={
     {k:'coffee',name:'بن قهوة سعودية',unit:'جم',price:90,pack:1000,alias:['قهوة سعودية','قهوه سعوديه','بن سعودي']},
     {k:'water',name:'ماء',unit:'مل',price:0.02,pack:1000,alias:['مياه']},
     {k:'ice',name:'ثلج (مكعب)',unit:'قطعة',price:0.05,pack:1,alias:['ثلج']},
-    {k:'hib',name:'كركديه جاهز',unit:'جم',price:4,pack:250,alias:['كركديه']},
-    {k:'icetea',name:'آيس تي جاهز',unit:'جم',price:6.5,pack:250,alias:['ايس تي','آيس تي','أيس تي']},
+    {k:'hib',name:'كركديه جاهز',unit:'مل',price:4.27,pack:1000,alias:['كركديه']}, // قهوة السخاء: 4.27 للتر = 4 أكواب
+    {k:'icetea',name:'آيس تي جاهز',unit:'مل',price:6.77,pack:1000,alias:['ايس تي','آيس تي','أيس تي']}, // قهوة السخاء: 6.77 للتر = 4 أكواب
+    {k:'babka_z',name:'بابكا زعتر (حبة)',unit:'قطعة',price:1.25,pack:1,alias:[]},
+    {k:'babka_c',name:'بابكا شوكولاتة (حبة)',unit:'قطعة',price:1.25,pack:1,alias:[]},
+    {k:'basb',name:'بسبوسة تشيز — تشيزكيك جوز الهند (قطعة)',unit:'قطعة',price:6.84,pack:1,alias:[]},
+    {k:'nuts_mix',name:'مكسرات مشوي نكهات (المدخنة)',unit:'جم',price:191.5,pack:5000,alias:[]},
+    {k:'nuts_rice',name:'مكسرات أرز الرشيد (اليابانية)',unit:'جم',price:69.6,pack:5000,alias:[]},
     {k:'dough',name:'عجينة جاهزة 94 جم',unit:'قطعة',price:1,pack:1,alias:['عجينة','عجين جاهز','عجينه']},
     // مواد تُسعَّر فقط إن كانت موجودة في مخزونكم (لا تُنشأ)
     {k:'dates',name:'تمر',unit:'جم',price:25,pack:1000,alias:['تمر سكري'],only:true},
@@ -18475,11 +18502,11 @@ var HB_SEED={
     {k:'m_fitateen',name:'فيتاتين',en:'Fitateen',menu:true,cat:'napoli',bep:'bkr',price:16,yield:1,items:[['dough',1],['b_fitsauce',20],['feta',1]]},
     {k:'m_sbarella',name:'سباريلا',en:'Sbarella',menu:true,cat:'napoli',bep:'bkr',price:16,yield:1,items:[['dough',1],['b_spinach',50],['cheese',10]]},
     {k:'m_box',name:'بوكس الجمعات',en:'Gathering Box',menu:true,cat:'napoli',bep:'bkr',bepEx:true,price:79,yield:1,items:[['m_musakhan',1.6667],['m_fitateen',1.6667],['m_sbarella',1.6667]],note:'10 حبات (نصف فطيرة) = 5 فطائر مشكّلة بالتساوي — بدون تغليف'},
-    {k:'m_babka_z',name:'بابكا زعتر',en:"Za'atar Babka",menu:true,cat:'babka',bep:'bkr',price:10,yield:1,noCost:true,items:[],note:'حبّتان — الوصفة لم تُدخل بعد'},
-    {k:'m_babka_c',name:'بابكا شوكلت',en:'Chocolate Babka',menu:true,cat:'babka',bep:'bkr',price:10,yield:1,noCost:true,items:[],note:'حبّتان — الوصفة لم تُدخل بعد'},
-    {k:'m_basbousa',name:'بسبوسة تشيز',en:'Cheese Basbousa',menu:true,cat:'dessert',bep:'dsr',price:18,yield:1,noCost:true,items:[],note:'الوصفة لم تُدخل بعد'},
-    {k:'m_nuts1',name:'مكسرات مدخنة',en:'Smoked Nuts',menu:true,cat:'nuts',price:8,yield:1,noCost:true,items:[],note:'تُضاف لاحقاً'},
-    {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,noCost:true,items:[],note:'تُضاف لاحقاً'}
+    {k:'m_babka_z',name:'بابكا زعتر',en:"Za'atar Babka",menu:true,cat:'babka',bep:'bkr',price:10,yield:1,items:[['babka_z',2]],note:'حبّتان من قهوة السخاء (1.25 للحبة)'},
+    {k:'m_babka_c',name:'بابكا شوكلت',en:'Chocolate Babka',menu:true,cat:'babka',bep:'bkr',price:10,yield:1,items:[['babka_c',2]],note:'حبّتان من قهوة السخاء (1.25 للحبة)'},
+    {k:'m_basbousa',name:'بسبوسة تشيز',en:'Cheese Basbousa',menu:true,cat:'dessert',bep:'dsr',price:18,yield:1,items:[['basb',1]],note:'قطعة تشيزكيك جوز الهند من قهوة السخاء'},
+    {k:'m_nuts1',name:'مكسرات مدخنة',en:'Smoked Nuts',menu:true,cat:'nuts',price:8,yield:1,items:[['nuts_mix',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'},
+    {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'}
   ],
 
   stock:[
@@ -18649,6 +18676,69 @@ function hbSeedImport(){
     alert('✅ تم الاستيراد\n\nمواد جديدة: '+rep.ingNew+' | مواد سُعِّرت: '+(rep.ingFill+rep.stockPriced)+' | مواد مكررة حُذفت: '+rep.ingDel+' | وصفات مكررة حُذفت: '+rep.recDel+'\nوصفات ومنيو جديدة: '+rep.recNew+' | محدَّثة: '+rep.recUpd+'\n\nلتسعير ما تبقى بلا سعر استخدم «💰 تسعير سريع». ثم في «الجرد» اضغط «🔄 تقييم بالأسعار الحالية».');
     _ccLoaded=false;ccInit();
   }).catch(function(e){alert('خطأ أثناء الاستيراد: '+(e.message||e.code||e));console.error('hbSeedImport',e);});
+}
+
+/* ---------- تكاليف فواتير الموردين (سبتمبر–أكتوبر 2026) ----------
+   قهوة السخاء: الآيس تي 6.77 ر.س للتر والكركديه 4.27 ر.س للتر (اللتر = 4 أكواب × 250 مل)،
+   البابكا 1.25 ر.س للحبة (الصنف حبّتان)، تشيزكيك جوز الهند = البسبوسة تشيز 6.84 ر.س للقطعة.
+   بيت العتلة: مكسرات مشوي نكهات (المدخنة) كيس 5 كجم 191.50، مكسرات أرز الرشيد (اليابانية) كرتون 5 كجم 69.60 — علبة البيع 100 جم (عدّلها من الوصفة إن اختلف الوزن).
+   الأسعار بدون ضريبة. التطبيق يحدّث سعر المادة إن وُجدت وينشئها إن لم توجد، ثم يربط وصفات المنيو بها. */
+var HB_INVOICE_COSTS={
+  ings:[
+    {k:'icetea',name:'آيس تي جاهز',unit:'مل',price:6.77,pack:1000,alias:['ايس تي','آيس تي','أيس تي','آيس تي جاهز'],src:'قهوة السخاء — 6.77 ر.س للتر'},
+    {k:'hib',name:'كركديه جاهز',unit:'مل',price:4.27,pack:1000,alias:['كركديه','كركدية','كركديه جاهز'],src:'قهوة السخاء — 4.27 ر.س للتر'},
+    {k:'babka_z',name:'بابكا زعتر (حبة)',unit:'قطعة',price:1.25,pack:1,alias:[],src:'قهوة السخاء — 1.25 ر.س للحبة'},
+    {k:'babka_c',name:'بابكا شوكولاتة (حبة)',unit:'قطعة',price:1.25,pack:1,alias:[],src:'قهوة السخاء — 1.25 ر.س للحبة'},
+    {k:'basb',name:'بسبوسة تشيز — تشيزكيك جوز الهند (قطعة)',unit:'قطعة',price:6.84,pack:1,alias:[],src:'قهوة السخاء — 6.84 ر.س للقطعة'},
+    {k:'nuts_mix',name:'مكسرات مشوي نكهات (المدخنة)',unit:'جم',price:191.5,pack:5000,alias:[],src:'بيت العتلة — كيس 5 كجم 191.50 ر.س'},
+    {k:'nuts_rice',name:'مكسرات أرز الرشيد (اليابانية)',unit:'جم',price:69.6,pack:5000,alias:[],src:'بيت العتلة — كرتون 5 كجم 69.60 ر.س'}
+  ],
+  recs:{
+    m_icetea:{items:[['icetea',250],['@ice',3]],note:'250 مل آيس تي (اللتر 6.77 = 4 أكواب) + 3 مكعبات ثلج'},
+    m_hib:{items:[['hib',250],['@ice',3]],note:'250 مل كركديه (اللتر 4.27 = 4 أكواب) + 3 مكعبات ثلج'},
+    m_babka_z:{items:[['babka_z',2]],note:'حبّتان من قهوة السخاء'},
+    m_babka_c:{items:[['babka_c',2]],note:'حبّتان من قهوة السخاء'},
+    m_basbousa:{items:[['basb',1]],note:'قطعة تشيزكيك جوز الهند من قهوة السخاء'},
+    m_nuts1:{items:[['nuts_mix',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'},
+    m_nuts2:{items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'}
+  }
+};
+function hbInvoiceCostsPending(){
+  if(!_ccLoaded)return false;
+  return Object.keys(HB_INVOICE_COSTS.recs).some(function(k){var r=_ccRecs.find(function(x){return x.seedKey===k;});return !r||r.noCost||!(r.items||[]).length||r.invoiceCosts!=='2026-10';});
+}
+function hbApplyInvoiceCosts(after){
+  if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
+  _ccLoaded=false;
+  ccEnsureLoaded().then(function(){
+    var now=new Date().toISOString(),by=(CU&&CU.name)||'',writes=[],ids={},log=[];
+    var findIng=function(names){var keys=[];names.forEach(function(n){hbKeys(n).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
+      return _ccIngs.find(function(g){return hbKeys(g.name).some(function(k){return keys.indexOf(k)>=0;});});};
+    HB_INVOICE_COSTS.ings.forEach(function(sg){
+      var ex=findIng([sg.name].concat(sg.alias));
+      var data={unit:sg.unit,price:sg.price,pack:sg.pack,priceSource:sg.src,updatedAt:now,updatedBy:by};
+      if(ex){writes.push({ref:db.collection('cost_ingredients').doc(ex._id),data:data,merge:true});ids[sg.k]=ex._id;log.push('🔄 '+ex.name+': '+sg.src);}
+      else{var ref=db.collection('cost_ingredients').doc();data.name=sg.name;data.waste=0;data.seed='habaq';writes.push({ref:ref,data:data});ids[sg.k]=ref.id;log.push('➕ '+sg.name+': '+sg.src);}
+    });
+    var ice=findIng(['ثلج (مكعب)','ثلج']);if(ice)ids['@ice']=ice._id;
+    var miss=[];
+    Object.keys(HB_INVOICE_COSTS.recs).forEach(function(k){
+      var r=_ccRecs.find(function(x){return x.seedKey===k;}),def=HB_INVOICE_COSTS.recs[k];
+      if(!r){miss.push(k);return;}
+      var items=def.items.filter(function(it){return ids[it[0]];}).map(function(it){return {ingId:ids[it[0]],qty:it[1]};});
+      writes.push({ref:db.collection('cost_recipes').doc(r._id),data:{items:items,noCost:false,note:def.note,invoiceCosts:'2026-10',updatedAt:now,updatedBy:by},merge:true});
+      log.push('📖 '+r.name+': '+def.note);
+    });
+    if(!confirm('سيتم تطبيق تكاليف فواتير الموردين على بطاقات التكلفة:\n\n'+log.join('\n')+(miss.length?'\n\n⚠️ وصفات غير موجودة (استورد وصفات حباق أولاً): '+miss.join('، '):'')+'\n\nمتابعة؟'))return 'cancel';
+    var b=db.batch();writes.forEach(function(w){if(w.merge)b.set(w.ref,w.data,{merge:true});else b.set(w.ref,w.data);});
+    return b.commit();
+  }).then(function(res){
+    if(res==='cancel')return;
+    alert('✅ تم تطبيق تكاليف الفواتير');
+    _ccLoaded=false;
+    if(document.getElementById('pg-costcards')&&document.getElementById('pg-costcards').classList.contains('active'))ccInit();
+    if(typeof after==='function')after();
+  }).catch(function(e){alert('خطأ: '+(e.message||e));});
 }
 
 /* ---------- تسعير سريع للمواد التي بلا سعر ---------- */
@@ -20110,23 +20200,23 @@ function fcImport(){
     if(!rows.length)throw new Error('الملف فارغ');
     var keys=Object.keys(rows[0]);
     var col=function(c){return keys.find(function(k){return k.trim()===c;})||keys.find(function(k){return k.indexOf(c)>=0;});};
-    var cDate=col('تاريخ العملية'),cId=col('رقم المنتج'),cName=col('اسم المنتج'),cQty=col('الكمية'),cIncl=col('المبيعات (شامل الضريبة)')||col('شامل الضريبة');
+    var cDate=col('تاريخ العملية'),cId=col('رقم المنتج'),cName=col('اسم المنتج'),cQty=col('الكمية'),cIncl=col('المبيعات (شامل الضريبة)')||col('شامل الضريبة'),cTax=col('ضريبة المبيعات');
     if(!cDate||!(cName||cId)||!cQty)throw new Error('هذا ليس تقرير المبيعات اليومي — يجب أن يحتوي أعمدة «تاريخ العملية» و«رقم المنتج» و«الكمية». تقرير مبيعات الأصناف الشهري لا يحتوي التاريخ.');
     var days={},names={},bad=0,neg=0;
     rows.forEach(function(r){
       var d=fcParseDate(r[cDate]),nm=cName?String(r[cName]==null?'':r[cName]).trim():'',pid=nm?fcKey(nm):String(r[cId]==null?'':r[cId]).trim();if(!d||!pid){bad++;return;}
-      var q=parseFloat(r[cQty])||0,v=parseFloat(r[cIncl])||0;if(q<0||v<0)neg++;
-      if(!days[d])days[d]={};if(!days[d][pid])days[d][pid]={q:0,v:0};days[d][pid].q+=q;days[d][pid].v+=v;
+      var q=parseFloat(r[cQty])||0,v=parseFloat(r[cIncl])||0,tx=cTax?(parseFloat(r[cTax])||0):0;if(q<0||v<0)neg++;
+      if(!days[d])days[d]={};if(!days[d][pid])days[d][pid]={q:0,v:0,t:0};days[d][pid].q+=q;days[d][pid].v+=v;days[d][pid].t+=tx;
       if(nm)names[pid]=nm;
     });
     var ds=Object.keys(days).sort();if(!ds.length)throw new Error('لم أجد تواريخ صالحة في الملف');
     var tot=0;ds.forEach(function(d){Object.keys(days[d]).forEach(function(p){tot+=days[d][p].v;});});
     var n=fcDiff(ds[0],ds[ds.length-1])+1,missing=[];for(var i=0;i<n;i++){var s=fcAdd(ds[0],i);if(!days[s])missing.push(s);}
     var replace=ds.filter(function(d){return FC.days[d];}).length;
-    FC.preview={days:days,names:names};
+    FC.preview={days:days,names:names,hasTax:!!cTax};
     out.innerHTML='<div style="padding:10px 14px;border:1px solid var(--br);border-radius:8px;background:#fff;font-size:12px;line-height:1.9">'
       +'📄 '+fcEsc(file.name)+'<br>الفترة: <b dir="ltr">'+ds[0]+'</b> إلى <b dir="ltr">'+ds[ds.length-1]+'</b> — '+ds.length+' يوماً، '+Object.keys(names).length+' صنفاً، '+rows.length+' سطراً<br>'
-      +'إجمالي المبيعات شاملة الضريبة: <b>'+Math.round(tot).toLocaleString('en-US')+' ر.س</b>'
+      +'إجمالي المبيعات شاملة الضريبة: <b>'+Math.round(tot).toLocaleString('en-US')+' ر.س</b>'+(cTax?' — عمود الضريبة موجود ✅ (يُستخدم في اللوحة المالية)':'<br><span style="color:#B71C1C">⚠️ الملف بلا عمود «ضريبة المبيعات» — صافي المبيعات في اللوحة المالية سيساوي الإجمالي</span>')
       +(missing.length?'<br><span style="color:#B71C1C">أيام بلا مبيعات داخل الفترة: '+missing.length+' ('+missing.slice(0,8).join('، ')+(missing.length>8?'…':'')+')</span>':'')
       +(neg?'<br>سطور مرتجعات (سالبة): '+neg+' — تُخصم من يومها':'')+(bad?'<br><span style="color:#B71C1C">سطور بلا تاريخ أو رقم صنف تم تجاهلها: '+bad+'</span>':'')
       +(replace?'<br>⚠️ '+replace+' يوماً موجودة مسبقاً وستُستبدل ببيانات هذا الملف':'')
@@ -20136,7 +20226,7 @@ function fcImport(){
 function fcCommitImport(){
   var P=FC.preview;if(!P)return;
   var ds=Object.keys(P.days).sort(),now=new Date().toISOString(),by=CU.name||'';
-  var ops=ds.map(function(d){var items={},t=0;Object.keys(P.days[d]).forEach(function(p){var x=P.days[d][p];items[p]={q:Math.round(x.q*1000)/1000,v:Math.round(x.v*100)/100};t+=x.v;});
+  var ops=ds.map(function(d){var items={},t=0;Object.keys(P.days[d]).forEach(function(p){var x=P.days[d][p];items[p]={q:Math.round(x.q*1000)/1000,v:Math.round(x.v*100)/100};if(P.hasTax)items[p].t=Math.round((x.t||0)*100)/100;t+=x.v;});
     return {ref:db.collection('fc_daily').doc(d),data:{date:d,items:items,total:Math.round(t*100)/100,importedAt:now,importedBy:by}};});
   var names=Object.assign({},FC.names,P.names);
   ops.push({ref:db.collection('fc_meta').doc('items'),data:{names:names,updatedAt:now}});
@@ -20148,6 +20238,423 @@ function fcCommitImport(){
     out.innerHTML='<div style="color:#1B5E20;font-weight:700;font-size:12px">✅ تم استيراد '+ds.length+' يوماً من '+ds[0]+' إلى '+ds[ds.length-1]+'</div>';
     FC.preview=null;return fcLoad().then(fcRefresh);
   }).catch(function(e){out.innerHTML='<div style="color:#B71C1C;font-size:12px">خطأ في الحفظ: '+fcEsc(e.message)+'</div>';});
+}
+
+// =================================================================
+// FINANCIAL DASHBOARD — اللوحة المالية
+// للعرض فقط (لا تكتب في قاعدة البيانات). تقرأ من:
+//   fc_daily/{YYYY-MM-DD}  : مبيعات الأصناف اليومية من ملف رواء {items:{pid:{q,v,t}}} — v شامل الضريبة، t الضريبة المسجلة
+//   fc_meta/items|config  : أسماء الأصناف وربطها بالوصفات (نفس ربط صفحة التنبؤ)
+//   cost_recipes / cost_ingredients : تكلفة الوحدة من الوصفات
+//   cashier_reports        : طرق الدفع والمرتجعات وعدد العمليات
+//   breakeven_calc/main    : التكاليف الثابتة ونقطة التعادل اليومية
+// صافي المبيعات = شامل الضريبة − الضريبة المسجلة · متوسط البيع اليومي = الإجمالي شامل الضريبة ÷ أيام الشهر
+// الأصناف بلا وصفة كاملة تُحتسب تكلفتها 35% من سعرها الصافي وتُعلَّم «تقدير»
+// =================================================================
+var FD={loaded:false,loading:null,days:{},names:{},map:{},cash:[],be:null,month:'',sort:{k:'cm',d:-1},q:''};
+var FD_EST=0.35;
+var FD_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var FD_WD=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+var FD_ZERO=/^(مقعد|ماء)|رقم الجهاز/;// أصناف خدمية بلا تكلفة مباشرة
+var FD_EMP=[['be-emp-salary','الرواتب الأساسية'],['be-emp-housing','سكن الموظفين'],['be-emp-gosi','تأمين اجتماعي/مهنية'],['be-emp-leave','مستحقات إجازة سنوية'],['be-emp-cert','شهادات صحية'],['be-emp-iqama','تجديد الإقامة'],['be-emp-health','تأمين صحي'],['be-emp-worklic','رخصة عمل'],['be-emp-overtime','ساعات إضافية'],['be-emp-other','أخرى (تذاكر، مكافآت، نهاية خدمة)']];
+var FD_OPS=[['be-op-marketing','تسويق وإعلان'],['be-op-rent','إيجار الفرع'],['be-op-elec','كهرباء'],['be-op-gas','غاز'],['be-op-clean','نظافة وبلدية'],['be-op-internet','إنترنت'],['be-op-water','مياه'],['be-op-maintain','صيانة واستهلاك'],['be-op-pos','برنامج محاسبي / كاشير'],['be-op-gov','قوى / مدد / مقيم'],['be-op-municipal','رخصة بلدية'],['be-op-cr','سجل تجاري'],['be-op-civil','دفاع مدني'],['be-op-other','مصاريف إدارية أخرى']];
+
+function fdCanView(){return CU&&['branch_manager','accountant','owner'].indexOf(CU.role)>=0;}
+function fdEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/[<]/g,'&lt;').replace(/"/g,'&quot;');}
+function fdN(x,d){x=Number(x)||0;return x.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
+function fdSN(x,d){var s=fdN(Math.abs(x),d);return '<bdi dir="ltr">'+(x<0?'−':(x>0?'+':''))+s+'<\/bdi>';}
+function fdPct(x,d){if(!isFinite(x))return '—';return '<bdi dir="ltr">'+(x>0?'+':'')+(Number(x).toFixed(d==null?1:d))+'%<\/bdi>';}
+function fdMonthLabel(m){var p=m.split('-');return FD_MONTHS[(+p[1])-1]+' '+p[0];}
+function fdDaysIn(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate();}
+function fdPrevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1;if(mo<1){mo=12;y--;}return y+'-'+String(mo).padStart(2,'0');}
+function fdToday(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fdEmpty(msg){return '<div class="fd-empty">'+msg+'<\/div>';}
+
+function fdInjectCss(){
+  if(document.getElementById('fd-style'))return;
+  var st=document.createElement('style');st.id='fd-style';st.textContent=FD_CSS;document.head.appendChild(st);
+}
+var FD_CSS=''
+ +'#pg-findash{--fd:#8f2a22;--fdd:#6e1f19;--fdg:#2D6A4F;--fdo:#B5621B;--fdbg:#F6F0E6;--fdl:#E6DCCB}'
+ +'.fd-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}'
+ +'.fd-in{padding:7px 10px;border:1px solid var(--br);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;background:#fff}'
+ +'.fd-verdict{background:linear-gradient(135deg,#8f2a22,#6e1f19);color:#fff;border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.9;margin-bottom:12px}'
+ +'.fd-verdict b{color:#F3D9B1}'
+ +'.fd-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}'
+ +'.fd-kpi{background:#fff;border:1px solid var(--br);border-top:5px solid #8f2a22;border-radius:14px;padding:12px 14px}'
+ +'.fd-kl{font-size:12px;color:var(--tl);font-weight:700}.fd-kv{font-size:26px;font-weight:900;line-height:1.35;color:var(--t)}.fd-ks{font-size:11.5px;color:var(--tl);line-height:1.6}'
+ +'.fd-pos{color:#2D6A4F!important}.fd-neg{color:#B3261E!important}'
+ +'.fd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
+ +'.fd-card{background:#fff;border:1px solid var(--br);border-radius:14px;padding:14px 16px;margin-bottom:12px}'
+ +'.fd-ct{font-size:14px;font-weight:900;color:#8f2a22;margin-bottom:4px}.fd-cs{font-size:11.5px;color:var(--tl);margin-bottom:10px}'
+ +'.fd-chart{position:relative;height:210px;display:flex;align-items:flex-end;gap:2px;border-bottom:1.5px solid var(--fdl);padding-top:14px}'
+ +'.fd-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}'
+ +'.fd-colb{width:78%;border-radius:4px 4px 0 0;min-height:2px}'
+ +'.fd-colv{font-size:9.5px;font-weight:700;color:var(--tm);white-space:nowrap;margin-bottom:2px}'
+ +'.fd-xl{display:flex;gap:2px}.fd-xl div{flex:1;text-align:center;font-size:10px;color:var(--tl);min-width:0;overflow:hidden;white-space:nowrap}'
+ +'.fd-be{position:absolute;left:0;right:0;border-top:2px dashed #B3261E;pointer-events:none}'
+ +'.fd-be span{position:absolute;left:0;top:-19px;background:#B3261E;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px}'
+ +'.fd-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.fd-chip{flex:1;min-width:120px;background:var(--fdbg);border-radius:10px;padding:8px 10px;font-size:11px;color:var(--tl)}.fd-chip b{display:block;font-size:16px;color:var(--t)}'
+ +'.fd-hb{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:8px;align-items:center;font-size:12px;margin-bottom:6px}'
+ +'.fd-hbt{background:var(--fdbg);border-radius:6px;height:16px;overflow:hidden}.fd-hbf{height:100%;background:#8f2a22;border-radius:6px}'
+ +'.fd-hbv{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}'
+ +'.fd-tbl{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}'
+ +'.fd-tbl th{background:#8f2a22;color:#fff;padding:8px 9px;text-align:right;font-weight:700;font-size:11.5px;white-space:nowrap}'
+ +'.fd-tbl th.fd-s{cursor:pointer;user-select:none}.fd-tbl th.fd-s:hover{background:#6e1f19}'
+ +'.fd-tbl td{padding:7px 9px;border-bottom:1px solid var(--fdl)}.fd-tbl tr:nth-child(even) td{background:#FBF8F3}'
+ +'.fd-tbl td.fd-nm{font-weight:700}.fd-tbl tr.fd-tot td{font-weight:900;background:var(--fdbg)!important}'
+ +'.fd-est{font-size:10px;color:#B5621B;background:#FBEBD9;padding:1px 6px;border-radius:5px;margin-right:4px;font-weight:700}'
+ +'.fd-pill{padding:1px 8px;border-radius:999px;font-weight:800;font-size:11px}.fd-ok{background:#E3F0E6;color:#2D6A4F}.fd-warn{background:#FBF0D9;color:#9A6400}.fd-bad{background:#FBE4E2;color:#B3261E}'
+ +'.fd-empty{background:var(--fdbg);border:1px dashed var(--br);border-radius:10px;padding:14px;text-align:center;font-size:12px;color:var(--tl);line-height:1.8}'
+ +'.fd-note{font-size:11px;color:var(--tl);line-height:1.7;margin-top:8px}'
+ +'.fd-warnbox{background:#FFF8E1;border:1px solid #FFD54F;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;margin-bottom:12px}'
+ +'.fd-scroll{overflow-x:auto}'
+ +'@media(max-width:900px){.fd-kpis{grid-template-columns:repeat(2,1fr)}.fd-grid2{grid-template-columns:1fr}}'
+ +'@media(max-width:520px){.fd-kpis{grid-template-columns:1fr}.fd-kv{font-size:22px}.fd-colv{display:none}.fd-xl div{font-size:8.5px}}';
+
+function fdInit(){
+  if(!fdCanView())return;
+  fdInjectCss();
+  var st=document.getElementById('fd-status');
+  if(FD.loaded){fdRender();return;}
+  if(st)st.innerHTML='⏳ جارٍ تحميل البيانات…';
+  fdLoad().then(function(){
+    if(st)st.innerHTML='';
+    fdSetupMonths();fdRender();
+  }).catch(function(e){if(st)st.innerHTML='<span style="color:#B71C1C">تعذر تحميل البيانات: '+fdEsc(e.message)+'<\/span>';});
+}
+function fdReload(){FD.loaded=false;FD.loading=null;if(typeof _ccLoaded!=='undefined')_ccLoaded=false;fdInit();}
+function fdLoad(){
+  if(FD.loading)return FD.loading;
+  FD.loading=Promise.all([
+    db.collection('fc_daily').get().then(function(snap){FD.days={};snap.forEach(function(d){var x=d.data();FD.days[x.date||d.id]=x.items||{};});}),
+    db.collection('fc_meta').get().then(function(snap){
+      var cfg={};snap.forEach(function(d){if(d.id==='items')FD.names=(d.data().names)||{};if(d.id==='config')cfg=d.data()||{};});
+      FD.map=cfg.map||JSON.parse(JSON.stringify(FC_DEFAULT_MAP));
+    }),
+    ccEnsureLoaded(),
+    db.collection('cashier_reports').get().then(function(snap){FD.cash=[];snap.forEach(function(d){var x=d.data();x._id=d.id;FD.cash.push(x);});}).catch(function(){FD.cash=null;}),
+    db.collection('breakeven_calc').doc('main').get().then(function(doc){FD.be=doc.exists?doc.data():null;}).catch(function(){FD.be=null;})
+  ]).then(function(){FD.loaded=true;});
+  return FD.loading;
+}
+function fdSetupMonths(){
+  var ms={};Object.keys(FD.days).forEach(function(d){ms[d.slice(0,7)]=1;});
+  var list=Object.keys(ms).sort().reverse(),sel=document.getElementById('fd-month');
+  if(!sel)return;
+  if(!list.length){sel.innerHTML='<option value="">لا توجد بيانات<\/option>';FD.month='';return;}
+  var cur=fdToday().slice(0,7);
+  sel.innerHTML=list.map(function(m){return '<option value="'+m+'">'+fdMonthLabel(m)+(m===cur?' (غير مكتمل)':'')+'<\/option>';}).join('');
+  if(!FD.month||list.indexOf(FD.month)<0)FD.month=list.find(function(m){return m<cur;})||list[0];
+  sel.value=FD.month;
+}
+function fdSetMonth(v){FD.month=v;fdRender();}
+
+// ---------- نقطة التعادل والتكاليف الثابتة (نفس معادلة حاسبة المنصة) ----------
+function fdBE(){
+  var b=FD.be;if(!b)return null;
+  var g=function(id){return parseFloat(b[id])||0;};
+  var emp=FD_EMP.map(function(x){return {id:x[0],l:x[1],v:g(x[0])};}),ops=FD_OPS.map(function(x){return {id:x[0],l:x[1],v:g(x[0])};});
+  var te=emp.reduce(function(s,x){return s+x.v;},0),to=ops.reduce(function(s,x){return s+x.v;},0),fc=te+to;
+  var w=0,tm=0;
+  ['drk','bkr','dsr'].forEach(function(k){
+    var p=g('be-'+k+'-price'),c=g('be-'+k+'-cost'),pk=g('be-'+k+'-pkg')/100,mx=g('be-'+k+'-mix')/100;
+    if(p>0&&mx>0){w+=mx*((p-(c+p*pk))/p);tm+=mx;}
+  });
+  var days=g('be-days')||30;
+  var daily=(fc>0&&w>0)?fc/w/days:null;
+  return {emp:emp,ops:ops,te:te,to:to,fc:fc,cmp:w,days:days,daily:daily};
+}
+
+// ---------- تكلفة الصنف من ربط صفحة التنبؤ بالوصفات ----------
+function fdCanon(pid){var m=FD.map[pid],g=0;while(m&&m.merge&&g<5){pid=m.merge;m=FD.map[pid];g++;}return pid;}
+function fdItemCost(pid,name){
+  if(FD_ZERO.test(String(name||pid).trim()))return {u:0,est:false,cat:'خدمات',rec:null};
+  var m=FD.map[pid]||{},rec=(typeof fcResolveRec==='function')?fcResolveRec(m.rec):null;
+  if(!rec||rec.noCost||!(rec.items||[]).length)return {u:null,est:true,cat:fdCatOf(rec),rec:rec};
+  var c=ccRecCost(rec);
+  if(!(c.unit>0))return {u:null,est:true,cat:fdCatOf(rec),rec:rec};
+  return {u:c.unit*(Number(m.f)||1),est:false,cat:fdCatOf(rec),rec:rec};
+}
+function fdCatOf(rec){
+  if(!rec||!rec.cat)return 'غير مصنّف';
+  var c=(typeof HB_SEED!=='undefined'?HB_SEED.cats:[]).find(function(x){return x[0]===rec.cat;});
+  return c?c[1]:rec.cat;
+}
+
+// ---------- تجميع بيانات شهر ----------
+function fdMonthData(m){
+  var dates=Object.keys(FD.days).filter(function(d){return d.slice(0,7)===m;}).sort();
+  if(!dates.length)return null;
+  var cur=fdToday().slice(0,7),partial=(m===cur);
+  var days=partial?(+dates[dates.length-1].slice(8)):fdDaysIn(m);
+  var items={},daily={},incl=0,tax=0,hasTax=false,qty=0;
+  dates.forEach(function(d){
+    var it=FD.days[d],t=0;
+    Object.keys(it).forEach(function(pid){
+      var x=it[pid],v=Number(x.v)||0,q=Number(x.q)||0;t+=v;
+      if(x.t!=null)hasTax=true;
+      var cp=fdCanon(pid),o=items[cp];
+      if(!o)o=items[cp]={pid:cp,name:FD.names[cp]||FD.names[pid]||cp,q:0,v:0,t:0};
+      o.q+=q;o.v+=v;o.t+=Number(x.t)||0;incl+=v;tax+=Number(x.t)||0;qty+=q;
+    });
+    daily[d]=t;
+  });
+  var list=Object.keys(items).map(function(k){return items[k];}).filter(function(o){return Math.abs(o.v)>0.005||Math.abs(o.q)>0.005;});
+  var net=incl-tax,cogs=0,estNet=0;
+  list.forEach(function(o){
+    o.net=o.v-o.t;o.price=o.q?o.net/o.q:0;
+    var c=fdItemCost(o.pid,o.name);o.cat=c.cat;o.est=c.est;
+    o.uc=c.u!=null?c.u:FD_EST*Math.max(o.price,0);
+    o.cogs=o.uc*o.q;o.cm=o.net-o.cogs;o.fc=o.net>0?o.cogs/o.net*100:0;
+    cogs+=o.cogs;if(o.est)estNet+=o.net;
+  });
+  var be=fdBE();
+  var allDays=[];for(var i=1;i<=days;i++){var s=m+'-'+String(i).padStart(2,'0');allDays.push({d:s,v:daily[s]||0,has:daily[s]!=null});}
+  var wd={};allDays.forEach(function(x){if(!x.has)return;var w=new Date(x.d+'T12:00:00').getDay();(wd[w]=wd[w]||[]).push(x.v);});
+  var r={m:m,partial:partial,days:days,dates:dates,items:list,incl:incl,tax:tax,net:net,hasTax:hasTax,qty:qty,cogs:cogs,estNet:estNet,
+    allDays:allDays,wd:wd,be:be,day:incl/days};
+  if(be){
+    r.fc=be.fc;r.profit=net-cogs-be.fc;r.p35=net*(1-FD_EST)-be.fc;
+    r.above=be.daily?allDays.filter(function(x){return x.v>=be.daily;}).length:null;
+  }
+  r.cash=fdCashMonth(m);
+  return r;
+}
+function fdCashMonth(m){
+  if(FD.cash===null)return {err:true};
+  var rs=(FD.cash||[]).filter(function(x){return String(x.date||'').slice(0,7)===m;});
+  if(!rs.length)return null;
+  var n=function(v){return parseFloat(v)||0;};
+  var o={reports:rs.length,days:{},card:0,cash:0,apps:0,transfer:0,other:0,returns:0,tx:0,txDays:{},txSales:0};
+  rs.forEach(function(x){
+    var card=n(x.mada)+n(x.visa)+n(x.masterCard),cash=n(x.cashSales),apps=n(x.ninja)+n(x.gulf)+n(x.hungerStation)+n(x.myTable),tr=n(x.transfer),ot=n(x.otherIncome);
+    o.card+=card;o.cash+=cash;o.apps+=apps;o.transfer+=tr;o.other+=ot;o.returns+=n(x.returns);o.days[x.date]=1;
+    var tc=parseInt(x.txCount,10)||0;if(tc>0){o.tx+=tc;o.txDays[x.date]=1;o.txSales+=card+cash+apps+tr+ot;}
+  });
+  o.total=o.card+o.cash+o.apps+o.transfer+o.other;o.nDays=Object.keys(o.days).length;o.nTxDays=Object.keys(o.txDays).length;
+  return o;
+}
+
+// ---------- العرض ----------
+function fdRender(){
+  var box=document.getElementById('fd-body');if(!box)return;
+  if(!FD.month){box.innerHTML=fdEmpty('لا توجد مبيعات مرفوعة بعد. ارفع ملف رواء اليومي من صفحة «التنبؤ بالطلبيات» ← تبويب «البيانات».');return;}
+  var R=fdMonthData(FD.month);if(!R){box.innerHTML=fdEmpty('لا توجد بيانات لهذا الشهر.');return;}
+  var P=fdMonthData(fdPrevMonth(FD.month));
+  FD.R=R;FD.P=P;
+  var h='';
+  h+=fdBanner(R);
+  h+=fdVerdict(R,P);
+  h+=fdKpis(R,P);
+  h+='<div class="fd-card"><div class="fd-ct">المبيعات اليومية<\/div><div class="fd-cs">إجمالي مبيعات كل يوم شاملة الضريبة · ر.س'+(R.be&&R.be.daily?' · أخضر = فوق نقطة التعادل، أحمر = تحتها':'')+'<\/div>'+fdDaily(R)+'<\/div>';
+  h+='<div class="fd-grid2">';
+  h+='<div class="fd-card"><div class="fd-ct">المبيعات حسب أيام الأسبوع<\/div><div class="fd-cs">متوسط اليوم شامل الضريبة · النسبة = مقارنة بمتوسط الشهر<\/div>'+fdWeekday(R)+'<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">سيناريوهات صافي النتيجة<\/div><div class="fd-cs">تكلفة الأصناف حسب الوصفات مقابل افتراض متحفظ 35%<\/div>'+fdScen(R)+'<\/div>';
+  h+='<\/div><div class="fd-grid2">';
+  h+='<div class="fd-card"><div class="fd-ct">المبيعات حسب الفئة<\/div><div class="fd-cs">صافي المبيعات · ر.س (الفئة من الوصفة المربوطة بالصنف)<\/div>'+fdCats(R)+'<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">طرق الدفع<\/div><div class="fd-cs">من تقارير تقفيل الكاشير لهذا الشهر · ر.س<\/div>'+fdPay(R)+'<\/div>';
+  h+='<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">أعلى 10 أصناف في هامش المساهمة<\/div><div class="fd-cs">صافي المبيعات − التكلفة المباشرة · ر.س خلال الشهر<\/div>'+fdTopCM(R)+'<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">كل الأصناف<\/div><div class="fd-cs">اضغط على عنوان العمود للترتيب · «تقدير» = صنف بلا وصفة كاملة في المنصة (تكلفته 35% من سعره)<\/div>'
+    +'<div class="fd-bar"><input class="fd-in" id="fd-q" placeholder="🔍 بحث عن صنف" oninput="FD.q=this.value;fdRenderItems()" value="'+fdEsc(FD.q)+'" style="flex:1;min-width:160px"><\/div><div id="fd-items" class="fd-scroll"><\/div><\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">التكاليف الثابتة الشهرية<\/div><div class="fd-cs">من حاسبة نقطة التعادل في المنصة<\/div>'+fdFixed(R)+'<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">مقارنة مع الشهر السابق<\/div><div class="fd-cs">'+(P?fdMonthLabel(P.m)+' مقابل '+fdMonthLabel(R.m):'')+'<\/div>'+fdCompare(R,P)+'<\/div>';
+  h+='<div class="fd-card"><div class="fd-ct">اتجاه الأشهر · '+R.m.slice(0,4)+'<\/div><div class="fd-cs">صافي المبيعات وصافي الربح لكل شهر متاح · ر.س<\/div>'+fdTrend(R.m.slice(0,4))+'<\/div>';
+  box.innerHTML=h;
+  fdRenderItems();
+}
+function fdBanner(R){
+  var w='';
+  if(!R.hasTax)w+='<div class="fd-warnbox">⚠️ <b>ضريبة الأصناف غير موجودة لهذا الشهر<\/b> — رُفع الملف قبل تحديث الاستيراد، لذلك صافي المبيعات يساوي الإجمالي مؤقتاً. أعد رفع ملف رواء اليومي من صفحة «التنبؤ بالطلبيات» ← «البيانات» ليُحتسب الصافي الصحيح.<\/div>';
+  if(!R.be)w+='<div class="fd-warnbox">⚠️ <b>حاسبة نقطة التعادل غير محفوظة<\/b> — احفظ بياناتها من صفحة «نقطة التعادل» لتظهر التكاليف الثابتة وصافي الربح.<\/div>';
+  else if(!R.be.daily)w+='<div class="fd-warnbox">⚠️ حاسبة نقطة التعادل ينقصها سعر وتكلفة وحصة الفئات، فلا يمكن حساب نقطة التعادل اليومية.<\/div>';
+  if(R.partial)w+='<div class="fd-warnbox">ℹ️ الشهر غير مكتمل: الأرقام حتى آخر يوم مرفوع ('+R.dates[R.dates.length-1]+')، والتكاليف الثابتة محسوبة للشهر كاملاً.<\/div>';
+  if(CU&&CU.role==='branch_manager'&&typeof hbInvoiceCostsPending==='function'&&hbInvoiceCostsPending())
+    w+='<div class="fd-warnbox">🧾 تكاليف فواتير الموردين الجديدة (الآيس تي، الكركديه، البابكا، البسبوسة، المكسرات) لم تُطبَّق على بطاقات التكلفة بعد. <button class="btn bsm bp" onclick="hbApplyInvoiceCosts(function(){fdReload();})">تطبيق الآن<\/button><\/div>';
+  return w;
+}
+function fdVerdict(R,P){
+  var be=R.be&&R.be.daily,s='<b>الخلاصة · '+fdMonthLabel(R.m)+':<\/b> ';
+  if(be){
+    var gap=R.day-be;
+    s+=gap>=0?'متوسط البيع اليومي '+fdN(R.day,2)+' ر.س أعلى من نقطة التعادل ('+fdN(be)+' ر.س) بنسبة '+fdPct(gap/be*100)+'، وتجاوز التعادل '+R.above+' يوماً من '+R.days+'. '
+             :'متوسط البيع اليومي '+fdN(R.day,2)+' ر.س أقل من نقطة التعادل ('+fdN(be)+' ر.س) بفارق '+fdN(-gap,2)+' ر.س يومياً، وتجاوز التعادل '+R.above+' يوماً فقط من '+R.days+'. ';
+  }else s+='متوسط البيع اليومي '+fdN(R.day,2)+' ر.س. ';
+  if(R.profit!=null)s+='صافي الربح '+fdSN(R.profit)+' ر.س بتكلفة الوصفات، و'+fdSN(R.p35)+' ر.س بافتراض تكلفة 35%. ';
+  if(P)s+='المبيعات '+(R.incl>=P.incl?'ارتفعت ':'انخفضت ')+fdPct((R.incl/P.incl-1)*100)+' عن '+fdMonthLabel(P.m)+'.';
+  return '<div class="fd-verdict">'+s+'<\/div>';
+}
+function fdKpis(R,P){
+  var be=R.be,k=[];
+  var ch=P&&P.net?fdPct((R.net/P.net-1)*100)+' عن '+FD_MONTHS[+P.m.slice(5)-1]:'لا يوجد شهر سابق للمقارنة';
+  k.push(['صافي المبيعات',fdN(R.net),'ر.س · '+ch,'']);
+  if(R.profit!=null)k.push(['صافي الربح',fdN(R.profit),'ر.س · هامش '+fdPct(R.net?R.profit/R.net*100:0)+' · بتكلفة الوصفات',R.profit>=0?'fd-pos':'fd-neg']);
+  else k.push(['صافي الربح','—','يحتاج حفظ حاسبة نقطة التعادل','']);
+  if(be&&be.daily)k.push(['متوسط البيع اليومي',fdN(R.day,2),'ر.س · التعادل '+fdN(be.daily)+' · الفارق '+fdSN(R.day-be.daily,2),R.day>=be.daily?'fd-pos':'fd-neg']);
+  else k.push(['متوسط البيع اليومي',fdN(R.day,2),'ر.س · نقطة التعادل غير متاحة','']);
+  k.push(['نسبة تكلفة الأصناف',(R.net?R.cogs/R.net*100:0).toFixed(1)+'%',fdN(R.cogs)+' ر.س · '+(R.net?(R.estNet/R.net*100).toFixed(0):0)+'% من المبيعات بتكلفة تقديرية','']);
+  if(be)k.push(['التكاليف الثابتة',fdN(be.fc),'ر.س · '+(R.net?(be.fc/R.net*100).toFixed(1):'—')+'% من صافي المبيعات','']);
+  else k.push(['التكاليف الثابتة','—','احفظ حاسبة نقطة التعادل','']);
+  if(R.above!=null)k.push(['أيام فوق التعادل',R.above+' / '+R.days,'يوماً من أيام الشهر',R.above>=R.days/2?'fd-pos':'fd-neg']);
+  else k.push(['أيام فوق التعادل','—','نقطة التعادل غير متاحة','']);
+  return '<div class="fd-kpis">'+k.map(function(x){return '<div class="fd-kpi"><div class="fd-kl">'+x[0]+'<\/div><div class="fd-kv '+x[3]+'">'+x[1]+'<\/div><div class="fd-ks">'+x[2]+'<\/div><\/div>';}).join('')+'<\/div>';
+}
+function fdBars(vals,labels,line,colorFn,showVals){
+  var mx=Math.max.apply(null,vals.concat([line||0]))*1.12||1;
+  var h='<div class="fd-chart">';
+  vals.forEach(function(v,i){h+='<div class="fd-col" title="'+fdEsc(labels[i].t||labels[i])+': '+fdN(v)+'">'+(showVals?'<div class="fd-colv">'+fdN(v)+'<\/div>':'')+'<div class="fd-colb" style="height:'+(Math.max(v,0)/mx*100).toFixed(1)+'%;background:'+colorFn(v,i)+'"><\/div><\/div>';});
+  if(line)h+='<div class="fd-be" style="bottom:'+(line/mx*100).toFixed(1)+'%"><span>التعادل '+fdN(line)+'<\/span><\/div>';
+  h+='<\/div><div class="fd-xl">'+labels.map(function(l){return '<div>'+(l.s||l)+'<\/div>';}).join('')+'<\/div>';
+  return h;
+}
+function fdDaily(R){
+  var be=R.be&&R.be.daily;
+  var vals=R.allDays.map(function(x){return x.v;}),labels=R.allDays.map(function(x){return {s:String(+x.d.slice(8)),t:x.d+' '+FD_WD[new Date(x.d+'T12:00:00').getDay()]};});
+  var h=fdBars(vals,labels,be,function(v){return !be?'#8f2a22':(v>=be?'#2D6A4F':'#B3261E');},false);
+  var has=R.allDays.filter(function(x){return x.has;});
+  if(has.length){
+    var hi=has.reduce(function(a,b){return b.v>a.v?b:a;}),lo=has.reduce(function(a,b){return b.v<a.v?b:a;});
+    var dl=function(x){return +x.d.slice(8)+' '+FD_MONTHS[+x.d.slice(5,7)-1]+' ('+FD_WD[new Date(x.d+'T12:00:00').getDay()]+')';};
+    h+='<div class="fd-chips"><div class="fd-chip"><b class="fd-pos">'+fdN(hi.v)+'<\/b>أعلى يوم: '+dl(hi)+'<\/div><div class="fd-chip"><b class="fd-neg">'+fdN(lo.v)+'<\/b>أقل يوم: '+dl(lo)+'<\/div>'
+      +(be?'<div class="fd-chip"><b>'+R.above+' / '+R.days+'<\/b>يوماً فوق نقطة التعادل<\/div>':'')
+      +'<div class="fd-chip"><b>'+fdN(R.day,2)+'<\/b>متوسط اليوم<\/div><\/div>';
+  }
+  return h;
+}
+function fdWeekday(R){
+  var order=[6,0,1,2,3,4,5],be=R.be&&R.be.daily,vals=[],labels=[],all=[];
+  order.forEach(function(w){if(R.wd[w]){var a=R.wd[w].reduce(function(s,x){return s+x;},0)/R.wd[w].length;vals.push(a);labels.push(FD_WD[w]);all=all.concat(R.wd[w]);}});
+  if(!vals.length)return fdEmpty('لا توجد أيام بمبيعات');
+  var avg=all.reduce(function(s,x){return s+x;},0)/all.length;
+  var h=fdBars(vals,labels,be,function(v){return be&&v>=be?'#2D6A4F':'#8f2a22';},true);
+  h+='<div class="fd-xl" style="margin-top:2px">'+vals.map(function(v){return '<div style="font-weight:700;color:var(--tm)">'+Math.round(v/avg*100)+'%<\/div>';}).join('')+'<\/div>';
+  return h;
+}
+function fdScen(R){
+  if(!R.be)return fdEmpty('احفظ حاسبة نقطة التعادل لعرض صافي النتيجة.');
+  var row=function(l,c,p){return '<tr><td class="fd-nm">'+l+'<\/td><td>'+c+'<\/td><td class="'+(p>=0?'fd-pos':'fd-neg')+'" style="font-weight:900">'+fdSN(p)+'<\/td><\/tr>';};
+  return '<table class="fd-tbl"><thead><tr><th>السيناريو<\/th><th>تكلفة الأصناف<\/th><th>صافي النتيجة<\/th><\/tr><\/thead><tbody>'
+    +row('حسب وصفات المنصة',(R.net?(R.cogs/R.net*100).toFixed(1):0)+'% · '+fdN(R.cogs),R.profit)
+    +row('تكلفة 35% (متحفظ)','35.0% · '+fdN(R.net*FD_EST),R.p35)+'<\/tbody><\/table>'
+    +'<div class="fd-note">صافي النتيجة = صافي المبيعات − تكلفة الأصناف − التكاليف الثابتة ('+fdN(R.be.fc)+' ر.س). الفرق بين السيناريوهين يحسمه الجرد الشهري الفعلي.<\/div>';
+}
+function fdHBars(rows,fmt){
+  var mx=Math.max.apply(null,rows.map(function(r){return r[1];}))||1;
+  return rows.map(function(r){return '<div class="fd-hb"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+fdEsc(r[0])+'">'+fdEsc(r[0])+'<\/div><div class="fd-hbt"><div class="fd-hbf" style="width:'+(Math.max(r[1],0)/mx*100).toFixed(1)+'%"><\/div><\/div><div class="fd-hbv">'+fmt(r)+'<\/div><\/div>';}).join('');
+}
+function fdCats(R){
+  var c={};R.items.forEach(function(o){c[o.cat]=(c[o.cat]||0)+o.net;});
+  var rows=Object.keys(c).map(function(k){return [k,c[k]];}).filter(function(r){return Math.abs(r[1])>0.5;}).sort(function(a,b){return b[1]-a[1];});
+  if(!rows.length)return fdEmpty('لا توجد مبيعات');
+  return fdHBars(rows,function(r){return fdN(r[1])+' · '+(R.net?(r[1]/R.net*100).toFixed(1):0)+'%';});
+}
+function fdPay(R){
+  var c=R.cash;
+  if(c&&c.err)return fdEmpty('تعذر قراءة تقارير الكاشير.');
+  if(!c)return fdEmpty('لا توجد تقارير تقفيل كاشير لهذا الشهر.');
+  var rows=[['شبكة (مدى/فيزا/ماستر)',c.card],['نقد',c.cash],['تطبيقات التوصيل',c.apps],['تحويل',c.transfer],['أخرى',c.other]].filter(function(r){return r[1]>0;});
+  var h=rows.length?fdHBars(rows,function(r){return fdN(r[1])+' · '+(c.total?(r[1]/c.total*100).toFixed(1):0)+'%';}):fdEmpty('لا توجد مبالغ');
+  h+='<div class="fd-chips"><div class="fd-chip"><b>'+fdN(c.total)+'<\/b>إجمالي المقبوضات ('+c.nDays+' يوماً)<\/div><div class="fd-chip"><b class="fd-neg">'+fdN(c.returns)+'<\/b>المرتجعات<\/div>';
+  if(c.tx>0)h+='<div class="fd-chip"><b>'+fdN(c.txSales/c.tx,2)+'<\/b>متوسط الفاتورة<\/div><div class="fd-chip"><b>'+fdN(c.tx/c.nTxDays)+'<\/b>عملية يومياً ('+c.nTxDays+' يوماً مسجلاً)<\/div>';
+  h+='<\/div>';
+  if(!(c.tx>0))h+='<div class="fd-note">متوسط الفاتورة وعدد العمليات يظهران بعد تعبئة حقل «عدد العمليات» في تقفيل الكاشير.<\/div>';
+  return h;
+}
+function fdTopCM(R){
+  var top=R.items.slice().sort(function(a,b){return b.cm-a.cm;}).slice(0,10).filter(function(o){return o.cm>0;});
+  if(!top.length)return fdEmpty('لا توجد بيانات');
+  return fdHBars(top.map(function(o){return [o.name,o.cm,o];}),function(r){return fdN(r[1])+' · تكلفة '+r[2].fc.toFixed(0)+'%';});
+}
+function fdSortBy(k){if(FD.sort.k===k)FD.sort.d*=-1;else{FD.sort.k=k;FD.sort.d=(k==='name'?1:-1);}fdRenderItems();}
+function fdRenderItems(){
+  var box=document.getElementById('fd-items'),R=FD.R;if(!box||!R)return;
+  var q=String(FD.q||'').trim().toLowerCase(),k=FD.sort.k,d=FD.sort.d;
+  var list=R.items.filter(function(o){return !q||String(o.name).toLowerCase().indexOf(q)>=0;});
+  list.sort(function(a,b){var x=a[k],y=b[k];if(k==='name')return d*String(x).localeCompare(String(y),'ar');return d*((x||0)-(y||0));});
+  var cols=[['name','الصنف'],['q','الكمية'],['net','الصافي'],['uc','تكلفة الوحدة'],['fc','نسبة التكلفة'],['cm','المساهمة']];
+  var h='<table class="fd-tbl"><thead><tr>'+cols.map(function(c){return '<th class="fd-s" onclick="fdSortBy(\''+c[0]+'\')">'+c[1]+(k===c[0]?(d>0?' ▲':' ▼'):'')+'<\/th>';}).join('')+'<\/tr><\/thead><tbody>';
+  var t={q:0,net:0,cogs:0,cm:0};
+  list.forEach(function(o){
+    var cl=o.fc>=40?'fd-bad':(o.fc>=30?'fd-warn':'fd-ok');t.q+=o.q;t.net+=o.net;t.cogs+=o.cogs;t.cm+=o.cm;
+    h+='<tr><td class="fd-nm">'+fdEsc(o.name)+(o.est?'<span class="fd-est">تقدير<\/span>':'')+'<\/td><td>'+fdN(o.q)+'<\/td><td>'+fdN(o.net)+'<\/td><td>'+fdN(o.uc,2)+'<\/td><td><span class="fd-pill '+cl+'">'+o.fc.toFixed(1)+'%<\/span><\/td><td style="font-weight:700">'+fdN(o.cm)+'<\/td><\/tr>';
+  });
+  h+='<tr class="fd-tot"><td>الإجمالي ('+list.length+' صنفاً)<\/td><td>'+fdN(t.q)+'<\/td><td>'+fdN(t.net)+'<\/td><td>—<\/td><td>'+(t.net?(t.cogs/t.net*100).toFixed(1):0)+'%<\/td><td>'+fdN(t.cm)+'<\/td><\/tr>';
+  box.innerHTML=h+'<\/tbody><\/table>';
+}
+function fdFixed(R){
+  var be=R.be;if(!be)return fdEmpty('احفظ بيانات حاسبة نقطة التعادل لعرض التكاليف الثابتة.');
+  var t=function(title,arr,tot){return '<div><div style="font-weight:900;color:#8f2a22;margin-bottom:6px">'+title+' · '+fdN(tot,2)+' ر.س<\/div><table class="fd-tbl"><tbody>'
+    +arr.filter(function(x){return x.v>0;}).map(function(x){return '<tr><td class="fd-nm">'+x.l+'<\/td><td>'+fdN(x.v,2)+'<\/td><\/tr>';}).join('')+'<\/tbody><\/table><\/div>';};
+  return '<div class="fd-grid2">'+t('تكلفة الموظفين',be.emp,be.te)+t('تشغيل الفرع',be.ops,be.to)+'<\/div>'
+    +'<div class="fd-chips"><div class="fd-chip"><b>'+fdN(be.fc,2)+'<\/b>إجمالي التكاليف الثابتة الشهرية<\/div>'
+    +(be.daily?'<div class="fd-chip"><b>'+fdN(be.daily)+'<\/b>نقطة التعادل اليومية<\/div><div class="fd-chip"><b>'+(be.cmp*100).toFixed(1)+'%<\/b>هامش المساهمة في الحاسبة<\/div>':'')+'<\/div>';
+}
+function fdCompare(R,P){
+  if(!P)return fdEmpty('لا توجد بيانات للشهر السابق.');
+  var row=function(l,a,b,up,dd){var c=b?(a/b-1)*100:0,good=(c>=0)===up;return '<tr><td class="fd-nm">'+l+'<\/td><td>'+fdN(b,dd)+'<\/td><td>'+fdN(a,dd)+'<\/td><td>'+fdSN(a-b,dd)+'<\/td><td class="'+(Math.abs(c)<0.05?'':(good?'fd-pos':'fd-neg'))+'" style="font-weight:800">'+fdPct(c)+'<\/td><\/tr>';};
+  var h='<div class="fd-grid2"><div class="fd-scroll"><table class="fd-tbl"><thead><tr><th>المؤشر<\/th><th>السابق<\/th><th>الحالي<\/th><th>الفرق<\/th><th>التغير<\/th><\/tr><\/thead><tbody>'
+    +row('المبيعات شاملة الضريبة',R.incl,P.incl,true)+row('صافي المبيعات',R.net,P.net,true)+row('متوسط البيع اليومي',R.day,P.day,true,2)
+    +row('الكمية المباعة',R.qty,P.qty,true)+row('تكلفة الأصناف',R.cogs,P.cogs,false);
+  if(R.profit!=null&&P.profit!=null)h+='<tr><td class="fd-nm">صافي الربح<\/td><td>'+fdSN(P.profit)+'<\/td><td>'+fdSN(R.profit)+'<\/td><td class="'+(R.profit>=P.profit?'fd-pos':'fd-neg')+'" style="font-weight:800">'+fdSN(R.profit-P.profit)+'<\/td><td>—<\/td><\/tr>';
+  if(R.above!=null&&P.above!=null)h+='<tr><td class="fd-nm">أيام فوق التعادل<\/td><td>'+P.above+' / '+P.days+'<\/td><td>'+R.above+' / '+R.days+'<\/td><td>'+fdSN(R.above-P.above)+'<\/td><td>—<\/td><\/tr>';
+  h+='<\/tbody><\/table><\/div>';
+  var pm={};P.items.forEach(function(o){pm[o.pid]=o;});
+  var seen={},mv=[];
+  R.items.forEach(function(o){seen[o.pid]=1;var p=pm[o.pid];mv.push([o.name,p?p.net:0,o.net]);});
+  P.items.forEach(function(o){if(!seen[o.pid])mv.push([o.name,o.net,0]);});
+  mv.sort(function(a,b){return Math.abs(b[2]-b[1])-Math.abs(a[2]-a[1]);});
+  h+='<div class="fd-scroll"><table class="fd-tbl"><thead><tr><th>أكبر التغيرات في الأصناف<\/th><th>السابق<\/th><th>الحالي<\/th><th>الفرق<\/th><\/tr><\/thead><tbody>'
+    +mv.slice(0,8).map(function(r){var df=r[2]-r[1];return '<tr><td class="fd-nm">'+fdEsc(r[0])+'<\/td><td>'+fdN(r[1])+'<\/td><td>'+fdN(r[2])+'<\/td><td class="'+(df>=0?'fd-pos':'fd-neg')+'" style="font-weight:800">'+fdSN(df)+'<\/td><\/tr>';}).join('')
+    +'<\/tbody><\/table><\/div><\/div>';
+  return h;
+}
+function fdTrend(y){
+  var ms={};Object.keys(FD.days).forEach(function(d){if(d.slice(0,4)===y)ms[d.slice(0,7)]=1;});
+  var list=Object.keys(ms).sort();if(!list.length)return fdEmpty('لا توجد أشهر');
+  var data=list.map(fdMonthData);
+  var mx=Math.max.apply(null,data.map(function(r){return Math.max(r.net,Math.abs(r.profit||0));}))*1.12||1;
+  var h='<div class="fd-chart" style="height:230px;gap:6px">';
+  data.forEach(function(r){
+    var p=r.profit;
+    h+='<div class="fd-col" style="flex-direction:row;align-items:flex-end;gap:2px;justify-content:center">'
+      +'<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;align-items:center"><div class="fd-colv">'+fdN(r.net/1000,1)+'k<\/div><div class="fd-colb" style="width:90%;height:'+(r.net/mx*100).toFixed(1)+'%;background:#C9A98A"><\/div><\/div>'
+      +'<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;align-items:center">'+(p!=null?'<div class="fd-colv '+(p>=0?'fd-pos':'fd-neg')+'">'+fdN(p/1000,1)+'k<\/div><div class="fd-colb" style="width:90%;height:'+(Math.abs(p)/mx*100).toFixed(1)+'%;background:'+(p>=0?'#2D6A4F':'#B3261E')+'"><\/div>':'')+'<\/div><\/div>';
+  });
+  h+='<\/div><div class="fd-xl" style="gap:6px">'+data.map(function(r){return '<div>'+FD_MONTHS[+r.m.slice(5)-1]+(r.partial?'*':'')+'<\/div>';}).join('')+'<\/div>';
+  h+='<div class="fd-chips"><div class="fd-chip"><span style="display:inline-block;width:10px;height:10px;background:#C9A98A;border-radius:3px"><\/span> صافي المبيعات<\/div><div class="fd-chip"><span style="display:inline-block;width:10px;height:10px;background:#2D6A4F;border-radius:3px"><\/span> صافي الربح (الأحمر خسارة)<\/div><\/div>';
+  var tn=0,tp=0,hasP=true;data.forEach(function(r){tn+=r.net;if(r.profit==null)hasP=false;else tp+=r.profit;});
+  h+='<div class="fd-scroll" style="margin-top:10px"><table class="fd-tbl"><thead><tr><th>الشهر<\/th><th>المبيعات شاملة الضريبة<\/th><th>صافي المبيعات<\/th><th>تكلفة الأصناف<\/th><th>صافي الربح<\/th><th>متوسط اليوم<\/th><\/tr><\/thead><tbody>'
+    +data.map(function(r){return '<tr><td class="fd-nm">'+fdMonthLabel(r.m)+(r.partial?' *':'')+'<\/td><td>'+fdN(r.incl)+'<\/td><td>'+fdN(r.net)+'<\/td><td>'+fdN(r.cogs)+'<\/td><td class="'+(r.profit==null?'':(r.profit>=0?'fd-pos':'fd-neg'))+'" style="font-weight:800">'+(r.profit==null?'—':fdSN(r.profit))+'<\/td><td>'+fdN(r.day)+'<\/td><\/tr>';}).join('')
+    +'<tr class="fd-tot"><td>الإجمالي<\/td><td>'+fdN(data.reduce(function(s,r){return s+r.incl;},0))+'<\/td><td>'+fdN(tn)+'<\/td><td>'+fdN(data.reduce(function(s,r){return s+r.cogs;},0))+'<\/td><td>'+(hasP?fdSN(tp):'—')+'<\/td><td>—<\/td><\/tr><\/tbody><\/table><\/div>'
+    +(data.some(function(r){return r.partial;})?'<div class="fd-note">* شهر غير مكتمل.<\/div>':'');
+  return h;
+}
+
+// ---------- الطباعة (تقرير بتصميم نَسَق مع خانتي الاعتماد) ----------
+function fdPrint(){
+  var body=document.getElementById('fd-body');if(!body||!FD.R){alert('لا توجد بيانات للطباعة');return;}
+  var R=FD.R,w=window.open('','_blank');if(!w){alert('اسمح بالنوافذ المنبثقة للطباعة');return;}
+  var clone=body.cloneNode(true);
+  clone.querySelectorAll('input,button,.fd-warnbox').forEach(function(e){e.remove();});
+  var css=FD_CSS.replace(/#pg-findash/g,'body')
+    +'*{box-sizing:border-box}body{font-family:Cairo,Tahoma,sans-serif;direction:rtl;color:#2C1A0E;background:#fff;margin:0;padding:18px 22px;-webkit-print-color-adjust:exact;print-color-adjust:exact;--br:#D4C5A9;--tl:#8B6E55;--tm:#5A3E2B;--t:#2C1A0E}'
+    +'.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #8f2a22;padding-bottom:10px;margin-bottom:14px}'
+    +'.hd h1{margin:0;font-size:22px;color:#8f2a22}.hd .sub{font-size:12px;color:#B5621B;font-weight:700}.hd .br{text-align:left;font-size:11px;color:#8B6E55}.hd .br b{display:block;font-size:16px;color:#8f2a22}'
+    +'.fd-card,.fd-kpi,.fd-verdict,.sig{break-inside:avoid}'
+    +'.sigs{display:flex;gap:30px;margin-top:20px;break-inside:avoid}.sig{flex:1;border:1px solid #D4C5A9;border-radius:12px;padding:14px;text-align:center}'
+    +'.sig .l{font-size:12px;color:#8B6E55;font-weight:700}.sig .line{border-bottom:1.5px dashed #D4C5A9;height:60px;margin-bottom:8px}.sig .n{font-size:17px;font-weight:900;color:#8f2a22}.sig .t{font-size:12px}'
+    +'.ft{margin-top:14px;border-top:1px solid #D4C5A9;padding-top:8px;font-size:10.5px;color:#8B6E55;display:flex;justify-content:space-between}'
+    +'@page{size:A4;margin:10mm}@media print{body{padding:0}}';
+  var html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقرير المالي — '+fdMonthLabel(R.m)+'<\/title>'
+    +'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap"><style>'+css+'<\/style><\/head><body>'
+    +'<div class="hd"><div><h1>التقرير المالي لشهر '+fdMonthLabel(R.m)+'<\/h1><div class="sub">شاي حباق · فرع أبها · اللوحة المالية<\/div><\/div><div class="br"><b>حباق<\/b>تحت إشراف نَسَق<\/div><\/div>'
+    +clone.innerHTML
+    +'<div class="sigs"><div class="sig"><div class="l">إعداد<\/div><div class="line"><\/div><div class="n">حاتم عطية<\/div><div class="t">مدير العمليات المالية والتشغيلية<\/div><\/div>'
+    +'<div class="sig"><div class="l">اعتماد<\/div><div class="line"><\/div><div class="n">أحمد القحطاني<\/div><div class="t">المدير العام<\/div><\/div><\/div>'
+    +'<div class="ft"><span><b>حباق<\/b> — تحت إشراف نَسَق لحلول الأعمال والتشغيل · أبها +966 566 770 809<\/span><span>تاريخ الإصدار: '+fdToday()+'<\/span><\/div>'
+    +'<script>window.onload=function(){setTimeout(function(){window.print();},600);};</'+'script><\/body><\/html>';
+  w.document.open();w.document.write(html);w.document.close();
 }
 
 // =================================================================

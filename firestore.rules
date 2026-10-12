@@ -3,6 +3,8 @@ rules_version = '2';
 // نسخة مرجعية مطابقة للقواعد المنشورة في Firebase Console (صلاحيات حسب الدور)،
 // مضافاً إليها: مجموعات التنبؤ الذكي بالطلبيات (fc_daily, fc_meta, fc_snapshots) ومسودات الجرد (inv_count_drafts)
 // والمحاسبة المالية (acc_accounts, acc_entries, acc_settings).
+// اللوحة المالية (للعرض فقط): يقرأ المحاسب والمالك مبيعات رواء (fc_daily, fc_meta) وحاسبة نقطة التعادل (breakeven_calc)
+// بدون أي صلاحية كتابة إضافية — الكتابة بقيت كما هي.
 // هذا الملف لا يُطبَّق تلقائياً من GitHub — يُلصق في Firebase Console ← Firestore ← Rules ثم Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -176,8 +178,9 @@ service cloud.firestore {
       allow create, update, delete: if isManager();
     }
 
+    // حاسبة نقطة التعادل — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /breakeven_calc/{id} {
-      allow read: if hasRole(['branch_manager', 'owner']);
+      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
       allow create, update, delete: if isManager();
     }
 
@@ -214,13 +217,15 @@ service cloud.firestore {
     }
 
     // ===== التنبؤ الذكي بالطلبيات =====
+    // مبيعات الأصناف اليومية من رواء — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /fc_daily/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
+      allow read: if hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']);
       allow create, update, delete: if hasRole(['branch_manager', 'store_manager']);
     }
 
+    // أسماء الأصناف وربطها بالوصفات — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /fc_meta/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
+      allow read: if hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']);
       allow create, update: if hasRole(['branch_manager', 'store_manager']);
       allow delete: if isManager();
     }
@@ -258,6 +263,11 @@ service cloud.firestore {
     match /acc_settings/{id} {
       allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
       allow create, update, delete: if isManager();
+    }
+
+    // الرفض الافتراضي: أي مجموعة غير مذكورة أعلاه ممنوعة قراءةً وكتابةً
+    match /{document=**} {
+      allow read, write: if false;
     }
 
   }
