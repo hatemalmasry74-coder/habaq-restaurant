@@ -337,6 +337,36 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
   .sch-table thead th{background:#7a1515!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 #pg-accounting .ac-in{padding:5px 9px;border:1px solid var(--br);border-radius:6px;font-family:Cairo,sans-serif;font-size:12px}
+.sidebar{width:226px}
+.sg{margin:3px 8px}
+.sgh{display:flex;align-items:center;gap:8px;padding:10px 11px;border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:800;color:var(--tm);background:var(--b);user-select:none;transition:background .15s}
+.sgh:hover{background:var(--bd)}
+.sgh .sgi{font-size:15px;line-height:1}
+.sgh .sgc{margin-inline-start:auto;width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.6;transition:transform .2s;transform:rotate(180deg)}
+.sg.open>.sgh{background:var(--bd);color:var(--r)}
+.sg.open>.sgh .sgc{transform:rotate(90deg)}
+html[dir=ltr] .sgh .sgc{transform:rotate(0deg)}
+html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
+.sgb{display:none;padding:4px 0 6px}
+.sg.open>.sgb{display:block}
+.sgb .ni{border-radius:8px;margin:1px 2px;padding:8px 11px;font-weight:600}
+.um-box.um-wide{width:640px}
+.fr .px-mode{display:flex;gap:8px;align-items:center;font-weight:800;font-size:12.5px;color:#5D4037;background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:9px 11px;cursor:pointer;margin:0}
+.fr .px-mode input,.fr .px-i input{width:auto;margin:0;flex:none}
+.px-hint{font-size:11px;color:var(--tl);margin:6px 2px 8px;line-height:1.7}
+.px-g{border:1px solid var(--br);border-radius:9px;margin-bottom:6px;overflow:hidden}
+.px-gh{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--b);cursor:pointer;font-size:12px;font-weight:800}
+.px-cnt{background:var(--w);border:1px solid var(--br);border-radius:10px;padding:0 7px;font-size:10px;font-weight:700;color:var(--tl)}
+.px-act{margin-inline-start:auto;display:flex;gap:10px;font-size:10.5px;font-weight:700}
+.px-act a{color:var(--r);cursor:pointer;text-decoration:underline}
+.px-gb{display:none;padding:7px 11px 9px;grid-template-columns:1fr 1fr;gap:3px 14px}
+.px-g.open>.px-gb{display:grid}
+.fr .px-i{display:flex;gap:6px;align-items:flex-start;font-size:11.5px;line-height:1.6;cursor:pointer;padding:2px 0;margin:0;font-weight:500}
+.fr .px-i.cap{grid-column:1/-1;color:#5D4037}
+.fr .px-i.danger{color:#B71C1C}
+.px-foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.px-note{font-size:10.5px;color:var(--tl);line-height:1.7;flex:1;min-width:200px}
+@media(max-width:600px){.px-gb{grid-template-columns:1fr}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -439,28 +469,38 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 
   <div class="app-body">
     <div class="sidebar" id="sidebar">
-      <div><div class="sl">الرئيسية</div>
+      <div class="sg" data-g="main"><div class="sgh" onclick="navToggle(this)"><span class="sgi">🏠</span><span>الرئيسية</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
         <div class="ni active" onclick="go('dashboard',this)" data-perm="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>لوحة التحكم</div>
+        <div class="ni" onclick="go('findash',this)" data-perm="findash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>اللوحة المالية<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        </div>
       </div>
-      <div><div class="sl">العمليات اليومية</div>
+      <div class="sg" data-g="ops"><div class="sgh" onclick="navToggle(this)"><span class="sgi">🧾</span><span>العمليات اليومية</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
         <div class="ni" onclick="go('opening',this)" data-perm="opening"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>مهام الوردية</div>
         <div class="ni" onclick="go('cashier',this)" data-perm="cashier"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>تقفيل الكاشير<span class="nbdg">!</span></div>
         <div class="ni" onclick="go('revenue-receipt',this)" data-perm="cashier"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>استلام الإيرادات</div>
         <div class="ni" onclick="go('custody',this)" data-perm="custody"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>عهد النقدية</div>
+        <div class="ni" onclick="go('forms',this)" data-perm="opening"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>النماذج والقوائم</div>
+        </div>
       </div>
-      <div><div class="sl">الزيارات</div>
+      <div class="sg" data-g="qa"><div class="sgh" onclick="navToggle(this)"><span class="sgi">📋</span><span>الزيارات والجودة</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
         <div class="ni" onclick="go('visit',this)" data-perm="visit"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>نموذج الزيارة</div>
         <div class="ni" onclick="go('vreports',this)" data-perm="visit"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>تقارير الزيارات</div>
         <div class="ni" onclick="go('opreports',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><polyline points="9 12 11 14 15 10"/></svg>تقارير الورديات</div>
+        </div>
       </div>
-      <div><div class="sl">الطلبات</div>
+      <div class="sg" data-g="inv"><div class="sgh" onclick="navToggle(this)"><span class="sgi">📦</span><span>المخزون والمشتريات</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
+        <div class="ni" onclick="go('inventory',this)" data-perm="inventory"><svg viewBox="0 0 24 24"><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>المخازن والجرد<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('purchase',this)" data-perm="purchase"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>طلبات المشتريات<span class="nbdg" style="display:none">0</span></div>
         <div class="ni" onclick="go('purchase-system',this)" data-perm="purchase-system"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M6 12h4M6 16h6"/></svg>المشتريات والموردين<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
-        <div class="ni" onclick="go('inventory',this)" data-perm="inventory"><svg viewBox="0 0 24 24"><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>المخازن والجرد<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
-        <div class="ni" onclick="go('forecast',this)" data-perm="forecast"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l3-4 3 2 4-6"/><path d="M17 7h3v3"/></svg>التنبؤ بالطلبيات<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('production',this)" data-perm="purchase"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>طلبات الإنتاج</div>
+        </div>
       </div>
-      <div><div class="sl">الموارد البشرية</div>
+      <div class="sg" data-g="hr"><div class="sgh" onclick="navToggle(this)"><span class="sgi">👥</span><span>الموارد البشرية</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
         <div class="ni" onclick="go('hr-employees',this)" data-perm="hr-employees"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>سجل الموظفين</div>
         <div class="ni" onclick="go('hr-payroll',this)" data-perm="hr-payroll"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>مسير الرواتب</div>
         <div class="ni" onclick="go('hr-eval',this)" data-perm="hr-eval"><svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>تقييم الموظفين</div>
@@ -468,28 +508,32 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         <div class="ni" onclick="go('hr-violations',this)" data-perm="hr-violations"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>مخالفات الموظفين</div>
         <div class="ni" onclick="go('hr-schedule-dining',this)" data-perm="hr-schedule-dining"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>🍽️ جدول الصالة</div>
         <div class="ni" onclick="go('hr-schedule-kitchen',this)" data-perm="hr-schedule-kitchen"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>👨‍🍳 جدول المطبخ</div>
+        </div>
       </div>
-      <div><div class="sl">📋 النماذج التشغيلية</div>
-        <div class="ni" onclick="go('forms',this)" data-perm="opening"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>النماذج والقوائم</div>
-      </div>
-      <div><div class="sl">📊 التحليل المالي</div>
+      <div class="sg" data-g="fin"><div class="sgh" onclick="navToggle(this)"><span class="sgi">💼</span><span>المالية والمحاسبة</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
         <div class="ni" onclick="go('accounting',this)" data-perm="accounting"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h3M13 14h3M8 18h3M13 18h3"/></svg>المحاسبة المالية<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
-        <div class="ni" onclick="go('findash',this)" data-perm="findash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>اللوحة المالية<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('finance',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><polyline points="7,16 11,10 15,13 19,7"/></svg>تقارير P&L الشهرية<span class="nbdg" id="nbdg-finance" style="display:none">جديد</span></div>
         <div class="ni" onclick="go('monthlyreports',this)" data-perm="monthlyreports"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>📁 التقارير المالية الشهرية</div>
-        <div class="ni" onclick="go('backup',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>نسخ احتياطي Excel</div>
-      </div>
-      <div><div class="sl">💰 التكاليف والتسعير</div>
-        <div class="ni" onclick="go('costcards',this)" data-perm="costcards"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>الوصفات وبطاقات التكلفة<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
-        <div class="ni" onclick="go('menu',this)" data-perm="menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>المنيو والأسعار</div>
-        <div class="ni" onclick="go('breakeven',this)" data-perm="breakeven"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-8"/></svg>نقطة التعادل<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
-      </div>
-      <div><div class="sl">الإدارة</div>
-        <div class="ni" onclick="go('users',this)" data-perm="users"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>إدارة المستخدمين</div>
-        <div class="ni" onclick="go('auditlog',this)" data-perm="auditlog"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>سجل العمليات والحذف</div>
         <div class="ni" onclick="go('reports',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>التقارير الشاملة</div>
         <div class="ni" onclick="go('salesreport',this)" data-perm="reports"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>تقرير المبيعات</div>
         <div class="ni" onclick="go('custodyreport',this)" data-perm="reports"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>تقرير العهد المستلمة</div>
+        <div class="ni" onclick="go('forecast',this)" data-perm="forecast"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l3-4 3 2 4-6"/><path d="M17 7h3v3"/></svg>التنبؤ بالطلبيات<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        <div class="ni" onclick="go('backup',this)" data-perm="reports"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>نسخ احتياطي Excel</div>
+        </div>
+      </div>
+      <div class="sg" data-g="cost"><div class="sgh" onclick="navToggle(this)"><span class="sgi">💰</span><span>التكاليف والتسعير</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
+        <div class="ni" onclick="go('costcards',this)" data-perm="costcards"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>الوصفات وبطاقات التكلفة<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        <div class="ni" onclick="go('menu',this)" data-perm="menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>المنيو والأسعار</div>
+        <div class="ni" onclick="go('breakeven',this)" data-perm="breakeven"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-8"/></svg>نقطة التعادل<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        </div>
+      </div>
+      <div class="sg" data-g="adm"><div class="sgh" onclick="navToggle(this)"><span class="sgi">⚙️</span><span>الإدارة</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="sgb">
+        <div class="ni" onclick="go('users',this)" data-perm="users"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>إدارة المستخدمين</div>
+        <div class="ni" onclick="go('auditlog',this)" data-perm="auditlog"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>سجل العمليات والحذف</div>
+        </div>
       </div>
     </div>
 
@@ -4687,7 +4731,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 
 <!-- ADD USER MODAL -->
 <div class="um-modal" id="modal-add-user">
-  <div class="um-box">
+  <div class="um-box um-wide">
     <div class="um-title">
       إضافة مستخدم جديد
       <button class="um-close" onclick="closeModal('modal-add-user')">×</button>
@@ -4709,6 +4753,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
       </select>
     </div>
     <div style="background:var(--b);border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--tl)" id="role-hint-box">سيحصل هذا المستخدم على صلاحيات: مهام الفتح، الغلق، تقفيل الكاشير، الزيارات، المشتريات، التقارير، إدارة المستخدمين</div>
+    <div class="fr" id="nu-px"></div>
     <div class="fr">
       <label>🏷️ المنطقة المخصصة للوردية</label>
       <select id="nu-zone">
@@ -4731,7 +4776,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 
 <!-- EDIT USER MODAL -->
 <div class="um-modal" id="modal-edit-user">
-  <div class="um-box">
+  <div class="um-box um-wide">
     <div class="um-title">
       تعديل المستخدم
       <button class="um-close" onclick="closeModal('modal-edit-user')">×</button>
@@ -4756,6 +4801,7 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
         <option value="owner">👑 المالك (مشاهدة فقط)</option>
       </select>
     </div>
+    <div class="fr" id="eu-px"></div>
     <div class="fr">
       <label>🏷️ المنطقة المخصصة للوردية</label>
       <select id="eu-zone">
@@ -4808,6 +4854,89 @@ var ROLE_HINTS = {
   accountant:'سيحصل على صلاحيات: المحاسبة المالية (القيود ودفتر الأستاذ والقوائم المالية) + مراجعة المشتريات والمدفوعات (قراءة فقط) + كل التقارير المالية والتشغيلية',
   owner:'مشاهدة فقط: لوحة التحكم وجميع التقارير المالية والتشغيلية وبطاقات التكلفة — دون أي صلاحية تعديل أو إضافة'
 };
+
+// ===== الصلاحيات الفردية (نقاط تُعلَّم لكل مستخدم) =====
+// perms في وثيقة المستخدم = قائمة مفاتيح: صفحات (نفس معرّفات go مثل hr-payroll) وصلاحيات بيانات (مثل edit:payroll).
+// مستخدم بلا perms: يعمل بقالب دوره كما كان حرفياً. مدير الفرع له كل شيء دائماً.
+// المستخدمون وسجل العمليات لمدير الفرع فقط ولا يُفوَّضان (ليسا في الكتالوج).
+// مفاتيح البيانات هنا تطابق firestore.rules — أي تعديل عليها يلزم تعديل القواعد أيضاً.
+var PERM_CATALOG=[
+ {id:'main',icon:'🏠',title:'الرئيسية',items:[
+   {k:'dashboard',t:'لوحة التحكم'},{k:'findash',t:'اللوحة المالية'}]},
+ {id:'ops',icon:'🧾',title:'العمليات اليومية',items:[
+   {k:'opening',t:'مهام الوردية'},{k:'cashier',t:'تقفيل الكاشير'},{k:'revenue-receipt',t:'استلام الإيرادات'},{k:'custody',t:'عهد النقدية'},{k:'forms',t:'النماذج التشغيلية'},
+   {k:'edit:ops',t:'تعديل واعتماد تقفيل الكاشير المحفوظ',cap:1},
+   {k:'delete:ops',t:'حذف سجلات التشغيل (التقفيل والتقارير اليومية والنماذج والزيارات)',cap:1,danger:1}]},
+ {id:'qa',icon:'📋',title:'الزيارات والجودة',items:[
+   {k:'visit',t:'نموذج الزيارة'},{k:'vreports',t:'تقارير الزيارات'},{k:'opreports',t:'تقارير الورديات'}]},
+ {id:'inv',icon:'📦',title:'المخزون والمشتريات',items:[
+   {k:'inventory',t:'المخازن والجرد'},{k:'purchase',t:'طلبات المشتريات'},{k:'purchase-system',t:'المشتريات والموردين'},{k:'production',t:'طلبات الإنتاج'},
+   {k:'edit:requests',t:'إنشاء وتعديل طلبات الشراء والإنتاج',cap:1},
+   {k:'approve:requests',t:'اعتماد طلبات الشراء والإنتاج',cap:1},
+   {k:'edit:purchases',t:'تسجيل وتعديل الموردين والفواتير والمدفوعات',cap:1},
+   {k:'delete:purchases',t:'حذف المشتريات وطلبات الشراء',cap:1,danger:1},
+   {k:'edit:inventory',t:'حركات المخزون والمواد الخام (وارد وصرف وهالك)',cap:1},
+   {k:'draft:count',t:'إدخال مسودات الجرد',cap:1},
+   {k:'approve:inventory',t:'اعتماد الجرد وحذف الحركات ومسودات الجرد',cap:1},
+   {k:'delete:inventory',t:'حذف الجرد المعتمد والمواد الخام',cap:1,danger:1}]},
+ {id:'hr',icon:'👥',title:'الموارد البشرية',items:[
+   {k:'hr-employees',t:'سجل الموظفين'},{k:'hr-payroll',t:'مسير الرواتب (عرض)'},{k:'hr-eval',t:'تقييم الموظفين'},{k:'hr-advances',t:'سلف الموظفين'},
+   {k:'hr-violations',t:'مخالفات الموظفين'},{k:'hr-schedule-dining',t:'جدول الصالة'},{k:'hr-schedule-kitchen',t:'جدول المطبخ'},
+   {k:'edit:payroll',t:'إنشاء وتعديل مسير الرواتب',cap:1},
+   {k:'edit:hr',t:'إضافة وتعديل بيانات الموارد (موظفون وتقييم وسلف ومخالفات وجداول)',cap:1},
+   {k:'delete:hr',t:'حذف بيانات الموارد البشرية',cap:1,danger:1},
+   {k:'add:violation',t:'تسجيل مخالفة فقط (دون تعديل الموجود)',cap:1}]},
+ {id:'fin',icon:'💼',title:'المالية والمحاسبة',items:[
+   {k:'accounting',t:'المحاسبة المالية (عرض)'},{k:'finance',t:'تقارير P&L الشهرية'},{k:'monthlyreports',t:'التقارير المالية الشهرية'},{k:'reports',t:'التقارير الشاملة'},
+   {k:'salesreport',t:'تقرير المبيعات'},{k:'custodyreport',t:'تقرير العهد المستلمة'},{k:'forecast',t:'التنبؤ بالطلبيات'},{k:'backup',t:'نسخ احتياطي Excel'},
+   {k:'edit:accounting',t:'إضافة قيود (مسودات) وحسابات في المحاسبة',cap:1},
+   {k:'admin:accounting',t:'اعتماد القيود وحذفها وإعدادات المحاسبة',cap:1},
+   {k:'edit:finance',t:'إضافة وتعديل الإيرادات وحركات العهد',cap:1},
+   {k:'delete:finance',t:'حذف الإيرادات وحركات العهد',cap:1,danger:1},
+   {k:'edit:reports',t:'رفع وحذف التقارير المالية الشهرية',cap:1},
+   {k:'edit:forecast',t:'رفع بيانات التنبؤ (مبيعات رواء) وربط الأصناف',cap:1}]},
+ {id:'cost',icon:'💰',title:'التكاليف والتسعير',items:[
+   {k:'costcards',t:'الوصفات وبطاقات التكلفة'},{k:'menu',t:'المنيو والأسعار'},{k:'breakeven',t:'نقطة التعادل'},
+   {k:'edit:costs',t:'تعديل الوصفات والتكاليف ونقطة التعادل',cap:1}]}
+];
+var PX_KEYS={};PERM_CATALOG.forEach(function(g){g.items.forEach(function(i){PX_KEYS[i.k]=i;});});
+// صلاحيات البيانات التي يمنحها كل دور افتراضياً إلى جانب صفحاته (PERMS) — تطابق قواعد الدور في firestore.rules
+var ROLE_CAPS={
+  cashier:[],
+  visit_supervisor:['add:violation'],
+  store_manager:['edit:requests','edit:inventory','draft:count','approve:inventory','edit:forecast'],
+  hr_manager:['edit:hr','edit:payroll','add:violation'],
+  purchases_rep:['edit:purchases','edit:inventory','draft:count'],
+  accountant:['edit:accounting','draft:count'],
+  owner:[]
+};
+// قالب الدور = صفحاته + صلاحياته (مدير الفرع: الكل)
+function permTemplate(role){
+  if(role==='branch_manager')return Object.keys(PX_KEYS);
+  var out=[];
+  var add=function(k){if(PX_KEYS[k]&&out.indexOf(k)<0)out.push(k);};
+  (PERMS[role]||[]).forEach(add);
+  (ROLE_CAPS[role]||[]).forEach(add);
+  return out;
+}
+// هل المستخدم الحالي يعمل بصلاحيات فردية (perms)؟ مدير الفرع لا يتقيّد بها
+function permsMode(){return !!(CU&&CU.role!=='branch_manager'&&Array.isArray(CU.perms));}
+function userCaps(){
+  if(!CU)return [];
+  if(CU.role==='branch_manager')return Object.keys(PX_KEYS);
+  if(Array.isArray(CU.perms))return CU.perms;
+  return permTemplate(CU.role);
+}
+function hasCap(k){return userCaps().indexOf(k)>=0;}
+function hasPage(k){return userPerms().indexOf(k)>=0;}
+// الصفحات المتاحة فعلياً للمستخدم (perms إن وُجدت، وإلا صفحات الدور كما كانت)
+function userPerms(){
+  if(!CU)return [];
+  if(CU.role==='branch_manager')return (PERMS.branch_manager||[]).slice();
+  if(Array.isArray(CU.perms))return CU.perms.filter(function(k){return k.indexOf(':')<0;});
+  return (PERMS[CU.role]||[]).slice();
+}
+function pxEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 // ===== FIREBASE INIT =====
 var firebaseConfig = {
@@ -5502,8 +5631,20 @@ function startSession(){
       });
     },600);
   }
+  navInit();
+  navSync('dashboard');
+  // مستخدم بصلاحيات فردية: تُفتح له أول صفحة متاحة (لوحة التحكم ثم اللوحة المالية ثم أول صفحة مسموحة)
+  if(permsMode()){
+    var _lp=['dashboard','findash'].concat(userPerms()).filter(function(k){return hasPage(k)&&document.getElementById('pg-'+k);})[0];
+    if(hasPage('dashboard'))loadDashboard();
+    if(CU.role==='owner'&&!CU.perms.some(function(k){return k.indexOf(':')>=0;})){ownerLockUI();setInterval(ownerLockUI,1200);}
+    if(_lp)setTimeout(function(){go(_lp,navFor(_lp));},0);
+    else{document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});}
+    return;
+  }
   // Redirect HR to their home page
   if(CU.role==='hr_manager'){
+    navSync('hr-employees');
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
     var pg=document.getElementById('pg-hr-employees');
     if(pg)pg.classList.add('active');
@@ -5519,13 +5660,14 @@ function startSession(){
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active')});
     var psNav=document.querySelector('.ni[data-perm="purchase-system"]');
     if(psNav)psNav.classList.add('active');
+    navSync('purchase-system');
     setTimeout(function(){if(typeof psInit==='function')psInit();},100);
     return;
   }
   // Load dashboard data only for roles that should see it
   var dashRoles=['branch_manager','cashier','visit_supervisor','store_manager','owner'];
   if(dashRoles.includes(CU.role)) loadDashboard();
-  if(CU.role==='owner'){ownerLockUI();setInterval(ownerLockUI,1200);}
+  if(CU.role==='owner'){ownerLockUI();setInterval(ownerLockUI,1200);} // (مستخدم perms يُعالَج أعلاه)
   // Seed default custody users if needed
   if(CU.role==='branch_manager')setTimeout(function(){migrateHabaqCustodyUsers().then(function(){seedDefaultCustodyUsers();});},2000);
   // Check notifications after loading employees
@@ -5664,12 +5806,43 @@ function ownerLockUI(){
   });
 }
 
+function navTargetPage(el){
+  var m=(el.getAttribute('onclick')||'').match(/go\('([\w-]+)'/);
+  return m?m[1]:el.getAttribute('data-perm');
+}
 function filterNav(){
-  var ac=PERMS[CU.role]||[];
+  // مستخدم بصلاحيات فردية: يظهر العنصر حسب صفحته الفعلية. غيره: كما كان (data-perm ضمن صفحات الدور)
+  var pm=permsMode(),ac=pm?userPerms():(PERMS[CU.role]||[]);
   document.querySelectorAll('.ni[data-perm]').forEach(function(el){
-    var perm=el.getAttribute('data-perm');
-    el.style.display=ac.includes(perm)?'flex':'none';
+    var k=pm?navTargetPage(el):el.getAttribute('data-perm');
+    el.style.display=ac.includes(k)?'flex':'none';
   });
+  // إخفاء المجموعات التي لا يملك المستخدم شيئاً فيها
+  document.querySelectorAll('#sidebar .sg').forEach(function(g){
+    var any=Array.prototype.some.call(g.querySelectorAll('.ni'),function(el){return el.style.display!=='none';});
+    g.style.display=any?'':'none';
+  });
+}
+
+/* ===== القائمة الجانبية المنسدلة ===== */
+var NAV_KEY='hb_nav_open';
+function navState(){try{return JSON.parse(localStorage.getItem(NAV_KEY)||'null')||{};}catch(e){return {};}}
+function navToggle(el){
+  var g=el.closest('.sg');if(!g)return;g.classList.toggle('open');
+  var st=navState();st[g.getAttribute('data-g')]=g.classList.contains('open')?1:0;
+  try{localStorage.setItem(NAV_KEY,JSON.stringify(st));}catch(e){}
+}
+function navInit(){
+  var st=navState();
+  [].forEach.call(document.querySelectorAll('#sidebar .sg'),function(g){var id=g.getAttribute('data-g');g.classList.toggle('open',(id in st)?!!st[id]:id==='main');});
+}
+// تمييز عنصر الصفحة الحالية وفتح مجموعتها
+function navFor(pid){return document.querySelector('#sidebar .ni[onclick*="go(\''+pid+'\'"]');}
+function navSync(pid){
+  var el=navFor(pid);if(!el)return;
+  [].forEach.call(document.querySelectorAll('#sidebar .ni'),function(n){n.classList.remove('active');});
+  el.classList.add('active');
+  var g=el.closest('.sg');if(g)g.classList.add('open');
 }
 
 
@@ -6619,6 +6792,7 @@ function applyPayRow(){
 }
 function savePayrollSheet(){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
+  if(permsMode()&&!hasCap('edit:payroll')){alert('ليس لديك صلاحية حفظ مسير الرواتب');return;}
   var month=document.getElementById('payroll-month').value,year=document.getElementById('payroll-year').value;
   if(Object.keys(_payrollRows).length===0){alert('اضغط "توليد المسير" أولاً');return;}
   var grand=0,rows=[];
@@ -6656,7 +6830,7 @@ function savePayrollSheet(){
     grandTotal:parseFloat(grand.toFixed(2)),grandCash:parseFloat(grandCash.toFixed(2)),grandBank:parseFloat(grandBank.toFixed(2)),rows:rows,savedBy:CU.name,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   if(_editingPayrollId){
-    if(CU.role!=='branch_manager'&&CU.role!=='hr_manager'){alert('صلاحية تعديل المسيرات المحفوظة لمدير الفرع ومسؤول الموارد البشرية فقط');return;}
+    if(permsMode()?!hasCap('edit:payroll'):(CU.role!=='branch_manager'&&CU.role!=='hr_manager')){alert('ليس لديك صلاحية تعديل مسيرات الرواتب المحفوظة');return;}
     if(!confirm('⚠️ تحديث مسير رواتب '+month+'/'+year+' — الإجمالي الجديد: '+grand.toFixed(2)+' ﷼؟\nسيتم استبدال بيانات المسير المحفوظ سابقاً.'))return;
     delete data.createdAt;
     data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
@@ -6678,8 +6852,8 @@ function loadPayrollHistory(){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tl)">لا توجد مسيرات محفوظة</td></tr>';return;}
     var rows='';
     var mN={'01':'يناير','02':'فبراير','03':'مارس','04':'أبريل','05':'مايو','06':'يونيو','07':'يوليو','08':'أغسطس','09':'سبتمبر','10':'أكتوبر','11':'نوفمبر','12':'ديسمبر'};
-    var canEditPayroll=CU&&(CU.role==='branch_manager'||CU.role==='hr_manager');
-    var canDeletePayroll=CU&&(CU.role==='branch_manager'||CU.role==='hr_manager');
+    var canEditPayroll=CU&&(permsMode()?hasCap('edit:payroll'):(CU.role==='branch_manager'||CU.role==='hr_manager'));
+    var canDeletePayroll=CU&&(permsMode()?hasCap('edit:payroll'):(CU.role==='branch_manager'||CU.role==='hr_manager'));
     snap.forEach(function(doc){
       var d=doc.data();
       var _plbl=((mN[d.month]||d.month)+' '+d.year).replace(/'/g,"\\'");
@@ -6698,7 +6872,7 @@ function loadPayrollHistory(){
 function deletePayroll(docId,label){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
   // فقط مدير الفرع أو مسؤول الموارد البشرية يستطيع الحذف
-  if(CU.role!=='branch_manager' && CU.role!=='hr_manager'){alert('ليس لديك صلاحية حذف مسيرات الرواتب');return;}
+  if(permsMode()?!hasCap('edit:payroll'):(CU.role!=='branch_manager' && CU.role!=='hr_manager')){alert('ليس لديك صلاحية حذف مسيرات الرواتب');return;}
   if(!confirm('⚠️ هل أنت متأكد من حذف مسير رواتب '+(label||'')+'؟\nسيتم حفظ نسخة كاملة في سجل العمليات، لكن لا يمكن التراجع عن الحذف من هذه الشاشة.'))return;
   sdSafeDelete('hr_payroll',docId,'حذف مسير رواتب'+(label?(' — '+label):'')).then(function(){
     // إن كان المسير المحذوف هو نفسه قيد التعديل حالياً، ألغِ وضع التعديل
@@ -6709,7 +6883,7 @@ function deletePayroll(docId,label){
 }
 
 function editPayroll(docId){
-  if(!CU||(CU.role!=='branch_manager'&&CU.role!=='hr_manager')){alert('صلاحية تعديل المسيرات المحفوظة لمدير الفرع ومسؤول الموارد البشرية فقط');return;}
+  if(!CU||(permsMode()?!hasCap('edit:payroll'):(CU.role!=='branch_manager'&&CU.role!=='hr_manager'))){alert('ليس لديك صلاحية تعديل مسيرات الرواتب المحفوظة');return;}
   db.collection('hr_payroll').doc(docId).get().then(function(doc){
     if(!doc.exists){alert('المسير غير موجود');return;}
     var d=doc.data();
@@ -7162,7 +7336,7 @@ function saveEvaluation(){
 function initEvalCriteriaMgr(){
   var mgr=document.getElementById('eval-criteria-mgr');
   if(!mgr)return;
-  var canEdit=CU&&(CU.role==='hr_manager'||CU.role==='branch_manager');
+  var canEdit=CU&&(permsMode()?hasCap('edit:hr'):(CU.role==='hr_manager'||CU.role==='branch_manager'));
   mgr.style.display=canEdit?'block':'none';
   if(!canEdit)return;
   loadEvalCriteria(function(){renderEvalMgr();});
@@ -7219,7 +7393,7 @@ function addEvalCriterion(){
   renderEvalMgr();renderEvalCriteria();
 }
 function saveEvalCriteria(){
-  if(!CU||(CU.role!=='hr_manager'&&CU.role!=='branch_manager')){alert('ليس لديك صلاحية تعديل بنود التقييم');return;}
+  if(!CU||(permsMode()?!hasCap('edit:hr'):(CU.role!=='hr_manager'&&CU.role!=='branch_manager'))){alert('ليس لديك صلاحية تعديل بنود التقييم');return;}
   if(!_evalCriteria)return;
   _evalCriteria.updatedBy=CU.name;
   _evalCriteria.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
@@ -7288,7 +7462,7 @@ function viewEvalDetail(docId){
 function deleteEvaluation(docId,empName){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
   // فقط مدير الفرع أو مسؤول الموارد البشرية يستطيع الحذف
-  if(CU.role!=='branch_manager' && CU.role!=='hr_manager'){alert('ليس لديك صلاحية حذف التقييمات');return;}
+  if(permsMode()?!hasCap('delete:hr'):(CU.role!=='branch_manager' && CU.role!=='hr_manager')){alert('ليس لديك صلاحية حذف التقييمات');return;}
   if(!confirm('هل أنت متأكد من حذف تقييم '+(empName||'')+'؟\nلا يمكن التراجع.'))return;
   sdSafeDelete('hr_evaluations',docId,'حذف تقييم موظف'+(empName?(' — '+empName):'')).then(function(){
     alert('✅ تم حذف التقييم');
@@ -7495,10 +7669,10 @@ function violPenaltyForRep(item,repNo){
 // ===== تهيئة الصفحة حسب الدور =====
 function initViolPage(){
   if(!CU)return;
-  _violCanRegister=(CU.role==='branch_manager'||CU.role==='visit_supervisor'||CU.role==='hr_manager');
-  _violCanDecide=(CU.role==='hr_manager');
+  _violCanRegister=permsMode()?(hasCap('edit:hr')||hasCap('add:violation')):(CU.role==='branch_manager'||CU.role==='visit_supervisor'||CU.role==='hr_manager');
+  _violCanDecide=permsMode()?hasCap('edit:hr'):(CU.role==='hr_manager');
   _violCanOversee=(CU.role==='branch_manager'); // اطلاع للإدارة على قائمة الاعتماد
-  _violCanEdit=(CU.role==='hr_manager'||CU.role==='branch_manager'); // تعديل بيانات المخالفة
+  _violCanEdit=permsMode()?hasCap('edit:hr'):(CU.role==='hr_manager'||CU.role==='branch_manager'); // تعديل بيانات المخالفة
   var reg=document.getElementById('viol-register-card');
   var q=document.getElementById('viol-queue-card');
   var banner=document.getElementById('viol-role-banner');
@@ -7954,7 +8128,7 @@ function saveViolEdit(){
 }
 function deleteViolation(docId,empName){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
-  if(CU.role!=='branch_manager'&&CU.role!=='hr_manager'){alert('ليس لديك صلاحية حذف المخالفات');return;}
+  if(permsMode()?!hasCap('delete:hr'):(CU.role!=='branch_manager'&&CU.role!=='hr_manager')){alert('ليس لديك صلاحية حذف المخالفات');return;}
   if(!confirm('هل أنت متأكد من حذف مخالفة '+(empName||'')+'؟\nلا يمكن التراجع.'))return;
   sdSafeDelete('hr_violations',docId,'حذف مخالفة موظف'+(empName?(' — '+empName):'')).then(function(){
     alert('✅ تم حذف المخالفة');loadViolHistory();
@@ -8333,7 +8507,7 @@ function saveRepayment(){
 // حذف حركة سلف
 function deleteAdvance(docId,label){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
-  if(CU.role!=='branch_manager'&&CU.role!=='hr_manager'){alert('ليس لديك صلاحية حذف حركات السلف');return;}
+  if(permsMode()?!hasCap('delete:hr'):(CU.role!=='branch_manager'&&CU.role!=='hr_manager')){alert('ليس لديك صلاحية حذف حركات السلف');return;}
   var adv=_advances.find(function(a){return a._id===docId;});
   var linked=adv&&adv.custodyLedgerId;
   if(!confirm('حذف الحركة'+(label?(' — '+label):'')+'؟'+(linked?'\n⚠️ سيتم أيضاً حذف حركة صرف العهدة المرتبطة بها (إرجاع المبلغ للعهدة).':'')+'\nلا يمكن التراجع.'))return;
@@ -8550,24 +8724,24 @@ function go(pid,el){
     }
   },80);}
   if(pid==='hr-employees'){setTimeout(function(){if(_employees.length===0)loadEmployees();},80);}
-  if(pid==='hr-payroll'){setTimeout(function(){if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});});}loadPayrollHistory();},80);}
+  if(pid==='hr-payroll'){setTimeout(function(){var _sb=document.getElementById('btn-save-payroll');if(_sb)_sb.style.display=(permsMode()&&!hasCap('edit:payroll'))?'none':'';if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});});}loadPayrollHistory();},80);}
   if(pid==='hr-eval'){setTimeout(function(){if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});refreshEvalEmpSelect();});}else{refreshEvalEmpSelect();}loadEvalCriteria(function(){renderEvalCriteria();});initEvalCriteriaMgr();loadEvalHistory();},80);}
   if(pid==='monthlyreports'){setTimeout(function(){var m=document.getElementById('mr-month'),y=document.getElementById('mr-year'),now=new Date();if(m&&!m._init){m._init=true;m.value=String(now.getMonth()+1).padStart(2,'0');}if(y&&!y.value)y.value=now.getFullYear();loadMonthlyReports();},80);}
   if(pid==='hr-advances'){setTimeout(function(){initAdvancesPage();},80);}
   if(pid==='hr-violations'){setTimeout(function(){initViolPage();},80);}
-  var ac=PERMS[CU.role]||[];
+  var ac=userPerms();
   if(!ac.includes(pid)){alert('ليس لديك صلاحية الوصول لهذه الصفحة');return;}
   // HR manager: block financial/operational pages explicitly
-  if(CU.role==='hr_manager'){
+  if(!permsMode()&&CU.role==='hr_manager'){
     var blocked=['cashier','custody','reports','visit','vreports','purchase','production','opening','closing','opreports'];
     if(blocked.includes(pid)){alert('ليس لديك صلاحية الوصول لهذه الصفحة');return;}
   }
   // Purchases Rep & Accountant: block dashboard and operational pages
-  if(CU.role==='purchases_rep'){
+  if(!permsMode()&&CU.role==='purchases_rep'){
     var blockedPS=['dashboard','cashier','custody','reports','visit','vreports','purchase','production','opening','closing','opreports','hr-employees','hr-payroll','hr-eval','users','finance','backup','revenue-receipt','forms'];
     if(blockedPS.includes(pid)){alert('ليس لديك صلاحية الوصول لهذه الصفحة');return;}
   }
-  if(CU.role==='accountant'){
+  if(!permsMode()&&CU.role==='accountant'){
     var blockedAcc=['dashboard','cashier','custody','visit','vreports','purchase','production','opening','closing','hr-employees','hr-payroll','hr-eval','users','revenue-receipt','forms'];
     if(blockedAcc.includes(pid)){alert('ليس لديك صلاحية الوصول لهذه الصفحة');return;}
   }
@@ -8575,6 +8749,7 @@ function go(pid,el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active')});
   document.getElementById('pg-'+pid).classList.add('active');
   if(el)el.classList.add('active');
+  navSync(pid);
   if(pid==='users') renderUsers();
   if(pid==='auditlog'){loadAuditLog();}
   if(pid==='custody'){initCustodyPage();loadCustody();setTimeout(initCustodyFilter,500);setTimeout(function(){makeCashierSelector('ec-cashier');},150);}
@@ -8587,10 +8762,78 @@ function go(pid,el){
   if(pid==='inventory'){setTimeout(function(){invInit();},80);}
   if(pid==='purchase'){setTimeout(function(){prInit();},80);}
   if(pid==='cashier'){setTimeout(function(){makeCashierSelector('ccn');},150);if(typeof loadCCLog==='function')loadCCLog();}
-  if(pid==='opening'){setTimeout(function(){var f=document.getElementById('opening-cashier');if(f)makeCashierSelector('opening-cashier');var rb=document.getElementById('shift-rep-btn');if(rb)rb.style.display=(PERMS[CU.role]||[]).includes('opreports')?'':'none';},150);}
+  if(pid==='opening'){setTimeout(function(){var f=document.getElementById('opening-cashier');if(f)makeCashierSelector('opening-cashier');var rb=document.getElementById('shift-rep-btn');if(rb)rb.style.display=(userPerms()||[]).includes('opreports')?'':'none';},150);}
 }
 
 // ===== USER MANAGEMENT (Firestore) =====
+/* ===== محرر الصلاحيات الفردية (في نافذتي إضافة وتعديل المستخدم) ===== */
+function pxRender(p,role,perms){
+  var box=document.getElementById(p+'-px');if(!box)return;
+  var custom=Array.isArray(perms);
+  var cur=custom?perms:permTemplate(role);
+  var h='<label class="px-mode"><input type="checkbox" id="'+p+'-px-custom" '+(custom?'checked':'')+' onchange="pxMode(\''+p+'\')"> 🔐 تخصيص صلاحيات هذا المستخدم (بدل قالب الدور)</label>'
+    +'<div class="px-hint" id="'+p+'-px-hint"></div><div id="'+p+'-px-groups" onclick="pxLockedTip(\''+p+'\')">';
+  PERM_CATALOG.forEach(function(g){
+    var on=g.items.filter(function(i){return cur.indexOf(i.k)>=0;}).length;
+    h+='<div class="px-g"><div class="px-gh" onclick="this.parentNode.classList.toggle(\'open\')"><span>'+g.icon+' '+pxEsc(g.title)+'</span><span class="px-cnt" id="'+p+'-pxc-'+g.id+'">'+on+'/'+g.items.length+'</span>'
+      +'<span class="px-act"><a onclick="event.stopPropagation();pxAll(\''+p+'\',\''+g.id+'\',true)">الكل</a><a onclick="event.stopPropagation();pxAll(\''+p+'\',\''+g.id+'\',false)">لا شيء</a></span></div><div class="px-gb">';
+    g.items.forEach(function(i){
+      h+='<label class="px-i'+(i.cap?' cap':'')+(i.danger?' danger':'')+'"><input type="checkbox" data-k="'+pxEsc(i.k)+'" data-g="'+g.id+'" '+(cur.indexOf(i.k)>=0?'checked':'')+' onchange="pxCount(\''+p+'\')"> '+(i.cap?(i.danger?'🗑️ ':'✏️ '):'')+pxEsc(i.t)+'</label>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div><div class="px-foot"><button type="button" class="btn bsm bo" id="'+p+'-px-tpl" onclick="pxApplyTemplate(\''+p+'\')">↺ تطبيق قالب الدور</button>'
+    +'<span class="px-note">الصفحات تظهر في القائمة، والإضافة والتعديل والحذف على البيانات تُفرض أيضاً في قاعدة البيانات. المستخدمون وسجل العمليات لمدير الفرع فقط، ومدير الفرع له كل الصلاحيات دائماً.</span></div>';
+  box.innerHTML=h;
+  pxMode(p,true);
+}
+function pxMode(p,keep){
+  var c=document.getElementById(p+'-px-custom');if(!c)return;
+  var boxes=[].slice.call(document.querySelectorAll('#'+p+'-px-groups input[type=checkbox]'));
+  boxes.forEach(function(b){b.disabled=!c.checked;});
+  document.getElementById(p+'-px-tpl').style.display=c.checked?'':'none';
+  var hint=document.getElementById(p+'-px-hint');
+  hint.textContent=c.checked?'أنت تحدد صلاحيات هذا المستخدم يدوياً. علّم ما يحتاجه فقط، ثم احفظ.':'🔒 الخانات مقفلة لأنها تعرض صلاحيات دور المستخدم فقط. لتعديلها علّم المربع الأصفر أعلاه «تخصيص صلاحيات هذا المستخدم».';
+  hint.style.color=c.checked?'':'#B5621B';hint.style.fontWeight=c.checked?'':'700';
+  var lbl=c.closest('.px-mode');if(lbl)lbl.style.boxShadow=c.checked?'':'0 0 0 2px #FFC107';
+  if(!c.checked&&!keep)pxApplyTemplate(p);
+  pxCount(p);
+}
+function pxApplyTemplate(p){
+  var role=(document.getElementById(p+'-role')||{}).value||'cashier';
+  var t=permTemplate(role);
+  [].slice.call(document.querySelectorAll('#'+p+'-px-groups input[type=checkbox]')).forEach(function(b){b.checked=t.indexOf(b.getAttribute('data-k'))>=0;});
+  pxCount(p);
+}
+function pxLockedTip(p){
+  var c=document.getElementById(p+'-px-custom');
+  if(c&&!c.checked){var l=c.closest('.px-mode');if(l){l.scrollIntoView({block:'center'});l.style.boxShadow='0 0 0 3px #E65100';setTimeout(function(){l.style.boxShadow='0 0 0 2px #FFC107';},900);}}
+}
+function pxAll(p,g,on){
+  [].slice.call(document.querySelectorAll('#'+p+'-px-groups input[data-g="'+g+'"]')).forEach(function(b){if(!b.disabled)b.checked=on;});
+  pxCount(p);
+}
+function pxCount(p){
+  PERM_CATALOG.forEach(function(g){
+    var all=document.querySelectorAll('#'+p+'-px-groups input[data-g="'+g.id+'"]'),on=0;
+    [].slice.call(all).forEach(function(b){if(b.checked)on++;});
+    var e=document.getElementById(p+'-pxc-'+g.id);if(e)e.textContent=on+'/'+all.length;
+  });
+}
+// null = قالب الدور (بلا perms)، وإلا قائمة المفاتيح المعلَّمة
+function pxCollect(p){
+  var c=document.getElementById(p+'-px-custom');if(!c||!c.checked)return null;
+  return [].slice.call(document.querySelectorAll('#'+p+'-px-groups input[type=checkbox]')).filter(function(b){return b.checked;}).map(function(b){return b.getAttribute('data-k');});
+}
+// وصف تغيير الصلاحيات لسجل العمليات (ما أُضيف وما أُزيل)
+function pxDiffNote(oldRole,oldPerms,newRole,newPerms){
+  if(!oldPerms&&!newPerms&&oldRole===newRole)return '';
+  var was=oldPerms||permTemplate(oldRole),now=newPerms||permTemplate(newRole);
+  var lbl=function(k){return (PX_KEYS[k]&&PX_KEYS[k].t)||k;};
+  var addd=now.filter(function(k){return was.indexOf(k)<0;}),remd=was.filter(function(k){return now.indexOf(k)<0;});
+  return (newPerms?' [صلاحيات مخصصة]':' [قالب الدور]')+(addd.length?' — أُضيف: '+addd.map(lbl).join('، '):'')+(remd.length?' — أُزيل: '+remd.map(lbl).join('، '):'');
+}
+
 function renderUsers(){
   var list = document.getElementById('users-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:var(--tl);font-size:12px">جارٍ تحميل المستخدمين...</div>';
@@ -8601,7 +8844,7 @@ function renderUsers(){
       html+='<div class="user-row">';
       html+='<div class="user-avatar">'+initials+'</div>';
       html+='<div class="user-info"><div class="user-name-lbl">'+u.name+'</div>';
-      html+='<div class="user-role-lbl">'+u.username+' — '+(ROLE_NAMES[u.role]||u.role)+'</div></div>';
+      html+='<div class="user-role-lbl">'+u.username+' — '+(ROLE_NAMES[u.role]||u.role)+(Array.isArray(u.perms)&&u.role!=='branch_manager'?' <span class="bdg bg-w" style="font-size:9px">🔐 صلاحيات مخصصة ('+u.perms.length+')</span>':'')+'</div></div>';
       html+='<div class="user-actions">';
       html+='<button class="btn bsm bo" onclick="openEditUser(\''+u._id+'\')">تعديل</button>';
       if(!u.isAdmin){html+='<button class="btn bsm bd3" onclick="deleteUser(\''+u._id+'\')">حذف</button>';}
@@ -8616,19 +8859,23 @@ function openAddUser(){
   document.getElementById('nu-user').value='';
   document.getElementById('nu-pass').value='';
   document.getElementById('nu-role').value='cashier';
+  pxRender('nu','cashier',null);
   document.getElementById('role-hint-box').textContent=ROLE_HINTS['cashier'];
   document.getElementById('modal-add-user').classList.add('show');
 }
 
 document.getElementById('nu-role').addEventListener('change',function(){
   document.getElementById('role-hint-box').textContent=ROLE_HINTS[this.value]||'';
+  var c=document.getElementById('nu-px-custom');if(c&&!c.checked)pxApplyTemplate('nu');
 });
+document.getElementById('eu-role').addEventListener('change',function(){var c=document.getElementById('eu-px-custom');if(c&&!c.checked)pxApplyTemplate('eu');});
 
 function addUser(){
   var name=document.getElementById('nu-name').value.trim();
   var uname=document.getElementById('nu-user').value.trim().toLowerCase();
   var pass=document.getElementById('nu-pass').value;
   var role=document.getElementById('nu-role').value;
+  var permsArr=role==='branch_manager'?null:pxCollect('nu');
   if(!name||!uname||!pass){alert('يرجى تعبئة جميع الحقول');return}
   if(pass.length<6){alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');return}
   if(!/^[a-zA-Z0-9_.-]+$/.test(uname)){alert('اسم المستخدم يجب أن يحتوي على حروف إنجليزية وأرقام فقط');return}
@@ -8646,12 +8893,13 @@ function addUser(){
   }
   secondaryApp.auth().createUserWithEmailAndPassword(email,pass).then(function(cred){
     var newUid = cred.user.uid;
-    return db.collection('users').doc(newUid).set({
+    return db.collection('users').doc(newUid).set(Object.assign({
       uid: newUid,
       name:name, username:uname, email:email, role:role, isAdmin:false,
       authMigrated:true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(){
+    },permsArr?{perms:permsArr}:{})).then(function(){
+      if(permsArr&&typeof sdAuditLog==='function')sdAuditLog('create','users',newUid,'إضافة مستخدم بصلاحيات مخصصة — '+name+pxDiffNote(role,null,role,permsArr));
       return secondaryApp.auth().signOut();
     }).then(function(){
       return secondaryApp.delete();
@@ -8677,6 +8925,7 @@ function openEditUser(docId){
   document.getElementById('eu-user').value=u.username;
   document.getElementById('eu-pass').value='';
   document.getElementById('eu-role').value=u.role;
+  pxRender('eu',u.role,Array.isArray(u.perms)?u.perms:null);
   document.getElementById('modal-edit-user').classList.add('show');
 }
 
@@ -8690,8 +8939,13 @@ function saveEditUser(){
   if(dup){alert('اسم المستخدم مستخدم من قِبل شخص آخر');return}
   // ملاحظة: لا نسمح بتعديل كلمة المرور من هنا، يجب أن يستخدم المستخدم نفسه شاشة "تغيير كلمة المرور"
   var upd={name:name, username:uname, role:role};
+  var pxArr=role==='branch_manager'?null:pxCollect('eu');
+  var oldU=USERS_CACHE.find(function(x){return x._id===docId})||{};
+  var oldPerms=Array.isArray(oldU.perms)?oldU.perms:null;
+  upd.perms=pxArr?pxArr:firebase.firestore.FieldValue.delete();
+  var pxNote=pxDiffNote(oldU.role||role,oldPerms,role,pxArr);
   db.collection('users').doc(docId).update(upd).then(function(){
-    sdAuditLog('edit','users',docId,'تعديل بيانات مستخدم'+(upd.name?(' — '+upd.name):''));
+    sdAuditLog('edit','users',docId,'تعديل بيانات مستخدم'+(upd.name?(' — '+upd.name):'')+pxNote);
     closeModal('modal-edit-user');
     renderUsers();
     alert('تم تعديل بيانات المستخدم بنجاح ✓\nلتغيير كلمة المرور، اطلب من المستخدم استخدام شاشة "تغيير كلمة المرور"');
@@ -8843,13 +9097,13 @@ function calcCC2(){
   }
 }
 function approvCC(){
-  if(!CU||CU.role!=='branch_manager'){alert('هذه الصلاحية لمدير الفرع فقط');return}
+  if(!CU||(permsMode()?!hasCap('edit:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   var box=document.getElementById('mgr-ab');
   box.classList.add('ok');
   box.innerHTML='<div style="font-size:22px;color:#2D6A4F">✓</div><div style="font-weight:900;color:#2D6A4F;margin-top:3px;font-family:Cairo,sans-serif">Approved — تم الاعتماد</div><div style="font-size:10px;color:#8B6E55;margin-top:3px">'+CU.name+' — '+new Date().toLocaleString('ar-SA')+'</div>';
 }
 function approv(type){
-  if(!CU||CU.role!=='branch_manager'){alert('هذه الصلاحية لمدير الفرع فقط');return}
+  if(!CU||(permsMode()?!hasCap('edit:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   alert('✓ تم اعتماد مهام '+(type==='opening'?'الفتح':'الغلق')+'\n'+CU.name+' — '+new Date().toLocaleTimeString('ar-SA'));
 }
 function chkT(inp,mn,mx){
@@ -10505,7 +10759,7 @@ function loadHubBadges(){
 
   // Filter hub cards by permission
   if(CU){
-    var ac=PERMS[CU.role]||[];
+    var ac=userPerms();
     document.querySelectorAll('.hub-card[data-perm]').forEach(function(el){
       var perm=el.getAttribute('data-perm');
       el.style.display=(!perm||ac.includes(perm))?'flex':'none';
@@ -11869,7 +12123,7 @@ function loadCustody(){
       var tot=(d.amount||0).toFixed(2);
       var amtStyle=d.direction==='in'?'color:#1B5E20;font-weight:700':d.direction==='out'?'color:#B71C1C;font-weight:700':'color:#0D47A1;font-weight:700';
       var sign=d.direction==='in'?'+':d.direction==='out'?'-':'⇄';
-      var isAdmin=(CU&&CU.role==='branch_manager');
+      var isAdmin=(CU&&(permsMode()?hasCap('edit:finance'):CU.role==='branch_manager'));
       rows+='<tr>'
         +'<td style="font-size:11px">'+(d.date||'—')+'</td>'
         +'<td>'+(typeMap[d.type]||'—')+'</td>'
@@ -11910,7 +12164,7 @@ function loadCustody(){
 }
 function delCuTx(btn){
   var docId=btn.getAttribute('data-id');
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('delete:finance'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('حذف هذه الحركة؟'))return;
   sdSafeDelete('custody_ledger',docId).then(function(){loadCustody();}).catch(function(e){alert('خطأ: '+e.message);});
 }
@@ -12223,7 +12477,7 @@ function loadCashierReports(){
 
 // ===== كشف وحذف التقفيلات المكررة =====
 function findDuplicateCashierReports(){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('delete:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   db.collection('cashier_reports').orderBy('date','desc').limit(500).get().then(function(snap){
     if(snap.empty){alert('لا توجد تقفيلات للفحص');return;}
     var all=[];
@@ -12341,7 +12595,7 @@ function deleteAllDuplicateCRs(){
 }
 
 function approveCR(docId){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return}
+  if(!CU||(permsMode()?!hasCap('edit:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   db.collection('cashier_reports').doc(docId).get().then(function(doc){
     if(!doc.exists)return;
     var d=doc.data();
@@ -12365,7 +12619,7 @@ function approveCR(docId){
 }
 
 function deleteCR(docId){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return}
+  if(!CU||(permsMode()?!hasCap('delete:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('هل تريد حذف هذا التقفيل نهائياً؟'))return;
   sdSafeDelete('cashier_reports',docId).then(function(){
     if(typeof ccDeleteLinkedInvoiceEntry==='function')ccDeleteLinkedInvoiceEntry(docId);
@@ -12522,7 +12776,7 @@ function saveEditCashier(){
 function loadCCLog(){
   var sec=document.getElementById('cc-log-section');
   if(!sec)return;
-  if(!CU||CU.role!=='branch_manager'){sec.style.display='none';return;}
+  if(!CU||(permsMode()?!(hasCap('edit:ops')||hasCap('delete:ops')):CU.role!=='branch_manager')){sec.style.display='none';return;}
   sec.style.display='block';
   var tbody=document.getElementById('cc-log-body');
   if(!tbody)return;
@@ -12559,7 +12813,7 @@ function loadCCLog(){
   }).catch(function(e){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:16px;color:red">خطأ: '+e.message+'</td></tr>';});
 }
 function ccLogDel(docId){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('delete:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('حذف هذا التقفيل نهائياً؟'))return;
   sdSafeDelete('cashier_reports',docId,'حذف تقفيل من سجل صفحة التقفيل').then(function(){
     ccDeleteLinkedInvoiceEntry(docId);
@@ -12614,7 +12868,7 @@ function ccExitEdit(){
 }
 function ccUpdateExisting(printAfter){
   if(!_ccEditId)return;
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('edit:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   var g=function(id){var el=document.getElementById(id);return el?parseFloat(el.value)||0:0};
   var gs=function(id){var el=document.getElementById(id);return el?el.value.trim():''};
   var dateVal=gs('cc-date');
@@ -12714,7 +12968,7 @@ function mrPickFile(inp){
   r.readAsDataURL(f);
 }
 function mrUpload(){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('edit:reports'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!_mrFileData||!_mrFileMeta){alert('اختر ملف التقرير أولاً (PDF أو HTML)');return;}
   var month=document.getElementById('mr-month')?document.getElementById('mr-month').value:'';
   var year=document.getElementById('mr-year')?document.getElementById('mr-year').value:'';
@@ -12803,7 +13057,7 @@ function mrOpen(id,download){
   }).catch(function(e){alert('خطأ: '+e.message);});
 }
 function mrDelete(id){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('edit:reports'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('حذف هذا التقرير نهائياً؟'))return;
   db.collection('monthly_report_chunks').where('reportId','==',id).get().then(function(snap){
     var dels=[];snap.forEach(function(c){dels.push(c.ref.delete());});
@@ -13560,7 +13814,7 @@ function loadOpeningClosingStatus(){
 
 // ===== UNAPPROVE CASHIER =====
 function unapproveCR(docId){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('edit:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('هل تريد إلغاء اعتماد هذا التقفيل؟'))return;
   db.collection('cashier_reports').doc(docId).update({
     approved:false,
@@ -13652,7 +13906,7 @@ function loadOpReports(){
         +'<span style="font-size:11px;font-weight:700;color:'+pctColor+'">'+pct+'%</span></div>';
       var zr=d.zoneResults||{},zTxt=[];
       ['kitchen','bar','bakery','hall'].forEach(function(z){if(zr[z])zTxt.push(zr[z].name+' '+zr[z].pct+'%');});
-      var deleteBtn=(CU&&CU.role==='branch_manager')
+      var deleteBtn=(CU&&(permsMode()?hasCap('delete:ops'):CU.role==='branch_manager'))
         ?'<button class="btn bsm bd3" id="opr-'+d._id+'" onclick="deleteOpReport(this.id.slice(4))">حذف</button>':'';
       var viewBtn='<button class="btn bsm bp" id="opv-'+d._id+'" onclick="viewOpReport(this.id.slice(4))">عرض / طباعة</button>';
       var who=(d.responsible&&d.responsible!==d.completedBy?_esc(d.responsible)+'<br><small style="color:var(--tl)">اعتماد: '+_esc(d.completedBy||'—')+'</small>':_esc(d.completedBy||'—'));
@@ -13699,7 +13953,7 @@ function printOpReportsList(){
 }
 
 function deleteOpReport(docId){
-  if(!CU||CU.role!=='branch_manager'){alert('صلاحية مدير الفرع فقط');return;}
+  if(!CU||(permsMode()?!hasCap('delete:ops'):CU.role!=='branch_manager')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
   if(!confirm('حذف هذا السجل؟'))return;
   sdSafeDelete('daily_reports',docId).then(function(){loadOpReports();}).catch(function(e){alert('خطأ: '+e.message);});
 }
@@ -15172,8 +15426,8 @@ document.addEventListener('click',function(e){
 // ===== PURCHASE REQUESTS — طلبات المشتريات (Firestore: purchase_requests) =====
 var PR_LIST=[];
 var PR_STATUS={draft:{l:'مسودة',bg:'#ECEFF1',c:'#455A64'},pending:{l:'بانتظار الاعتماد',bg:'#FFF8E1',c:'#8B6914'},approved:{l:'معتمد — بانتظار الشراء',bg:'#E3F2FD',c:'#0D47A1'},purchased:{l:'تم الشراء',bg:'#E8F5E9',c:'#1B5E20'},rejected:{l:'مرفوض',bg:'#FFEBEE',c:'#B71C1C'}};
-function prCanCreate(){return CU&&['branch_manager','store_manager'].indexOf(CU.role)>=0;}
-function prCanApprove(){return CU&&CU.role==='branch_manager';}
+function prCanCreate(){return CU&&(permsMode()?hasCap('edit:requests'):['branch_manager','store_manager'].indexOf(CU.role)>=0);}
+function prCanApprove(){return CU&&(permsMode()?hasCap('approve:requests'):CU.role==='branch_manager');}
 function prEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function prInit(){
   var d=document.getElementById('pr-need');if(d&&!d.value)d.value=new Date().toISOString().slice(0,10);
@@ -15258,7 +15512,7 @@ function prSetStatus(id,status,action){
   var r=PR_LIST.find(function(x){return x._id===id;});if(!r)return;
   if((status==='approved'||status==='rejected')&&!prCanApprove()){alert('اعتماد الطلبات صلاحية مدير الفرع فقط');return;}
   if(status==='pending'&&!prCanCreate()){alert('ليس لديك صلاحية');return;}
-  if(status==='purchased'&&!(prCanCreate()||CU.role==='purchases_rep')){alert('ليس لديك صلاحية');return;}
+  if(status==='purchased'&&!(prCanCreate()||(permsMode()?hasCap('edit:purchases'):CU.role==='purchases_rep'))){alert('ليس لديك صلاحية');return;}
   var note='';
   if(status==='rejected'){note=prompt('سبب الرفض:')||'';if(!note)return;}
   if(status==='purchased'){note=prompt('رقم فاتورة الشراء أو ملاحظة التنفيذ (اختياري):')||'';}
@@ -15279,7 +15533,7 @@ function prCard(r){
   var btns='';
   if(r.status==='draft'&&prCanCreate())btns+='<button class="btn bsm bp" onclick="prSetStatus(\''+r._id+'\',\'pending\',\'إرسال للاعتماد\')">📤 إرسال للاعتماد</button> ';
   if(r.status==='pending'&&prCanApprove())btns+='<button class="btn bsm bp" onclick="prSetStatus(\''+r._id+'\',\'approved\',\'اعتماد\')">✅ اعتماد</button> <button class="btn bsm bo" style="color:#B71C1C" onclick="prSetStatus(\''+r._id+'\',\'rejected\',\'رفض\')">❌ رفض</button> ';
-  if(r.status==='approved'&&(prCanCreate()||CU.role==='purchases_rep'))btns+='<button class="btn bsm bp" onclick="prSetStatus(\''+r._id+'\',\'purchased\',\'تأكيد تنفيذ الشراء\')">🛒 تم الشراء</button> ';
+  if(r.status==='approved'&&(prCanCreate()||(permsMode()?hasCap('edit:purchases'):CU.role==='purchases_rep')))btns+='<button class="btn bsm bp" onclick="prSetStatus(\''+r._id+'\',\'purchased\',\'تأكيد تنفيذ الشراء\')">🛒 تم الشراء</button> ';
   if(prCanApprove()||(r.status==='draft'&&r.createdBy===CU._id))btns+='<button class="btn bsm bo" style="color:#B71C1C" onclick="prDelete(\''+r._id+'\')">🗑️</button>';
   var hist=(r.history||[]).map(function(x){return '<div>'+(x.at||'').slice(0,16).replace('T',' ')+' — '+prEsc(x.by)+': '+prEsc(x.action)+(x.note?' ('+prEsc(x.note)+')':'')+'</div>';}).join('');
   return '<div style="border:1.5px solid var(--br);border-radius:10px;padding:12px;margin-bottom:10px;background:#fff">'
@@ -15323,15 +15577,15 @@ function psFmtDateDay(d){
 
 // تحديد إذا كان المستخدم الحالي يستطيع الكتابة (إضافة/تعديل/حذف)
 function psCanWrite(){
-  return CU && (CU.role==='branch_manager' || CU.role==='purchases_rep');
+  return CU && (permsMode()?hasCap('edit:purchases'):(CU.role==='branch_manager' || CU.role==='purchases_rep'));
 }
 function psCanDelete(){
-  return CU && CU.role==='branch_manager';
+  return CU && (permsMode()?hasCap('delete:purchases'):CU.role==='branch_manager');
 }
 // صلاحية تعديل الرصيد الافتتاحي للموردين (محاسبية وليست إدارية)
 // تشمل: مدير الفرع + المحاسب + مندوب المشتريات
 function psCanEditOpening(){
-  return CU && (CU.role==='branch_manager' || CU.role==='accountant' || CU.role==='purchases_rep');
+  return CU && (permsMode()?(hasCap('edit:purchases')||hasCap('edit:accounting')):(CU.role==='branch_manager' || CU.role==='accountant' || CU.role==='purchases_rep'));
 }
 
 function psTab(id,el){
@@ -18132,9 +18386,9 @@ function schExportExcel(area){
    ================================================================== */
 var _ccIngs=[], _ccRecs=[], _beData=null, _ccLoaded=false;
 
-function ccGuard(){return CU && CU.role==='branch_manager';}
+function ccGuard(){return CU && (permsMode()?hasCap('edit:costs'):CU.role==='branch_manager');}
 
-function ccViewOK(){return CU && (CU.role==='branch_manager'||CU.role==='owner');}
+function ccViewOK(){return CU && (permsMode()?(hasPage('costcards')||hasPage('menu')||hasPage('breakeven')):(CU.role==='branch_manager'||CU.role==='owner'));}
 function ccInit(){
   if(!ccViewOK())return;
   if(_ccLoaded){ccRenderIngs();ccRenderRecs();return;}
@@ -19655,9 +19909,9 @@ var INV_MOVES=[], INV_COUNTS=[], INV_DRAFTS=[], _invInit=false, _invSalesPreview
 var INV_TYPE_LABEL={opening:'رصيد أول المدة',purchase:'مشتريات',sale:'مبيعات (من الوصفات)',consume:'صرف / استهلاك',waste:'هالك / تالف',adjust:'تسوية',count:'جرد فعلي'};
 var INV_TYPE_ORDER={opening:0,purchase:1,sale:2,consume:2,waste:2,adjust:3,count:9};
 
-function invCanWrite(){return CU&&['branch_manager','store_manager','purchases_rep'].indexOf(CU.role)>=0;}
-function invCanCount(){return CU&&['branch_manager','store_manager'].indexOf(CU.role)>=0;}
-function invCanDelete(){return CU&&CU.role==='branch_manager';}
+function invCanWrite(){return CU&&(permsMode()?hasCap('edit:inventory'):['branch_manager','store_manager','purchases_rep'].indexOf(CU.role)>=0);}
+function invCanCount(){return CU&&(permsMode()?hasCap('approve:inventory'):['branch_manager','store_manager'].indexOf(CU.role)>=0);}
+function invCanDelete(){return CU&&(permsMode()?hasCap('delete:inventory'):CU.role==='branch_manager');}
 function invFmt(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});}
 function invMoney(n){return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function invMonthNow(){return new Date().toISOString().slice(0,7);}
@@ -19907,7 +20161,7 @@ var FC_DEFAULT_SEASONS=[{label:'موسم الصيف والسياحة بأبها'
 var FC_SEASON_TYPES={summer:'موسم الصيف والسياحة',school:'إجازة مدرسية',other:'موسم آخر'};
 var FC_EVENT_LABEL={ramadan:'رمضان',eid_fitr1:'أول أيام عيد الفطر',eid_fitr2:'أيام عيد الفطر',arafah:'يوم عرفة',eid_adha1:'أول أيام عيد الأضحى',eid_adha2:'أيام عيد الأضحى',national:'اليوم الوطني',founding:'يوم التأسيس',payday:'صرف الرواتب ونهاية الشهر'};
 
-function fcCanWrite(){return CU&&['branch_manager','store_manager'].indexOf(CU.role)>=0;}
+function fcCanWrite(){return CU&&(permsMode()?hasCap('edit:forecast'):['branch_manager','store_manager'].indexOf(CU.role)>=0);}
 function fcEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function fcD(s){var p=s.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));}
 function fcS(d){return d.toISOString().slice(0,10);}
@@ -20372,7 +20626,7 @@ var FD_ZERO=/^(مقعد|ماء)|رقم الجهاز/;// أصناف خدمية ب
 var FD_EMP=[['be-emp-salary','الرواتب الأساسية'],['be-emp-housing','سكن الموظفين'],['be-emp-gosi','تأمين اجتماعي/مهنية'],['be-emp-leave','مستحقات إجازة سنوية'],['be-emp-cert','شهادات صحية'],['be-emp-iqama','تجديد الإقامة'],['be-emp-health','تأمين صحي'],['be-emp-worklic','رخصة عمل'],['be-emp-overtime','ساعات إضافية'],['be-emp-other','أخرى (تذاكر، مكافآت، نهاية خدمة)']];
 var FD_OPS=[['be-op-marketing','تسويق وإعلان'],['be-op-rent','إيجار الفرع'],['be-op-elec','كهرباء'],['be-op-gas','غاز'],['be-op-clean','نظافة وبلدية'],['be-op-internet','إنترنت'],['be-op-water','مياه'],['be-op-maintain','صيانة واستهلاك'],['be-op-pos','برنامج محاسبي / كاشير'],['be-op-gov','قوى / مدد / مقيم'],['be-op-municipal','رخصة بلدية'],['be-op-cr','سجل تجاري'],['be-op-civil','دفاع مدني'],['be-op-other','مصاريف إدارية أخرى']];
 
-function fdCanView(){return CU&&['branch_manager','accountant','owner'].indexOf(CU.role)>=0;}
+function fdCanView(){return CU&&(permsMode()?hasPage('findash'):['branch_manager','accountant','owner'].indexOf(CU.role)>=0);}
 function fdEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/[<]/g,'&lt;').replace(/"/g,'&quot;');}
 function fdN(x,d){x=Number(x)||0;return x.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
 function fdSN(x,d){var s=fdN(Math.abs(x),d);return '<bdi dir="ltr">'+(x<0?'−':(x>0?'+':''))+s+'<\/bdi>';}
@@ -20805,8 +21059,8 @@ var AC_SOURCES=[
   {k:'cbank',label:'إيداعات العهدة في البنك والتحويلات البنكية للعهدة',on:true}
 ];
 
-function acCanWrite(){return CU&&['branch_manager','accountant'].indexOf(CU.role)>=0;}
-function acIsMgr(){return CU&&CU.role==='branch_manager';}
+function acCanWrite(){return CU&&(permsMode()?(hasCap('edit:accounting')||hasCap('admin:accounting')):['branch_manager','accountant'].indexOf(CU.role)>=0);}
+function acIsMgr(){return CU&&(permsMode()?hasCap('admin:accounting'):CU.role==='branch_manager');}
 function acEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function acR(x){return Math.round((Number(x)||0)*100)/100;}
 function acM(x){x=Number(x)||0;var s=Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});return x<-0.004?'('+s+')':s;}
@@ -21434,7 +21688,7 @@ function invPickDefaultCountMonth(){
   if(!cm.dataset.bound){cm.dataset.bound='1';cm.addEventListener('change',function(){cm.dataset.userSet='1';});}
 }
 function invDraftQueue(itemId,g,raw){
-  if(!CU||CU.role==='owner')return;
+  if(!CU||(permsMode()?!(hasCap('edit:inventory')||hasCap('draft:count')):CU.role==='owner'))return;
   var month=(document.getElementById('invc-month')||{}).value;if(!month||!itemId)return;
   if(_invDraftMonth&&_invDraftMonth!==month)invDraftFlush();
   _invDraftMonth=month;
