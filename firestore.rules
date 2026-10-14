@@ -1,20 +1,33 @@
 rules_version = '2';
 // قواعد Firestore لمنصة حباق — مشروع habaq-b707c
-// نسخة مرجعية مطابقة للقواعد المنشورة في Firebase Console (صلاحيات حسب الدور)،
-// مضافاً إليها: مجموعات التنبؤ الذكي بالطلبيات (fc_daily, fc_meta, fc_snapshots) ومسودات الجرد (inv_count_drafts)
-// والمحاسبة المالية (acc_accounts, acc_entries, acc_settings).
-// اللوحة المالية (للعرض فقط): يقرأ المحاسب والمالك مبيعات رواء (fc_daily, fc_meta) وحاسبة نقطة التعادل (breakeven_calc)
-// بدون أي صلاحية كتابة إضافية — الكتابة بقيت كما هي.
+// صلاحيات حسب الدور + صلاحيات فردية لكل مستخدم (users/{uid}.perms).
+//
+// النموذج:
+//  - مستخدم بلا perms: تعمل قواعد دوره كما كانت حرفياً (لا تغيير على المستخدمين الحاليين).
+//  - مستخدم لديه perms (قائمة مفاتيح): تصبح perms المرجع الوحيد لصلاحياته في المجموعات المذكورة أدناه.
+//    مفاتيح الصفحات (مثل hr-payroll) تمنح القراءة، ومفاتيح البيانات (مثل edit:payroll) تمنح الكتابة.
+//  - مدير الفرع يتجاوز دائماً ولا يتقيّد بـ perms.
+//  - لا يستطيع أي مستخدم تعديل role أو isAdmin أو allowEdit أو allowDelete أو perms في وثيقته بنفسه.
+//
+// ملاحظة: شروط الدور القديمة لا تُمرَّر كوسائط دوال (تُقيَّم مبكراً)، بل تُكتب بصيغة:
+//   hasPerms() ? perm('x') : <الشرط القديم>
+//
 // هذا الملف لا يُطبَّق تلقائياً من GitHub — يُلصق في Firebase Console ← Firestore ← Rules ثم Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ===== الدوال المساعدة =====
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // وثيقة المستخدم الحالي
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return me().role;
     }
 
     function hasRole(wanted) {
@@ -25,16 +38,56 @@ service cloud.firestore {
       return hasRole(['branch_manager']);
     }
 
+    // هل يعمل المستخدم بصلاحيات فردية؟ (حقل perms قائمة)
+    function hasPerms() {
+      return isSignedIn() && me().get('perms', null) is list;
+    }
+
+    // قائمة الصلاحيات الفردية
+    function perms() {
+      return me().get('perms', []);
+    }
+
+    // يملك مفتاحاً محدداً
+    function perm(k) {
+      return hasPerms() && k in perms();
+    }
+
+    // يملك أي مفتاح من القائمة
+    function permAny(ks) {
+      return hasPerms() && perms().hasAny(ks);
+    }
+
+    // ===== المستخدمون =====
+    // الحقول الحساسة التي لا يعدّلها المستخدم لنفسه
+    function selfPrivChange() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['role', 'isAdmin', 'allowEdit', 'allowDelete', 'perms']);
+    }
+
+    // جسر توافق قديم: وثيقة بلا role وفيها roles:['admin'] تُرقّى إلى branch_manager عند الدخول
+    function legacyAdminBridge() {
+      return resource.data.get('role', null) == null
+        && resource.data.get('roles', []) is list
+        && resource.data.get('roles', []).hasAny(['admin'])
+        && request.resource.data.role == 'branch_manager'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isManager() || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isManager() || (isSignedIn() && request.auth.uid == userId);
+      allow update: if isManager()
+        || (isSignedIn() && request.auth.uid == userId && (!selfPrivChange() || legacyAdminBridge()));
       allow delete: if isManager();
     }
 
+    // ===== العمليات اليومية =====
     match /cashier_reports/{id} {
       allow read: if isSignedIn();
-      allow create: if hasRole(['branch_manager', 'cashier']);
-      allow update, delete: if isManager();
+      allow create: if isManager() || (hasPerms() ? perm('cashier') : hasRole(['branch_manager', 'cashier']));
+      allow update: if isManager() || (hasPerms() ? perm('edit:ops') : false);
+      allow delete: if isManager() || (hasPerms() ? perm('delete:ops') : false);
     }
 
     match /cashier_names/{id} {
@@ -43,9 +96,9 @@ service cloud.firestore {
     }
 
     match /custody_ledger/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create, update: if isManager();
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['reports', 'custodyreport', 'accounting']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:finance') : false);
+      allow delete: if isManager() || (hasPerms() ? perm('delete:finance') : false);
     }
 
     match /custody_users/{id} {
@@ -54,15 +107,15 @@ service cloud.firestore {
     }
 
     match /revenue_receipts/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create, update: if isManager();
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['reports', 'accounting', 'findash']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:finance') : false);
+      allow delete: if isManager() || (hasPerms() ? perm('delete:finance') : false);
     }
 
     match /daily_reports/{id} {
       allow read: if isSignedIn();
-      allow create, update: if hasRole(['branch_manager', 'cashier', 'visit_supervisor']);
-      allow delete: if isManager();
+      allow create, update: if isManager() || (hasPerms() ? perm('opening') : hasRole(['branch_manager', 'cashier', 'visit_supervisor']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:ops') : false);
     }
 
     match /audit_logs/{id} {
@@ -71,129 +124,143 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ===== الموارد البشرية =====
     match /hr_employees/{id} {
-      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['hr-employees', 'hr-payroll', 'hr-eval', 'hr-advances', 'hr-violations', 'hr-schedule-dining', 'hr-schedule-kitchen', 'accounting']) : hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
     match /hr_payroll/{id} {
-      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
+      allow read: if isManager() || (hasPerms() ? permAny(['hr-payroll', 'accounting']) : hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:payroll') : hasRole(['branch_manager', 'hr_manager']));
       allow delete: if false;
     }
 
     match /hr_advances/{id} {
-      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['hr-advances', 'hr-payroll', 'accounting']) : hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
     match /hr_violations/{id} {
-      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']);
-      allow create: if hasRole(['branch_manager', 'hr_manager', 'visit_supervisor']);
-      allow update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['hr-violations', 'hr-employees', 'accounting']) : hasRole(['branch_manager', 'hr_manager', 'accountant', 'visit_supervisor', 'owner']));
+      allow create: if isManager() || (hasPerms() ? permAny(['edit:hr', 'add:violation']) : hasRole(['branch_manager', 'hr_manager', 'visit_supervisor']));
+      allow update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
     match /hr_evaluations/{id} {
-      allow read: if hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['hr-eval', 'hr-payroll', 'accounting']) : hasRole(['branch_manager', 'hr_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
     match /hr_eval_settings/{id} {
       allow read: if isSignedIn();
-      allow create, update, delete: if hasRole(['branch_manager', 'hr_manager']);
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
     }
 
     match /hr_schedules/{id} {
       allow read: if isSignedIn();
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
     match /hr_schedule_assignments/{id} {
       allow read: if isSignedIn();
-      allow create, update: if hasRole(['branch_manager', 'hr_manager']);
-      allow delete: if isManager();
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:hr') : hasRole(['branch_manager', 'hr_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:hr') : false);
     }
 
+    // ===== المشتريات =====
     match /purchases_invoices/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['purchase-system', 'inventory', 'purchase', 'accounting']) : hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:purchases') : hasRole(['branch_manager', 'purchases_rep']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:purchases') : false);
     }
 
     match /purchases_suppliers/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['purchase-system', 'inventory', 'purchase', 'accounting']) : hasRole(['branch_manager', 'accountant', 'purchases_rep', 'store_manager', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:purchases') : hasRole(['branch_manager', 'purchases_rep']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:purchases') : false);
     }
 
     match /purchases_payments/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'purchases_rep', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'purchases_rep']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['purchase-system', 'accounting']) : hasRole(['branch_manager', 'accountant', 'purchases_rep', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:purchases') : hasRole(['branch_manager', 'purchases_rep']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:purchases') : false);
     }
 
     match /purchases_audit_log/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create: if hasRole(['branch_manager', 'purchases_rep', 'accountant']);
+      allow read: if isManager() || (hasPerms() ? permAny(['reports', 'accounting']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create: if isManager() || (hasPerms() ? permAny(['edit:purchases', 'edit:accounting']) : hasRole(['branch_manager', 'purchases_rep', 'accountant']));
       allow update, delete: if false;
     }
 
+    // طلبات الشراء والإنتاج
     match /purchase_requests/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['purchase', 'production', 'edit:purchases', 'edit:accounting']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']));
+      allow create: if isManager() || (hasPerms() ? perm('edit:requests') : hasRole(['branch_manager', 'store_manager']));
+      allow update: if isManager() || (hasPerms() ? permAny(['edit:requests', 'approve:requests']) : hasRole(['branch_manager', 'store_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:purchases') : false);
     }
 
+    // ===== المخزون =====
     match /inv_movements/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep']);
-      allow delete: if hasRole(['branch_manager', 'store_manager']);
+      allow read: if isManager() || (hasPerms() ? permAny(['inventory', 'purchase-system', 'accounting']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:inventory') : hasRole(['branch_manager', 'store_manager', 'purchases_rep']));
+      allow delete: if isManager() || (hasPerms() ? perm('approve:inventory') : hasRole(['branch_manager', 'store_manager']));
     }
 
     match /inv_counts/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['inventory', 'purchase-system', 'accounting']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('approve:inventory') : hasRole(['branch_manager', 'store_manager']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:inventory') : false);
     }
 
+    // مسودات الجرد الشهري
+    match /inv_count_drafts/{id} {
+      allow read: if isManager() || (hasPerms() ? permAny(['inventory', 'purchase-system', 'accounting']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? permAny(['edit:inventory', 'draft:count']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']));
+      allow delete: if isManager() || (hasPerms() ? perm('approve:inventory') : hasRole(['branch_manager', 'store_manager']));
+    }
+
+    // ===== التكاليف والتسعير =====
     // المواد الخام = دليل أصناف المخزون — إضافة الأصناف مسموحة لمدير الفرع ومسؤول المخازن ومندوب المشتريات
     match /cost_ingredients/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['inventory', 'costcards', 'menu', 'purchase-system', 'accounting', 'forecast']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? permAny(['edit:inventory', 'edit:costs']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:inventory') : false);
     }
 
     match /cost_recipes/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['inventory', 'costcards', 'menu', 'purchase-system', 'accounting', 'forecast', 'findash']) : hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:costs') : false);
     }
 
     match /cost_settings/{id} {
-      allow read: if hasRole(['branch_manager', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['costcards', 'menu', 'breakeven']) : hasRole(['branch_manager', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:costs') : false);
     }
 
     // حاسبة نقطة التعادل — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /breakeven_calc/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? permAny(['breakeven', 'findash']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:costs') : false);
     }
 
+    // ===== الزيارات والنماذج =====
     match /visit_reports/{id} {
       allow read: if isSignedIn();
-      allow create, update: if hasRole(['branch_manager', 'visit_supervisor']);
-      allow delete: if isManager();
+      allow create, update: if isManager() || (hasPerms() ? perm('visit') : hasRole(['branch_manager', 'visit_supervisor']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:ops') : false);
     }
 
     match /operational_forms/{id} {
       allow read: if isSignedIn();
-      allow create, update: if hasRole(['branch_manager', 'visit_supervisor', 'cashier']);
-      allow delete: if isManager();
+      allow create, update: if isManager() || (hasPerms() ? permAny(['forms', 'opening']) : hasRole(['branch_manager', 'visit_supervisor', 'cashier']));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:ops') : false);
     }
 
     match /items/{id} {
@@ -206,63 +273,63 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ===== التقارير المالية الشهرية =====
     match /monthly_reports/{id} {
-      allow read: if hasRole(['branch_manager', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? perm('monthlyreports') : hasRole(['branch_manager', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:reports') : false);
     }
 
     match /monthly_report_chunks/{id} {
-      allow read: if hasRole(['branch_manager', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? perm('monthlyreports') : hasRole(['branch_manager', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:reports') : false);
     }
 
     // ===== التنبؤ الذكي بالطلبيات =====
     // مبيعات الأصناف اليومية من رواء — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /fc_daily/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']);
-      allow create, update, delete: if hasRole(['branch_manager', 'store_manager']);
+      allow read: if isManager() || (hasPerms() ? permAny(['forecast', 'findash']) : hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:forecast') : hasRole(['branch_manager', 'store_manager']));
     }
 
     // أسماء الأصناف وربطها بالوصفات — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /fc_meta/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow read: if isManager() || (hasPerms() ? permAny(['forecast', 'findash']) : hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:forecast') : hasRole(['branch_manager', 'store_manager']));
       allow delete: if isManager();
     }
 
     match /fc_snapshots/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager']);
+      allow read: if isManager() || (hasPerms() ? perm('forecast') : hasRole(['branch_manager', 'store_manager', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? perm('edit:forecast') : hasRole(['branch_manager', 'store_manager']));
       allow delete: if isManager();
-    }
-
-    // ===== مسودات الجرد الشهري =====
-    match /inv_count_drafts/{id} {
-      allow read: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'store_manager', 'purchases_rep', 'accountant']);
-      allow delete: if hasRole(['branch_manager', 'store_manager']);
     }
 
     // ===== المحاسبة المالية =====
-    // دليل الحسابات: يضيفه ويعدّله المحاسب ومدير الفرع، والحذف لمدير الفرع
+    // دليل الحسابات: يضيفه ويعدّله المحاسب ومدير الفرع، والحذف لمدير الفرع (أو admin:accounting)
     match /acc_accounts/{code} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create, update: if hasRole(['branch_manager', 'accountant']);
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? permAny(['edit:accounting', 'admin:accounting']) : hasRole(['branch_manager', 'accountant']));
+      allow delete: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
     }
 
-    // القيود: المحاسب ينشئ ويعدّل المسودات فقط، والاعتماد وإلغاؤه والحذف لمدير الفرع
+    // القيود: edit:accounting ينشئ ويعدّل المسودات فقط، والاعتماد وإلغاؤه والحذف لـ admin:accounting ومدير الفرع
     match /acc_entries/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create: if isManager() || (hasRole(['accountant']) && request.resource.data.status == 'draft');
-      allow update: if isManager() || (hasRole(['accountant']) && resource.data.status == 'draft' && request.resource.data.status == 'draft');
-      allow delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create: if isManager()
+        || (hasPerms()
+            ? (perm('admin:accounting') || (perm('edit:accounting') && request.resource.data.status == 'draft'))
+            : (hasRole(['accountant']) && request.resource.data.status == 'draft'));
+      allow update: if isManager()
+        || (hasPerms()
+            ? (perm('admin:accounting') || (perm('edit:accounting') && resource.data.status == 'draft' && request.resource.data.status == 'draft'))
+            : (hasRole(['accountant']) && resource.data.status == 'draft' && request.resource.data.status == 'draft'));
+      allow delete: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
     }
 
     // إعدادات المحاسبة (نسبة الضريبة وتاريخ إقفال الفترات)
     match /acc_settings/{id} {
-      allow read: if hasRole(['branch_manager', 'accountant', 'owner']);
-      allow create, update, delete: if isManager();
+      allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update, delete: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
     }
 
     // الرفض الافتراضي: أي مجموعة غير مذكورة أعلاه ممنوعة قراءةً وكتابةً
