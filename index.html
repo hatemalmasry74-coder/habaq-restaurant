@@ -367,6 +367,68 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
 .px-foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .px-note{font-size:10.5px;color:var(--tl);line-height:1.7;flex:1;min-width:200px}
 @media(max-width:600px){.px-gb{grid-template-columns:1fr}}
+/* ===== الجوال ===== */
+.mnav-btn{display:none;width:38px;height:38px;border-radius:9px;border:1px solid rgba(117,82,59,.25);background:rgba(117,82,59,.12);color:#8B2F2B;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+.mnav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.mnav-ov{display:none}
+.sb-close{display:none}
+@media(max-width:840px){
+  .mnav-btn{display:flex}
+  .topbar{padding:0 10px;height:54px}
+  .tb-l{gap:7px}.tb-r{gap:6px}
+  .tb-logo{width:30px;height:30px}
+  .ubadge{padding:4px 8px;max-width:128px;min-width:0}
+  .ubadge>div{min-width:0}
+  .uname,.urole{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbtn{padding:6px 9px}
+  .app-body{display:block;min-height:calc(100vh - 54px)}
+  .sidebar,.sidebar[style]{position:fixed;top:0;bottom:0;right:0;width:min(300px,86vw)!important;z-index:450;transform:translateX(105%);transition:transform .25s ease;box-shadow:-6px 0 24px rgba(0,0,0,.18);padding:0 0 24px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-left:none}
+  html[dir=ltr] .sidebar{right:auto;left:0;transform:translateX(-105%);box-shadow:6px 0 24px rgba(0,0,0,.18)}
+  body.mnav-open .sidebar{transform:none}
+  body.mnav-open{overflow:hidden}
+  .mnav-ov{position:fixed;inset:0;background:rgba(30,15,5,.45);z-index:440}
+  body.mnav-open .mnav-ov{display:block}
+  .sb-close{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;background:var(--w);padding:12px 14px 10px;border-bottom:1px solid var(--br);margin-bottom:6px;font-size:14px;font-weight:900;color:var(--rd)}
+  .sb-close button{background:var(--bd);border:none;width:34px;height:34px;border-radius:8px;font-size:18px;color:var(--tm);cursor:pointer}
+  .sgh{padding:12px 12px;font-size:13.5px}
+  .sgb .ni{padding:11px 12px;font-size:13px}
+  .content{padding:12px 10px 40px}
+  .content::before{font-size:96px}
+  .card{padding:12px}
+  .ph h1{font-size:17px}
+  .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .content [style*="repeat(4,1fr)"],.content [style*="repeat(5,1fr)"],.content [style*="repeat(6,1fr)"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .content [style*="display:flex"],.content [style*="display: flex"]{flex-wrap:wrap}
+  .content input,.content select,.content textarea{max-width:100%}
+  .fr input,.fr select,.fr textarea{font-size:16px}
+  .mtw{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .mtw>table th{white-space:nowrap}
+  .um-modal{align-items:flex-end}
+  .um-box,.um-box.um-wide{width:100%!important;max-width:100%!important;max-height:92vh;border-radius:16px 16px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+  .tabs{overflow-x:auto;flex-wrap:nowrap}
+  .cc-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .cc-tab{flex-shrink:0}
+}
+@media(max-width:600px){
+  .g2,.fg2{grid-template-columns:1fr}
+  .content [style*="repeat(3,1fr)"],.content [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .content [style*="grid-template-columns:2fr 1fr"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .content [style*="grid-template-columns:2fr 1fr"]>:first-child{grid-column:1/-1}
+  .content [style*="minmax(260px"],.content [style*="minmax(280px"]{grid-template-columns:1fr!important}
+  .cc-ing-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cc-ing-row>:first-child{grid-column:1/-1}
+  .rrow{grid-template-columns:1fr 1fr auto}
+  .rrow>:first-child{grid-column:1/-1}
+  .vis-row{grid-template-columns:1fr auto auto}
+  .vis-row>:last-child{grid-column:1/-1}
+  .tb-name{display:none}
+  .urole{display:none}
+}
+@media(max-width:380px){
+  .g3,.g4,.content [style*="repeat(4,1fr)"],.content [style*="repeat(3,1fr)"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .ubadge{max-width:96px}
+}
+@media print{.mnav-btn,.mnav-ov,.sb-close{display:none!important}.mtw{overflow:visible!important}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -454,6 +516,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
 <div id="app">
   <div class="topbar">
     <div class="tb-l">
+      <button class="mnav-btn" id="mnav-btn" onclick="mobNavToggle()" aria-label="القائمة" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
       <div class="tb-logo sdf-logo"></div>
       <div class="tb-name">حباق</div>
     </div>
@@ -467,8 +530,10 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
     </div>
   </div>
 
+  <div class="mnav-ov" onclick="mobNavClose()"></div>
   <div class="app-body">
     <div class="sidebar" id="sidebar">
+      <div class="sb-close"><span>القائمة</span><button onclick="mobNavClose()" aria-label="إغلاق">✕</button></div>
       <div class="sg" data-g="main"><div class="sgh" onclick="navToggle(this)"><span class="sgi">🏠</span><span>الرئيسية</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         <div class="sgb">
         <div class="ni active" onclick="go('dashboard',this)" data-perm="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>لوحة التحكم</div>
@@ -5845,6 +5910,33 @@ function navSync(pid){
   var g=el.closest('.sg');if(g)g.classList.add('open');
 }
 
+/* ===== الجوال: القائمة كدرج جانبي + لفّ الجداول العريضة ===== */
+var MOB_MQ=window.matchMedia?window.matchMedia('(max-width:840px)'):{matches:false,addListener:function(){}};
+function mobIs(){return MOB_MQ.matches;}
+function mobNavOpen(){document.body.classList.add('mnav-open');var b=document.getElementById('mnav-btn');if(b)b.setAttribute('aria-expanded','true');}
+function mobNavClose(){document.body.classList.remove('mnav-open');var b=document.getElementById('mnav-btn');if(b)b.setAttribute('aria-expanded','false');}
+function mobNavToggle(){if(document.body.classList.contains('mnav-open'))mobNavClose();else mobNavOpen();}
+function mobWrapTables(root){
+  if(!mobIs())return;
+  [].forEach.call((root||document).querySelectorAll('#app .content table'),function(t){
+    var p=t.parentNode;if(!p||(p.classList&&p.classList.contains('mtw')))return;
+    var w=document.createElement('div');w.className='mtw';p.insertBefore(w,t);w.appendChild(t);
+  });
+}
+(function(){
+  var pend=false;
+  function sched(){if(pend||!mobIs())return;pend=true;setTimeout(function(){pend=false;mobWrapTables();},60);}
+  function init(){
+    var c=document.querySelector('#app .content');
+    if(c&&window.MutationObserver)new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){if(ms[i].addedNodes.length){sched();return;}}}).observe(c,{childList:true,subtree:true});
+    sched();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  var onMq=function(){if(!mobIs())mobNavClose();sched();};
+  if(MOB_MQ.addEventListener)MOB_MQ.addEventListener('change',onMq);else MOB_MQ.addListener(onMq);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')mobNavClose();});
+})();
+
 
 // ===========================
 // HR — EMPLOYEES
@@ -8750,6 +8842,7 @@ function go(pid,el){
   document.getElementById('pg-'+pid).classList.add('active');
   if(el)el.classList.add('active');
   navSync(pid);
+  if(mobIs()){mobNavClose();window.scrollTo(0,0);}
   if(pid==='users') renderUsers();
   if(pid==='auditlog'){loadAuditLog();}
   if(pid==='custody'){initCustodyPage();loadCustody();setTimeout(initCustodyFilter,500);setTimeout(function(){makeCashierSelector('ec-cashier');},150);}
