@@ -2794,6 +2794,11 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
               <td style="padding:6px 10px"><input type="text" placeholder="Ref / مرجع" style="width:100%;padding:6px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif"></td>
             </tr>
             <tr style="border-bottom:1px solid var(--b)">
+              <td style="padding:9px 14px;font-weight:600;background:#faf7f2;border-right:1px solid var(--br)">🛵 كيتا Keeta</td>
+              <td style="padding:6px 10px;border-right:1px solid var(--b)"><input type="number" id="cc-keeta" placeholder="0.00" min="0" step="0.01" oninput="calcCC2()" style="width:100%;padding:6px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif"></td>
+              <td style="padding:6px 10px"><input type="text" placeholder="Ref / مرجع" style="width:100%;padding:6px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif"></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--b)">
               <td style="padding:9px 14px;font-weight:600;background:#faf7f2;border-right:1px solid var(--br)">تحويل بنكي</td>
               <td style="padding:6px 10px;border-right:1px solid var(--b)"><input type="number" id="cc-transfer" placeholder="0.00" min="0" step="0.01" oninput="calcCC2()" style="width:100%;padding:6px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif"></td>
               <td style="padding:6px 10px"><input type="text" placeholder="رقم العملية / Ref" style="width:100%;padding:6px 10px;border:1px solid var(--br);border-radius:6px;font-size:12px;background:#fffcf8;outline:none;font-family:Cairo,sans-serif"></td>
@@ -4193,10 +4198,11 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
             <div class="sc" style="border:1.5px solid #BBDEFB"><div class="sv" style="color:#1565C0" id="sr-total-span">—</div><div class="sk">💳 الشبكة/الإلكتروني</div></div>
             <div class="sc" style="border:1.5px solid #FBE9DA"><div class="sv" style="color:#B5621B" id="sr-total-delivery">—</div><div class="sk">🛵 تطبيقات التوصيل (ضمن الشبكة)</div></div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
             <div class="sc" style="border:1.5px solid #FBE9DA"><div class="sv" style="color:#B5621B;font-size:18px" id="sr-total-ninja">—</div><div class="sk">🛵 نينجا Ninja</div></div>
             <div class="sc" style="border:1.5px solid #FBE9DA"><div class="sv" style="color:#B5621B;font-size:18px" id="sr-total-gulf">—</div><div class="sk">🌐 الشبكة الخليجية Gulf Network</div></div>
             <div class="sc" style="border:1.5px solid #FBE9DA"><div class="sv" style="color:#B5621B;font-size:18px" id="sr-total-hunger">—</div><div class="sk">🛵 هنقرستيشن HungerStation</div></div>
+            <div class="sc" style="border:1.5px solid #FBE9DA"><div class="sv" style="color:#B5621B;font-size:18px" id="sr-total-keeta">—</div><div class="sk">🛵 كيتا Keeta</div></div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
             <div class="sc" style="border:1.5px solid #E0E0E0"><div class="sv" style="color:#5a3e2b;font-size:18px" id="sr-count">—</div><div class="sk">عدد التقافيل</div></div>
@@ -4213,7 +4219,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
             <table class="dt">
               <thead><tr>
                 <th>التاريخ</th><th>الكاشير</th><th>إجمالي المبيعات</th>
-                <th>النقدي</th><th>الشبكة</th><th>🛵 نينجا</th><th>🌐 الشبكة الخليجية</th><th>🛵 هنقرستيشن</th><th>🛵 إجمالي التوصيل</th><th>Void</th><th>خصم</th><th>غير مدفوع</th>
+                <th>النقدي</th><th>الشبكة</th><th>🛵 نينجا</th><th>🌐 الشبكة الخليجية</th><th>🛵 هنقرستيشن</th><th>🛵 كيتا</th><th>🛵 إجمالي التوصيل</th><th>Void</th><th>خصم</th><th>غير مدفوع</th>
               </tr></thead>
               <tbody id="sr-body">
                 <tr><td colspan="12" style="text-align:center;padding:30px;color:var(--tl)">حدّد الفترة ثم اضغط "عرض التقرير"</td></tr>
@@ -4652,6 +4658,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <div class="fr"><label>🛵 نينجا Ninja</label><input type="number" id="ec-ninja" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
         <div class="fr"><label>🌐 الشبكة الخليجية Gulf Network</label><input type="number" id="ec-gulf" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
         <div class="fr"><label>🛵 هنجرستيشن HungerStation</label><input type="number" id="ec-hunger" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
+        <div class="fr"><label>🛵 كيتا Keeta</label><input type="number" id="ec-keeta" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
         <div class="fr"><label>تحويل بنكي</label><input type="number" id="ec-transfer" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
         <div class="fr"><label>إيرادات أخرى</label><input type="number" id="ec-other" placeholder="0.00" step="0.01" oninput="calcEditTotal()"></div>
       </div>
@@ -4703,6 +4710,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <div class="fr"><label>🛵 نينجا Ninja</label><input type="number" id="ac-ninja" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
         <div class="fr"><label>🌐 الشبكة الخليجية Gulf Network</label><input type="number" id="ac-gulf" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
         <div class="fr"><label>🛵 هنجرستيشن HungerStation</label><input type="number" id="ac-hunger" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
+        <div class="fr"><label>🛵 كيتا Keeta</label><input type="number" id="ac-keeta" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
         <div class="fr"><label>↔️ تحويل بنكي</label><input type="number" id="ac-transfer" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
         <div class="fr"><label>💵 نقدي</label><input type="number" id="ac-cash" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
         <div class="fr"><label>Void</label><input type="number" id="ac-void" placeholder="0.00" step="0.01" oninput="calcComparison()"></div>
@@ -9126,11 +9134,11 @@ function calcCC2(){
   var g=function(id){var el=document.getElementById(id);return el?parseFloat(el.value)||0:0};
   var mada=g('cc-mada'),visa=g('cc-visa'),master=g('cc-master');
   var mytable=g('cc-mytable'),transfer=g('cc-transfer'),other=g('cc-other');
-  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger');
+  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger'),keeta=g('cc-keeta');
   // ملاحظة محاسبية (IFRS 15): الآجل (unpaid) و الـ walkout يُعتبران ذمماً مدينة
   // لكن في هذا النموذج التشغيلي لا يدخلان في Total Span (المحصّل فعلياً)
   // بل يظهران منفصلين كذمم مدينة + يُرصد walkout كخسارة محتملة (IFRS 9)
-  var totalSpan=mada+visa+master+mytable+ninja+gulf+hunger+transfer+other;
+  var totalSpan=mada+visa+master+mytable+ninja+gulf+hunger+keeta+transfer+other;
   var unpaid=g('cc-unpaid');
   var walkout=g('cc-walkout');
   var cashOpen=g('cc-cash-open'),cashSales=g('cc-cash-sales');
@@ -10569,22 +10577,22 @@ function loadSalesReport(){
     renderSalesReport(rows,from,to);
   }).catch(function(e){body.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#B71C1C">خطأ: '+srEsc(e.message)+'</td></tr>';});
 }
-function srDeliv(d){return parseFloat(((d.ninja||0)+(d.gulf||0)+(d.hungerStation||0)).toFixed(2));}
+function srDeliv(d){return parseFloat(((d.ninja||0)+(d.gulf||0)+(d.hungerStation||0)+(d.keeta||0)).toFixed(2));}
 function renderSalesReport(allRows,from,to){
   var fsel=document.getElementById('sr-filter');
   var fmode=fsel?fsel.value:'';
   var rows=fmode==='delivery'?allRows.filter(function(d){return srDeliv(d)>0;}):allRows;
-  var tSales=0,tCash=0,tSpan=0,tVoid=0,tDisc=0,tUnpaid=0,tNinja=0,tGulf=0,tHunger=0;
+  var tSales=0,tCash=0,tSpan=0,tVoid=0,tDisc=0,tUnpaid=0,tNinja=0,tGulf=0,tHunger=0,tKeeta=0;
   rows.forEach(function(d){
     tSales+=d.grandTotal||0;tCash+=d.totalCash||0;tSpan+=d.totalSpan||0;
     tVoid+=d.voidAmount||0;tDisc+=d.discount||0;tUnpaid+=d.unpaidAmount||0;
-    tNinja+=d.ninja||0;tGulf+=d.gulf||0;tHunger+=d.hungerStation||0;
+    tNinja+=d.ninja||0;tGulf+=d.gulf||0;tHunger+=d.hungerStation||0;tKeeta+=d.keeta||0;
   });
-  var tDeliv=tNinja+tGulf+tHunger;
+  var tDeliv=tNinja+tGulf+tHunger+tKeeta;
   var sum=document.getElementById('sr-summary');if(sum)sum.style.display='block';
   var S=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   S('sr-total-sales',srMoney(tSales));S('sr-total-cash',srMoney(tCash));S('sr-total-span',srMoney(tSpan));
-  S('sr-total-delivery',srMoney(tDeliv));S('sr-total-ninja',srMoney(tNinja));S('sr-total-gulf',srMoney(tGulf));S('sr-total-hunger',srMoney(tHunger));
+  S('sr-total-delivery',srMoney(tDeliv));S('sr-total-ninja',srMoney(tNinja));S('sr-total-gulf',srMoney(tGulf));S('sr-total-hunger',srMoney(tHunger));S('sr-total-keeta',srMoney(tKeeta));
   S('sr-count',rows.length);S('sr-avg',rows.length?srMoney(tSales/rows.length):'0.00');
   S('sr-void',srMoney(tVoid));S('sr-disc',srMoney(tDisc));
   var body=document.getElementById('sr-body');
@@ -10600,6 +10608,7 @@ function renderSalesReport(allRows,from,to){
       '<td style="color:#B5621B">'+srMoney(d.ninja||0)+'</td>'+
       '<td style="color:#B5621B">'+srMoney(d.gulf||0)+'</td>'+
       '<td style="color:#B5621B">'+srMoney(d.hungerStation||0)+'</td>'+
+      '<td style="color:#B5621B">'+srMoney(d.keeta||0)+'</td>'+
       '<td style="font-weight:900;color:#B5621B">'+srMoney(dv)+'</td>'+
       '<td style="color:#E65100">'+srMoney(d.voidAmount)+'</td>'+
       '<td style="color:#E65100">'+srMoney(d.discount)+'</td>'+
@@ -10609,7 +10618,7 @@ function renderSalesReport(allRows,from,to){
   '<tr style="background:#7a1515;color:#fff;font-weight:900">'+
     '<td colspan="2" style="text-align:center">الإجمالي ('+rows.length+' تقفيل)</td>'+
     '<td>'+srMoney(tSales)+'</td><td>'+srMoney(tCash)+'</td><td>'+srMoney(tSpan)+'</td>'+
-    '<td>'+srMoney(tNinja)+'</td><td>'+srMoney(tGulf)+'</td><td>'+srMoney(tHunger)+'</td><td>'+srMoney(tDeliv)+'</td>'+
+    '<td>'+srMoney(tNinja)+'</td><td>'+srMoney(tGulf)+'</td><td>'+srMoney(tHunger)+'</td><td>'+srMoney(tKeeta)+'</td><td>'+srMoney(tDeliv)+'</td>'+
     '<td>'+srMoney(tVoid)+'</td><td>'+srMoney(tDisc)+'</td><td>'+srMoney(tUnpaid)+'</td></tr>';
 }
 function printSalesReport(){
@@ -10618,13 +10627,13 @@ function printSalesReport(){
   var fmode=fsel?fsel.value:'';
   var rows=fmode==='delivery'?_srData.rows.filter(function(d){return srDeliv(d)>0;}):_srData.rows;
   if(!rows.length){alert('لا توجد تقافيل مطابقة للفلتر المحدد.');return;}
-  var tSales=0,tCash=0,tSpan=0,tVoid=0,tDisc=0,tUnpaid=0,tNinja=0,tGulf=0,tHunger=0;
-  rows.forEach(function(d){tSales+=d.grandTotal||0;tCash+=d.totalCash||0;tSpan+=d.totalSpan||0;tVoid+=d.voidAmount||0;tDisc+=d.discount||0;tUnpaid+=d.unpaidAmount||0;tNinja+=d.ninja||0;tGulf+=d.gulf||0;tHunger+=d.hungerStation||0;});
-  var tDeliv=tNinja+tGulf+tHunger;
+  var tSales=0,tCash=0,tSpan=0,tVoid=0,tDisc=0,tUnpaid=0,tNinja=0,tGulf=0,tHunger=0,tKeeta=0;
+  rows.forEach(function(d){tSales+=d.grandTotal||0;tCash+=d.totalCash||0;tSpan+=d.totalSpan||0;tVoid+=d.voidAmount||0;tDisc+=d.discount||0;tUnpaid+=d.unpaidAmount||0;tNinja+=d.ninja||0;tGulf+=d.gulf||0;tHunger+=d.hungerStation||0;tKeeta+=d.keeta||0;});
+  var tDeliv=tNinja+tGulf+tHunger+tKeeta;
   var trs=rows.map(function(d){
     return '<tr><td class="ltr">'+srEsc(d.date)+'</td><td>'+srEsc(d.cashierName||d.branch||'—')+'</td>'+
       '<td class="g">'+srMoney(d.grandTotal)+'</td><td>'+srMoney(d.totalCash)+'</td><td>'+srMoney(d.totalSpan)+'</td>'+
-      '<td class="dv">'+srMoney(d.ninja||0)+'</td><td class="dv">'+srMoney(d.gulf||0)+'</td><td class="dv">'+srMoney(d.hungerStation||0)+'</td><td class="dv" style="font-weight:900">'+srMoney(srDeliv(d))+'</td>'+
+      '<td class="dv">'+srMoney(d.ninja||0)+'</td><td class="dv">'+srMoney(d.gulf||0)+'</td><td class="dv">'+srMoney(d.hungerStation||0)+'</td><td class="dv">'+srMoney(d.keeta||0)+'</td><td class="dv" style="font-weight:900">'+srMoney(srDeliv(d))+'</td>'+
       '<td>'+srMoney(d.voidAmount)+'</td><td>'+srMoney(d.discount)+'</td><td>'+srMoney(d.unpaidAmount)+'</td></tr>';
   }).join('');
   var by=(typeof CU!=='undefined'&&CU)?CU.name:'';
@@ -10653,9 +10662,9 @@ function printSalesReport(){
       '<div class="c"><div class="v" style="color:#E65100">'+srMoney(tVoid)+'</div><div class="k">الهالك Void</div></div>'+
       '<div class="c"><div class="v" style="color:#E65100">'+srMoney(tDisc)+'</div><div class="k">الخصومات</div></div>'+
     '</div>'+
-    '<table><thead><tr><th>التاريخ</th><th>الكاشير</th><th>إجمالي المبيعات</th><th>النقدي</th><th>الشبكة</th><th>نينجا</th><th>الشبكة الخليجية</th><th>هنقرستيشن</th><th>إجمالي التوصيل</th><th>Void</th><th>خصم</th><th>غير مدفوع</th></tr></thead>'+
+    '<table><thead><tr><th>التاريخ</th><th>الكاشير</th><th>إجمالي المبيعات</th><th>النقدي</th><th>الشبكة</th><th>نينجا</th><th>الشبكة الخليجية</th><th>هنقرستيشن</th><th>كيتا</th><th>إجمالي التوصيل</th><th>Void</th><th>خصم</th><th>غير مدفوع</th></tr></thead>'+
     '<tbody>'+trs+
-    '<tr class="tot"><td colspan="2">الإجمالي</td><td>'+srMoney(tSales)+'</td><td>'+srMoney(tCash)+'</td><td>'+srMoney(tSpan)+'</td><td>'+srMoney(tNinja)+'</td><td>'+srMoney(tGulf)+'</td><td>'+srMoney(tHunger)+'</td><td>'+srMoney(tDeliv)+'</td><td>'+srMoney(tVoid)+'</td><td>'+srMoney(tDisc)+'</td><td>'+srMoney(tUnpaid)+'</td></tr>'+
+    '<tr class="tot"><td colspan="2">الإجمالي</td><td>'+srMoney(tSales)+'</td><td>'+srMoney(tCash)+'</td><td>'+srMoney(tSpan)+'</td><td>'+srMoney(tNinja)+'</td><td>'+srMoney(tGulf)+'</td><td>'+srMoney(tHunger)+'</td><td>'+srMoney(tKeeta)+'</td><td>'+srMoney(tDeliv)+'</td><td>'+srMoney(tVoid)+'</td><td>'+srMoney(tDisc)+'</td><td>'+srMoney(tUnpaid)+'</td></tr>'+
     '</tbody></table>'+
     '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات والشؤون المالية</span></div>'+
     '<div>اعتماد<br><span style="font-weight:400;font-size:9px">المدير العام</span></div></div>'+
@@ -12363,8 +12372,8 @@ function saveCashierToFirestore(){
   if(!dateVal){alert('يرجى تحديد التاريخ أولاً');unlock();return}
   var mada=g('cc-mada'),visa=g('cc-visa'),master=g('cc-master');
   var mytable=g('cc-mytable'),transfer=g('cc-transfer'),other=g('cc-other');
-  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger');
-  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+transfer+other).toFixed(2));
+  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger'),keeta=g('cc-keeta');
+  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+keeta+transfer+other).toFixed(2));
   var cashOpen=g('cc-cash-open'),cashSales=g('cc-cash-sales');
   var totalCash=parseFloat((cashOpen+cashSales).toFixed(2));
   var invoices=g('cc-invoices');
@@ -12406,7 +12415,7 @@ function saveCashierToFirestore(){
       walkoutNote:(document.getElementById('cc-walkout-note')?document.getElementById('cc-walkout-note').value:'')||'',
       unpaidCustomers:JSON.parse(JSON.stringify(_unpaidList)),
       photos:getPhotoBase64List('pg-cc'),
-      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
+      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,keeta:keeta,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
       purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
@@ -12430,7 +12439,7 @@ function saveCashierToFirestore(){
       walkoutNote:(document.getElementById('cc-walkout-note')?document.getElementById('cc-walkout-note').value:'')||'',
       unpaidCustomers:JSON.parse(JSON.stringify(_unpaidList)),
       photos:getPhotoBase64List('pg-cc'),
-      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
+      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,keeta:keeta,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
       purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
@@ -12464,8 +12473,8 @@ function saveAndPrintCashier(){
   if(!dateVal){alert('يرجى تحديد التاريخ أولاً');unlock();return}
   var mada=g('cc-mada'),visa=g('cc-visa'),master=g('cc-master');
   var mytable=g('cc-mytable'),transfer=g('cc-transfer'),other=g('cc-other');
-  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger');
-  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+transfer+other).toFixed(2));
+  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger'),keeta=g('cc-keeta');
+  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+keeta+transfer+other).toFixed(2));
   var cashOpen=g('cc-cash-open'),cashSales=g('cc-cash-sales');
   var totalCash=parseFloat((cashOpen+cashSales).toFixed(2));
   var invoices=g('cc-invoices');
@@ -12498,7 +12507,7 @@ function saveAndPrintCashier(){
       walkoutNote:(document.getElementById('cc-walkout-note')?document.getElementById('cc-walkout-note').value:'')||'',
       unpaidCustomers:(typeof _unpaidList!=='undefined')?JSON.parse(JSON.stringify(_unpaidList)):[],
       photos:(typeof getPhotoBase64List==='function')?getPhotoBase64List('pg-cc'):[],
-      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
+      mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,keeta:keeta,transfer:transfer,otherIncome:other,
       totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
       purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
       grandTotal:grandTotal,voidAmount:voidAmt,discount:discAmt,
@@ -12786,6 +12795,7 @@ function viewCR(docId){
       +'<div class="row"><div class="rl">🛵 نينجا Ninja</div><div class="rv">'+f(d.ninja||0)+'</div><div class="rv"></div></div>'
       +'<div class="row"><div class="rl">🌐 الشبكة الخليجية Gulf Network</div><div class="rv">'+f(d.gulf||0)+'</div><div class="rv"></div></div>'
       +'<div class="row"><div class="rl">🛵 هنجرستيشن HungerStation</div><div class="rv">'+f(d.hungerStation||0)+'</div><div class="rv"></div></div>'
+      +'<div class="row"><div class="rl">🛵 كيتا Keeta</div><div class="rv">'+f(d.keeta||0)+'</div><div class="rv"></div></div>'
       +'<div class="row"><div class="rl">تحويل بنكي</div><div class="rv">'+f(d.transfer)+'</div><div class="rv"></div></div>'
       +'<div class="row"><div class="rl">إيرادات أخرى</div><div class="rv">'+f(d.otherIncome)+'</div><div class="rv"></div></div>'
       +'<div class="row trow"><div class="rl">Total Span</div><div class="rv">'+f(d.totalSpan)+'</div><div class="rv"></div></div>'
@@ -12818,7 +12828,7 @@ function viewCR(docId){
 // ===== EDIT CASHIER REPORT =====
 function calcEditTotal(){
   var g=function(id){var el=document.getElementById(id);return el?parseFloat(el.value)||0:0};
-  var span=g('ec-mada')+g('ec-visa')+g('ec-master')+g('ec-mytable')+g('ec-ninja')+g('ec-gulf')+g('ec-hunger')+g('ec-transfer')+g('ec-other');
+  var span=g('ec-mada')+g('ec-visa')+g('ec-master')+g('ec-mytable')+g('ec-ninja')+g('ec-gulf')+g('ec-hunger')+g('ec-keeta')+g('ec-transfer')+g('ec-other');
   var cash=g('ec-cash-open')+g('ec-cash-sales');
   var tot=span+cash;
   var el=document.getElementById('ec-total-display');
@@ -12839,8 +12849,8 @@ function saveEditCashier(){
   var gs=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
   var mada=g('ec-mada'),visa=g('ec-visa'),master=g('ec-master');
   var mytable=g('ec-mytable'),transfer=g('ec-transfer'),other=g('ec-other');
-  var ninja=g('ec-ninja'),gulf=g('ec-gulf'),hunger=g('ec-hunger');
-  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+transfer+other).toFixed(2));
+  var ninja=g('ec-ninja'),gulf=g('ec-gulf'),hunger=g('ec-hunger'),keeta=g('ec-keeta');
+  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+keeta+transfer+other).toFixed(2));
   var cashOpen=g('ec-cash-open'),cashSales=g('ec-cash-sales');
   var totalCash=parseFloat((cashOpen+cashSales).toFixed(2));
   var grandTotal=parseFloat((totalSpan+totalCash).toFixed(2));
@@ -12848,7 +12858,7 @@ function saveEditCashier(){
   if(!confirm('تأكيد تعديل التقفيل؟ سيتم تسجيل التعديل مع السبب.'))return;
   var upd={
     date:gs('ec-date'),cashierName:gs('ec-cashier'),
-    mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
+    mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,keeta:keeta,transfer:transfer,otherIncome:other,
     totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
     grandTotal:grandTotal,voidAmount:g('ec-void'),discount:g('ec-disc'),
     unpaidAmount:g('ec-unpaid'),
@@ -12927,7 +12937,7 @@ function ccEnterEdit(docId){
     S('cc-date',d.date||'');S('cc-branch',d.branch||'');
     SN('cc-mada',d.mada);SN('cc-visa',d.visa);SN('cc-master',d.masterCard);
     SN('cc-gulf',d.gulf);SN('cc-mytable',d.myTable);SN('cc-ninja',d.ninja);
-    SN('cc-hunger',d.hungerStation);SN('cc-transfer',d.transfer);SN('cc-other',d.otherIncome);
+    SN('cc-hunger',d.hungerStation);SN('cc-keeta',d.keeta);SN('cc-transfer',d.transfer);SN('cc-other',d.otherIncome);
     SN('cc-unpaid',d.unpaidAmount);SN('cc-walkout',d.walkoutAmount);S('cc-walkout-note',d.walkoutNote||'');
     SN('cc-cash-open',d.cashOpening);SN('cc-cash-sales',d.cashSales);
     SN('cc-invoices',d.purchaseInvoices);S('cc-invoices-note',d.invoicesNote||'');
@@ -12954,7 +12964,7 @@ function ccEnterEdit(docId){
 function ccExitEdit(){
   _ccEditId=null;_ccEditOrig=null;
   var bn=document.getElementById('cc-edit-banner');if(bn)bn.style.display='none';
-  ['cc-date','cc-branch','cc-mada','cc-visa','cc-master','cc-gulf','cc-mytable','cc-ninja','cc-hunger','cc-transfer','cc-other','cc-unpaid','cc-walkout','cc-walkout-note','cc-cash-open','cc-cash-sales','cc-invoices','cc-invoices-note','cc-returns','cc-returns-note','cc-void','cc-disc','cc-txcount'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['cc-date','cc-branch','cc-mada','cc-visa','cc-master','cc-gulf','cc-mytable','cc-ninja','cc-hunger','cc-keeta','cc-transfer','cc-other','cc-unpaid','cc-walkout','cc-walkout-note','cc-cash-open','cc-cash-sales','cc-invoices','cc-invoices-note','cc-returns','cc-returns-note','cc-void','cc-disc','cc-txcount'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   var cn=document.getElementById('ccn');if(cn)cn.value='';
   if(typeof _unpaidList!=='undefined'){_unpaidList=[];var uc=document.getElementById('cc-unpaid-count');if(uc)uc.textContent='0';}
   if(typeof calcCC2==='function')calcCC2();
@@ -12968,8 +12978,8 @@ function ccUpdateExisting(printAfter){
   if(!dateVal){alert('يرجى تحديد التاريخ أولاً');return;}
   var mada=g('cc-mada'),visa=g('cc-visa'),master=g('cc-master');
   var mytable=g('cc-mytable'),transfer=g('cc-transfer'),other=g('cc-other');
-  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger');
-  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+transfer+other).toFixed(2));
+  var ninja=g('cc-ninja'),gulf=g('cc-gulf'),hunger=g('cc-hunger'),keeta=g('cc-keeta');
+  var totalSpan=parseFloat((mada+visa+master+mytable+ninja+gulf+hunger+keeta+transfer+other).toFixed(2));
   var cashOpen=g('cc-cash-open'),cashSales=g('cc-cash-sales');
   var totalCash=parseFloat((cashOpen+cashSales).toFixed(2));
   var invoices=g('cc-invoices');
@@ -12983,7 +12993,7 @@ function ccUpdateExisting(printAfter){
     cashierName:cashierName,
     unpaidAmount:g('cc-unpaid'),walkoutAmount:g('cc-walkout'),walkoutNote:gs('cc-walkout-note'),
     unpaidCustomers:(typeof _unpaidList!=='undefined')?JSON.parse(JSON.stringify(_unpaidList)):[],
-    mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,transfer:transfer,otherIncome:other,
+    mada:mada,visa:visa,masterCard:master,myTable:mytable,ninja:ninja,gulf:gulf,hungerStation:hunger,keeta:keeta,transfer:transfer,otherIncome:other,
     totalSpan:totalSpan,cashOpening:cashOpen,cashSales:cashSales,totalCash:totalCash,
     purchaseInvoices:invoices,invoicesNote:gs('cc-invoices-note'),returns:returns,returnsNote:gs('cc-returns-note'),txCount:parseInt((document.getElementById('cc-txcount')||{}).value,10)||0,netCash:netCash,
     grandTotal:grandTotal,voidAmount:g('cc-void'),discount:g('cc-disc'),
@@ -13185,7 +13195,7 @@ function openAccounting(docId){
     if(d.accounting){
       var sv=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
       sv('ac-bank',d.accounting.bank);
-      sv('ac-ninja',d.accounting.ninja);sv('ac-gulf',d.accounting.gulf);sv('ac-hunger',d.accounting.hungerStation);
+      sv('ac-ninja',d.accounting.ninja);sv('ac-gulf',d.accounting.gulf);sv('ac-hunger',d.accounting.hungerStation);sv('ac-keeta',d.accounting.keeta);
       sv('ac-transfer',d.accounting.transfer);sv('ac-cash',d.accounting.cash);
       sv('ac-total',d.accounting.total);sv('ac-void',d.accounting.voidAmt);
       sv('ac-notes',d.accounting.notes);sv('ac-responsible',d.accounting.responsible);
@@ -13196,7 +13206,7 @@ function openAccounting(docId){
       sv('ac-walkout-note',(d.accounting.walkoutNote!==undefined?d.accounting.walkoutNote:(d.walkoutNote||'')));
       calcComparison();
     } else {
-      ['ac-bank','ac-ninja','ac-gulf','ac-hunger','ac-transfer','ac-cash','ac-void','ac-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+      ['ac-bank','ac-ninja','ac-gulf','ac-hunger','ac-keeta','ac-transfer','ac-cash','ac-void','ac-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
       document.getElementById('ac-responsible').value='';
       // تحميل قيم الذمم من التقفيل الأصلي
       var sv2=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
@@ -13220,8 +13230,8 @@ function calcComparison(){
   var cashierTransfer=d.transfer||0;
   var cashierBank=parseFloat(((d.totalSpan||0)-cashierTransfer).toFixed(2));
   var acBank=g('ac-bank');
-  var acNinja=g('ac-ninja'),acGulf=g('ac-gulf'),acHunger=g('ac-hunger');
-  var acBankTotal=parseFloat((acBank+acNinja+acGulf+acHunger).toFixed(2));
+  var acNinja=g('ac-ninja'),acGulf=g('ac-gulf'),acHunger=g('ac-hunger'),acKeeta=g('ac-keeta');
+  var acBankTotal=parseFloat((acBank+acNinja+acGulf+acHunger+acKeeta).toFixed(2));
   var acTransfer=g('ac-transfer');
   var acCash=g('ac-cash');
   var acVoid=g('ac-void');
@@ -13242,6 +13252,7 @@ function calcComparison(){
   if((d.ninja||0)>0||acNinja>0)rows.push({label:'🛵 نينجا Ninja',cashier:d.ninja||0,acc:acNinja});
   if((d.gulf||0)>0||acGulf>0)rows.push({label:'🌐 الشبكة الخليجية Gulf Network',cashier:d.gulf||0,acc:acGulf});
   if((d.hungerStation||0)>0||acHunger>0)rows.push({label:'🛵 هنجرستيشن HungerStation',cashier:d.hungerStation||0,acc:acHunger});
+  if((d.keeta||0)>0||acKeeta>0)rows.push({label:'🛵 كيتا Keeta',cashier:d.keeta||0,acc:acKeeta});
   if((d.otherIncome||0)>0)rows.push({label:'➕ إيرادات أخرى (يدرجها المراجع ضمن أحد البنود)',cashier:d.otherIncome||0,acc:0,info:true,color:'#888'});
   rows.push({label:'🏦 إجمالي الإلكتروني (بدون تحويل)',cashier:cashierBank,acc:acBankTotal});
   rows.push({label:'↔️ تحويل بنكي',cashier:cashierTransfer,acc:acTransfer});
@@ -13389,8 +13400,8 @@ function saveAccounting(){
   // حفظ اسم الشخص المسؤول في cashier_names للقائمة المنسدلة لاحقاً
   if(responsible) saveCashierName(responsible);
   var acData={
-    bank:g('ac-bank'),ninja:g('ac-ninja'),gulf:g('ac-gulf'),hungerStation:g('ac-hunger'),
-    bankTotal:parseFloat((g('ac-bank')+g('ac-ninja')+g('ac-gulf')+g('ac-hunger')).toFixed(2)),
+    bank:g('ac-bank'),ninja:g('ac-ninja'),gulf:g('ac-gulf'),hungerStation:g('ac-hunger'),keeta:g('ac-keeta'),
+    bankTotal:parseFloat((g('ac-bank')+g('ac-ninja')+g('ac-gulf')+g('ac-hunger')+g('ac-keeta')).toFixed(2)),
     transfer:g('ac-transfer'),cash:g('ac-cash'),
     total:acTotal,voidAmt:g('ac-void'),
     diff:diff,
@@ -13616,12 +13627,12 @@ function loadDashboard(){
 
     // KPI totals
     var totalSales=0,totalSpan=0,totalCash=0,totalShortage=0;
-    var totalMada=0,totalVisa=0,totalMaster=0,totalMyTable=0,totalNinja=0,totalGulf=0,totalHunger=0,totalTransfer=0,totalCashAll=0;
+    var totalMada=0,totalVisa=0,totalMaster=0,totalMyTable=0,totalNinja=0,totalGulf=0,totalHunger=0,totalKeeta=0,totalTransfer=0,totalCashAll=0;
     reports.forEach(function(d){
       totalSales+=d.grandTotal||0;totalSpan+=d.totalSpan||0;totalCash+=d.totalCash||0;
       totalShortage+=d.shortage||0;
       totalMada+=d.mada||0;totalVisa+=d.visa||0;totalMaster+=d.masterCard||0;
-      totalMyTable+=d.myTable||0;totalNinja+=d.ninja||0;totalGulf+=d.gulf||0;totalHunger+=d.hungerStation||0;totalTransfer+=d.transfer||0;totalCashAll+=d.totalCash||0;
+      totalMyTable+=d.myTable||0;totalNinja+=d.ninja||0;totalGulf+=d.gulf||0;totalHunger+=d.hungerStation||0;totalKeeta+=d.keeta||0;totalTransfer+=d.transfer||0;totalCashAll+=d.totalCash||0;
     });
     var s=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
     s('d-sales-total',totalSales.toFixed(2));
@@ -13695,9 +13706,9 @@ function loadDashboard(){
     }
 
     // Payment donut
-    var payData=[totalMada,totalVisa,totalMaster,totalMyTable,totalNinja,totalGulf,totalHunger,totalTransfer,totalCashAll];
-    var payLabels=['Mada','Visa','Master','MyTable','نينجا','الشبكة الخليجية','هنجرستيشن','تحويل','نقدي'];
-    var payColors=['#A83C38','#C0392B','#E74C3C','#D4444D','#7B1FA2','#E65100','#F9A825','#5D6D7E','#27AE60'];
+    var payData=[totalMada,totalVisa,totalMaster,totalMyTable,totalNinja,totalGulf,totalHunger,totalKeeta,totalTransfer,totalCashAll];
+    var payLabels=['Mada','Visa','Master','MyTable','نينجا','الشبكة الخليجية','هنجرستيشن','كيتا','تحويل','نقدي'];
+    var payColors=['#A83C38','#C0392B','#E74C3C','#D4444D','#7B1FA2','#E65100','#F9A825','#00897B','#5D6D7E','#27AE60'];
     var ctx2=document.getElementById('chart-payment');
     if(ctx2){
       if(_dashChartPayment)_dashChartPayment.destroy();
@@ -20900,7 +20911,7 @@ function fdCashMonth(m){
   var n=function(v){return parseFloat(v)||0;};
   var o={reports:rs.length,days:{},card:0,cash:0,apps:0,transfer:0,other:0,returns:0,tx:0,txDays:{},txSales:0};
   rs.forEach(function(x){
-    var card=n(x.mada)+n(x.visa)+n(x.masterCard),cash=n(x.cashSales),apps=n(x.ninja)+n(x.gulf)+n(x.hungerStation)+n(x.myTable),tr=n(x.transfer),ot=n(x.otherIncome);
+    var card=n(x.mada)+n(x.visa)+n(x.masterCard),cash=n(x.cashSales),apps=n(x.ninja)+n(x.gulf)+n(x.hungerStation)+n(x.keeta)+n(x.myTable),tr=n(x.transfer),ot=n(x.otherIncome);
     o.card+=card;o.cash+=cash;o.apps+=apps;o.transfer+=tr;o.other+=ot;o.returns+=n(x.returns);o.days[x.date]=1;
     var tc=parseInt(x.txCount,10)||0;if(tc>0){o.tx+=tc;o.txDays[x.date]=1;o.txSales+=card+cash+apps+tr+ot;}
   });
@@ -21365,7 +21376,7 @@ function acBuildAuto(month){
     r[0].forEach(function(c){
       var who=c.cashierName?' — '+c.cashierName:'';
       if(acSrcOn('sales')){
-        var cash=(c.cashSales!=null?Number(c.cashSales):(Number(c.totalCash)||0)-(Number(c.cashOpening)||0))||0,card=(Number(c.mada)||0)+(Number(c.visa)||0)+(Number(c.masterCard)||0),apps=(Number(c.ninja)||0)+(Number(c.gulf)||0)+(Number(c.hungerStation)||0)+(Number(c.myTable)||0),
+        var cash=(c.cashSales!=null?Number(c.cashSales):(Number(c.totalCash)||0)-(Number(c.cashOpening)||0))||0,card=(Number(c.mada)||0)+(Number(c.visa)||0)+(Number(c.masterCard)||0),apps=(Number(c.ninja)||0)+(Number(c.gulf)||0)+(Number(c.hungerStation)||0)+(Number(c.keeta)||0)+(Number(c.myTable)||0),
             tr=Number(c.transfer)||0,oth=Number(c.otherIncome)||0,gross=cash+card+apps+tr+oth,net=acR(gross/(1+vat)),tax=acR(gross-net),ret=Number(c.returns)||0;
         add('sales',c._id,'تقفيل كاشير',c.date,'مبيعات '+c.date+who,[
           acL('1101',cash,0,'مبيعات نقدية'),acL('1104',card,0,'مدى/فيزا/ماستر'),acL('1105',apps,0,'تطبيقات التوصيل'),acL('1103',tr,0,'تحويلات'),acL('1106',oth,0,'متحصلات أخرى'),
@@ -22086,6 +22097,42 @@ var I18N = {
 'سجّل دخولك للوصول إلى منصة التشغيل':'Sign in to access the operations platform','أهلاً بك في حباق':'Welcome to Habaq','سجّل دخولك لبدء يوم العمل':'Sign in to start your workday','أحمد القحطاني':'Ahmed Al-Qahtani','حاتم عطية':'Hatem Attia','علي عسيري':'Ali Asiri','المدير العام':'General Manager','مدير العمليات والشؤون المالية':'Operations & Financial Affairs Manager','مدير التطوير والجودة':'Development & Quality Manager','نسق لحلول التشغيل والأعمال':'Nassaq Operations & Business Solutions','منصة تشغيل متكاملة لإدارة العمليات اليومية والإيرادات والمشتريات والموارد البشرية والتقارير المالية — بُنيت خصيصاً لحباق.':'An integrated operations platform for daily operations, revenue, purchasing, HR and financial reporting — built exclusively for Habaq Restaurant.','مدعوم من نسق لحلول التشغيل والأعمال • Nassaq Operations & Business Solutions':'Powered by Nassaq Operations & Business Solutions'
 };
 
+// ترجمات إضافية: القائمة، لوحة التحكم، مهام الوردية، التقفيل، الزيارات
+Object.assign(I18N,{
+'الكل (آخر 30)':'All (Last 30)','المسؤول (كاشير)':'Responsible (Cashier)','آجل (عملاء معروفون)':'Credit (known customers)','فواتير مشتريات (خصم)':'Purchase invoices (deduct)','مرتجعات العملاء (خصم)':'Customer returns (deduct)',
+'كل ريال محسوب = نجاح مضمون 💪':'Every riyal counted = guaranteed success 💪','الفريق المنضبط = مطعم متميز 🏆':'A disciplined team = an outstanding restaurant 🏆','جودة الخدمة تبدأ بجودة الإدارة ✨':'Great service starts with great management ✨','نَسَق معك في كل خطوة 🚀':'Nassaq is with you every step 🚀','بيانات دقيقة = قرارات صحيحة 📊':'Accurate data = right decisions 📊','الكاشير الأمين ثروة لا تقدر 💎':'An honest cashier is priceless 💎','النظافة أساس السلامة الغذائية 🛡️':'Cleanliness is the foundation of food safety 🛡️','المطاعم الناجحة تُبنى بالتفاصيل الصغيرة 🌟':'Successful restaurants are built on small details 🌟',
+'القائمة':'Menu','اللوحة المالية':'Financial Dashboard','الزيارات والجودة':'Visits & Quality','المخزون والمشتريات':'Inventory & Purchasing','المخازن والجرد':'Inventory & Stock Count','المالية والمحاسبة':'Finance & Accounting','المحاسبة المالية':'Financial Accounting','التقارير المالية الشهرية':'Monthly Financial Reports','التنبؤ بالطلبيات':'Order Forecasting','المنيو والأسعار':'Menu & Prices','التكاليف والتسعير':'Costing & Pricing','الإدارة':'Administration',
+'الأحد':'Sunday','الاثنين':'Monday','الثلاثاء':'Tuesday','الأربعاء':'Wednesday','الخميس':'Thursday','الجمعة':'Friday','السبت':'Saturday',
+'يوم العمل التشغيلي':'Operating Day','المطاعم الناجحة تُبنى بالتفاصيل الصغيرة':'Successful restaurants are built on small details','فترة التحليل':'Analysis Period','الكل (آخر 30':'All (Last 30','جميع التقافيل':'All Closings','من':'From','إلى':'To','إجمالي العجز':'Total Shortage',
+'قوائم الفتح والتنظيف':'Opening & cleaning checklists','لم تُكمل بعد':'Not completed yet','تسجيل إيرادات اليوم':"Record today's revenue",'لا يوجد تقفيل':'No closing','عهود النقدية':'Cash Custody','استلام وصرف وإيداع':'Receive, spend & deposit','تنظيف وسلامة غذائية':'Cleaning & food safety','التقارير والزيارات':'Reports & Visits','تفتيش وتقييم الفرع':'Branch inspection & rating','سجل الزيارات التشغيلية':'Operational visits log','تقارير P&L':'P&L Reports','تحليل الأرباح الشهري':'Monthly profit analysis','مبيعات وعجز وزيادة':'Sales, shortages & overages','الموارد البشرية والطلبات':'HR & Requests','بيانات ووثائق الفريق':'Team data & documents','احتساب وصرف الرواتب':'Payroll calculation & payment','منح وسداد السلف وحركتها':'Advances: grant, repay & track','لا سلف':'No advances','تسجيل وإشعار المخالفات':'Record & notify violations','لا مخالفات':'No violations','طلب مواد وخامات':'Request materials & supplies','لا طلبات معلقة':'No pending requests','تصدير البيانات Excel':'Export data to Excel','مهام الوردية اليوم':"Today's Shift Tasks",'لم يتم':'Not done','اضغط لبدء مهام الفتح':'Tap to start opening tasks','آخر وردية مكتملة':'Last completed shift','اضغط لبدء مهام الغلق':'Tap to start closing tasks','الحالة':'Status','لا توجد تقافيل':'No closings','لا توجد أنشطة':'No activity',
+'مهام الوردية — حباق':'Shift Tasks — Habaq','الصباح (٦ص–٢م)':'Morning (6am–2pm)','الظهيرة (٢م–١٠م)':'Afternoon (2pm–10pm)','الليل (١٠م–٦ص)':'Night (10pm–6am)','المسؤول (كاشير)':'Responsible (Cashier)','-- اختر الكاشير --':'-- Select cashier --','خطأ في النظام':'System error','إضافة كاشير جديد...':'Add new cashier...','اكتب اسم الكاشير الجديد ثم اضغط Enter...':'Type the new cashier name and press Enter...',
+'طباعة 🍳 المطبخ':'Print 🍳 Kitchen','طباعة ☕ البار':'Print ☕ Bar','طباعة 🥐 المخبز':'Print 🥐 Bakery','طباعة 🪑 الصالة':'Print 🪑 Dining Area','طباعة الوردية كاملة':'Print Full Shift',
+'السلامة الغذائية — المطبخ':'Food Safety — Kitchen','درجات حرارة التبريد':'Refrigeration Temperatures','سلامة غذائية':'Food Safety','ثلاجة F1 (٠–٤°م)':'Fridge F1 (0–4°C)','°م':'°C',
+'فحص المواد والصلاحية':'Stock & Expiry Check','فحص تواريخ صلاحية جميع المواد في الثلاجات وإتلاف المنتهية':'Check expiry dates of all items in the fridges and discard expired ones','تطبيق FIFO — الأقدم في المقدمة':'Apply FIFO — oldest in front','جميع المواد مغلفة وملصقة بتاريخ الفتح وتاريخ الانتهاء':'All items wrapped and labelled with opening and expiry dates','فحص صلاحية اللحوم والدواجن والمأكولات البحرية':'Check freshness of meat, poultry and seafood','فصل اللحوم النيئة عن المطبوخة والخضروات':'Separate raw meat from cooked food and vegetables','التحقق من عدم وجود روائح غير طبيعية في أي مادة':'Check that no item has an abnormal smell',
+'المعدات — المطبخ':'Equipment — Kitchen','معدات الطهي':'Cooking Equipment','معدات':'Equipment','فحص البوتاجاز / الموقد — اشتعال سليم، لا تسرب غاز':'Check the stove / burner — proper ignition, no gas leak','فحص الميكروويف — نظيف من الداخل، يعمل بشكل طبيعي':'Check the microwave — clean inside, working normally','التحقق من سلامة الأسلاك الكهربائية وعدم وجود تسريب ماء':'Check electrical wiring is safe and there are no water leaks','معدات التبريد':'Refrigeration Equipment','فحص أختام ثلاجات المطبخ — إحكام الغلق، لا تسرب هواء':'Check kitchen fridge seals — tight closing, no air leak','تنظيف ملفات تكثيف الثلاجات (شهريًا — وضّح التاريخ في الملاحظات)':'Clean fridge condenser coils (monthly — note the date in remarks)','فحص ديب فريزر — لا يوجد تراكم جليد مفرط على الجدران':'Check the deep freezer — no excessive ice build-up on the walls','تشغيل شفاط المطبخ — يعمل بشكل طبيعي، فلتر غير مسدود':'Run the kitchen hood — working normally, filter not clogged',
+'النظافة والهيجين — المطبخ':'Cleanliness & Hygiene — Kitchen','النظافة الشخصية':'Personal Hygiene','هيجين':'Hygiene','الزي الموحد الكامل: قبعة، مريلة، حذاء مغلق، لا مجوهرات':'Full uniform: cap, apron, closed shoes, no jewellery','نظافة اليدين والأظافر — مقصوصة ونظيفة':'Clean hands and nails — trimmed and clean','توفر صابون وورق في محطات غسيل اليدين بالمطبخ':'Soap and paper towels available at kitchen hand-wash stations','توفر قفازات وكمامات في مناطق التجهيز':'Gloves and masks available in prep areas','تنظيف الأسطح والأدوات':'Surface & Utensil Cleaning','تعقيم أسطح العمل بالكلور المخفف أو المعقم المعتمد':'Sanitise work surfaces with diluted chlorine or approved sanitiser','غسيل ألواح التقطيع وتعقيمها — فصل الألوان حسب النوع':'Wash and sanitise cutting boards — colour-coded by type','تنظيف السكاكين والأدوات وتخزينها بشكل صحيح':'Clean knives and utensils and store them properly','تنظيف شفاط المطبخ من الداخل والخارج':'Clean the kitchen hood inside and out','كنس وغسيل أرضيات المطبخ وتجفيفها':'Sweep, wash and dry kitchen floors','تفريغ سلال المهملات ووضع أكياس جديدة':'Empty bins and fit new bags','مكافحة الحشرات والآفات':'Pest Control','لا توجد آثار حشرات أو قوارض في المطبخ أو المخزن':'No signs of insects or rodents in the kitchen or store','إغلاق جميع الفتحات والثغرات في الجدران والأرضيات':'All gaps and openings in walls and floors sealed','صور توثيق المطبخ':'Kitchen Photos',
+'السلامة والمعدات — البار':'Safety & Equipment — Bar','درجات الحرارة':'Temperatures','ثلاجة المشروبات / العصائر (٠–٤°م)':'Drinks / juice fridge (0–4°C)','ثلاجة الحليب والكريمة (٠–٤°م)':'Milk & cream fridge (0–4°C)','معدات الشاي والمشروبات':'Tea & Drinks Equipment','فحص ماكينة الثلج — كمية كافية، لا اعوجاج':'Check the ice machine — enough ice, no faults','نظافة البار':'Bar Cleanliness','تنظيف سطح البار والمنطقة المحيطة':'Clean the bar counter and surrounding area','غسيل الأكواب والأدوات وتعقيمها':'Wash and sanitise cups and tools','نظافة الثلاجة من الداخل — لا روائح، لا سوائل مسكوبة':'Fridge clean inside — no smells, no spills','توفر مستلزمات البار (أكواب، غطاء، مصاصات، أكياس)':'Bar supplies available (cups, lids, straws, bags)','صور توثيق البار':'Bar Photos',
+'السلامة والمعدات — المخبز':'Safety & Equipment — Bakery','درجات الحرارة والسلامة':'Temperatures & Safety','ثلاجة العجين / الحليب (٠–٤°م)':'Dough / milk fridge (0–4°C)','فحص صلاحية الطحين والخميرة والسكر والزبدة':'Check expiry of flour, yeast, sugar and butter','تغليف العجائن المحضرة مسبقًا وتأريخها':'Wrap and date pre-made doughs','تخزين المواد الجافة في حاويات محكمة بعيدًا عن الأرض':'Store dry goods in sealed containers off the floor','فرن الخبز':'Baking Oven','فحص فرن الخبز — درجة الحرارة مضبوطة، موزع الحرارة يعمل':'Check the oven — temperature set, heat fan working','تنظيف الفرن من الداخل — لا بقايا عجين متفحمة':'Clean the oven inside — no burnt dough residue','نظافة وسلامة صوانٍ الخبز (Baking Trays)':'Baking trays clean and in good condition','منطقة العجن':'Kneading Area','تنظيف طاولة العجن والأسطح المحيطة':'Clean the kneading table and surrounding surfaces','نظافة الملابس والقفازات في منطقة المخبز':'Clean clothing and gloves in the bakery area','كنس وغسيل أرضيات المخبز — لا دقيق متراكم':'Sweep and wash bakery floors — no flour build-up','تشغيل':'Operations','توفر مخزون كافٍ من المواد الخام لاستمرار الإنتاج':'Enough raw-material stock to keep production going','صور توثيق المخبز':'Bakery Photos',
+'تجهيز الصالات — الكاشير والاستقبال':'Dining Areas Setup — Cashier & Reception','الكاشير ونقطة البيع':'Cashier & POS','تشغيل POS وتسجيل الدخول للنظام':'Start the POS and log in','فحص طابعة الفواتير — ورق كافٍ، تطبع بشكل صحيح':'Check the receipt printer — enough paper, printing correctly','فحص جهاز mada/Visa — يعمل ومتصل بالشبكة':'Check the mada/Visa terminal — working and connected','التحقق من فتح عهدة الكاشير وصحة المبلغ الافتتاحي':'Confirm the cashier float is opened and the opening amount is correct','نظافة منطقة الكاشير وعدم وجود أشياء شخصية على الكاونتر':'Cashier area clean, no personal items on the counter','الصالة الداخلية':'Indoor Dining Area','تنظيف جميع الطاولات والكراسي — بدون بقع أو فتات':'Clean all tables and chairs — no stains or crumbs','تنظيف قوائم الطعام / القوائم الرقمية':'Clean the menus / digital menus','كنس وتنظيف الأرضيات':'Sweep and clean the floors','ترتيب الطاولات: أدوات المائدة، مناديل، بهارات':'Set tables: cutlery, napkins, condiments','إضاءة الصالة الداخلية — جميعها تعمل':'Indoor lighting — all working','ضبط التكييف على درجة الحرارة المناسبة':'Set the air conditioning to a suitable temperature','المجلس':'Majlis','تنظيف وترتيب وسائد ومقاعد المجلس':'Clean and arrange majlis cushions and seats','تنظيف أسطح طاولات المجلس وشمعدانات الديكور':'Clean majlis table tops and decorative candle holders','إضاءة المجلس مناسبة، لا مصابيح محترقة':'Majlis lighting fine, no burnt-out bulbs','المجلس مرتب ونظيف جاهز للضيوف':'Majlis tidy, clean and ready for guests','الصالة الخارجية':'Outdoor Dining Area','تنظيف الطاولات والكراسي الخارجية':'Clean the outdoor tables and chairs','كنس وتنظيف الأرضية الخارجية':'Sweep and clean the outdoor floor','إضاءة الصالة الخارجية تعمل (ليلاً)':'Outdoor lighting working (at night)','دورات المياه':'Restrooms','تنظيف وتعقيم دورات المياه (رجال + نساء)':'Clean and sanitise restrooms (men + women)','توفر صابون، مناشف ورقية، معطر جو':'Soap, paper towels and air freshener available','فحص صنابير وصرف المياه — لا تسريب':'Check taps and drains — no leaks','فحص الإضاءة داخل دورات المياه':'Check restroom lighting','صور توثيق الصالة':'Dining Area Photos','ملاحظات الوردية':'Shift Notes','حفظ واعتماد مهام الوردية':'Save & Approve Shift Tasks','أي ملاحظات أو أعطال أو متطلبات للوردية القادمة...':'Any notes, faults or needs for the next shift...',
+'Daily Cashier Closing — تقفيل الكاشير اليومي':'Daily Cashier Closing','يُملأ عند نهاية كل وردية — يُعتمد من مدير الفرع':'Filled in at the end of each shift — approved by the branch manager','وضع التعديل':'Edit Mode','إلغاء التعديل — تقفيل جديد':'Cancel Edit — New Closing','نموذج تقفيل الكاشير اليومي':'Daily cashier closing form','تحت إشراف نَسَق':'Supervised by Nassaq','Card Payments — المدفوعات الإلكترونية':'Card Payments','كيتا Keeta':'Keeta','كيتا':'Keeta','آجل (عملاء معروفون)':'Credit (known customers)','إضافة أسماء العملاء':'Add customer names','عميل غادر بدون دفع':'Customer left without paying','Cash — المبيعات النقدية':'Cash Sales','فواتير مشتريات (خصم)':'Purchase invoices (deduct)','مرتجعات العملاء (خصم)':'Customer returns (deduct)','صافي النقدية':'Net Cash','عدد العمليات (الفواتير) في الوردية':'Number of transactions (invoices) in the shift','من تقرير رواء للوردية — يُستخدم لحساب متوسط الفاتورة':"From Rewaa's shift report — used to calculate the average ticket",'Notes / ملاحظات':'Notes','Supporting Photos — صور التوثيق (POS printout, cash count)':'Supporting Photos (POS printout, cash count)','توقيع الكاشير':'Cashier Signature','Cashier Name / اسم الكاشير':'Cashier Name','توقيع المستلم — مدير الفرع':'Received by — Branch Manager','يُعتمد من مدير الفرع فقط':'Approved by the branch manager only','حباق — تحت إشراف نَسَق لحلول الأعمال والتشغيل':'Habaq — supervised by Nassaq Business & Operations Solutions','سجل التقفيلات':'Closings Log','مدير الفرع فقط':'Branch manager only','الشبكة':'Card','النقد':'Cash','صافي النقد':'Net Cash','الإجمالي':'Total','إجراءات':'Actions','لا توجد تقفيلات محفوظة':'No saved closings','Ref / مرجع':'Ref','رقم العملية / Ref':'Ref','البيان / Notes':'Notes','السبب / المسؤول / وقت الواقعة':'Reason / responsible / time','بيان الفواتير':'Invoice details','بيان المرتجعات':'Return details','Void reason / السبب':'Void reason','Discount reason / السبب':'Discount reason',
+'نموذج الزيارة التشغيلية':'Operational Visit Form','تقييم شامل — السلامة الغذائية | الهيجين | التشغيل | الجودة':'Full assessment — Food Safety | Hygiene | Operations | Quality','مشرف الزيارة':'Visit Supervisor','متابعة إجراء تصحيحي':'Corrective Action Follow-up','السلامة الغذائية — الحد الأقصى ٣٠ نقطة':'Food Safety — max 30 points','الهيجين والنظافة — الحد الأقصى ٢٥ نقطة':'Hygiene & Cleanliness — max 25 points','التشغيل والمعدات — الحد الأقصى ٢٥ نقطة':'Operations & Equipment — max 25 points','الجودة وتجربة العميل — الحد الأقصى ٢٠ نقطة':'Quality & Customer Experience — max 20 points','الدرجة':'Points','التقييم':'Rating',
+'درجات الحرارة مسجلة وصحيحة':'Temperatures recorded and correct','تطبيق FIFO والتخزين الصحيح':'FIFO applied and correct storage','التسمية وتأريخ الحاويات':'Containers labelled and dated','عدم وجود منتجات منتهية الصلاحية':'No expired products','الفصل بين اللحوم النيئة والمطبوخة':'Raw and cooked meat kept separate','توفر أدوات قياس الحرارة':'Thermometers available','صور السلامة الغذائية':'Food Safety Photos','نظافة شخصية الموظفين':'Staff personal hygiene','نظافة وتعقيم أسطح العمل':'Work surfaces clean and sanitised','نظافة الأرضيات والجدران والأسقف':'Floors, walls and ceilings clean','نظافة دورات المياه':'Restrooms clean','إدارة النفايات بشكل صحيح':'Proper waste management','عدم وجود آفات أو حشرات':'No pests or insects','صور الهيجين':'Hygiene Photos','توافر المواد الخام':'Raw materials available','صحة عمل المعدات':'Equipment working properly','التزام الموظفين بإجراءات SOP':'Staff follow SOPs','وقت التحضير والتسليم':'Preparation and delivery time','التوثيق اليومي':'Daily documentation','صور التشغيل والمعدات':'Operations & Equipment Photos','مطابقة المنتج للوصفة القياسية':'Product matches the standard recipe','جودة التقديم والتعبئة':'Presentation and packaging quality','مهارات الخدمة واستقبال العملاء':'Service and customer reception skills','وزن وحجم المنتج مطابق للمعيار':'Product weight and size meet the standard','صور جودة المنتج':'Product Quality Photos','التقييم النهائي والاعتماد':'Final Score & Approval','درجة ممتازة':'Excellent score','صور عامة للزيارة':'General Visit Photos','توقيع مشرف الزيارة':'Visit Supervisor Signature','توقيع مدير الفرع':'Branch Manager Signature','إنشاء إجراء تصحيحي':'Create Corrective Action','حباق — الفرع الرئيسي':'Habaq — Main Branch','اسم المدير':'Manager name','الجوانب الإيجابية...':'Positive points...','تفاصيل الإجراءات مع موعد الإنجاز...':'Action details with due date...',
+'تقارير الزيارات التشغيلية':'Operational Visit Reports','سجل كامل بجميع الزيارات المحفوظة':'Full log of all saved visits','لا توجد زيارات مسجلة حتى الآن':'No visits recorded yet',
+'تقارير مهام الوردية':'Shift Task Reports','سجل يومي كامل — جميع الورديات والمناطق':'Full daily log — all shifts and areas','إجمالي تقارير الورديات':'Total Shift Reports','متوسط الاكتمال':'Average Completion','تقارير اليوم':"Today's Reports",'بنود غير مكتملة':'Incomplete Items','سجل تقارير مهام الوردية':'Shift Task Reports Log','طباعة السجل':'Print Log','مهام الوردية (كل الورديات)':'Shift tasks (all shifts)','وردية الصباح':'Morning shift','وردية الظهيرة':'Afternoon shift','وردية الليل':'Night shift','فتح قديم':'Opening (old)','غلق قديم':'Closing (old)','الاكتمال':'Completion','البنود المكتملة':'Completed Items','المناطق':'Areas','المسؤول / المعتمِد':'Responsible / Approver','إجراء':'Action','لا توجد تقارير مطابقة':'No matching reports','احفظ مهام الوردية من صفحة "مهام الوردية" لتظهر هنا':'Save shift tasks from the "Shift Tasks" page to see them here'
+});
+// نصوص مولّدة فيها أرقام أو أسماء: تُترجم بالأنماط
+var I18N_RX=[
+  [/^مرحباً، (.+)$/,function(m){return 'Welcome, '+m[1];}],
+  [/^(.+) — حباق$/,function(m){return I18N[m[1]]?I18N[m[1]]+' — Habaq':null;}],
+  [/^(\S+) (\d+) (\S+)$/,function(m){return I18N[m[1]]&&I18N[m[3]]?I18N[m[1]]+', '+m[2]+' '+I18N[m[3]]:null;}],
+  [/^يوم العمل: (\d+) (\S+) (\d+)$/,function(m){return I18N[m[2]]?'Work day: '+m[1]+' '+I18N[m[2]]+' '+m[3]:null;}],
+  [/^([\d٠-٩]+) من ([\d٠-٩]+) مهمة$/,function(m){return m[1]+' of '+m[2]+' tasks';}],
+  [/^([\d٠-٩]+) من ([\d٠-٩]+) نقطة$/,function(m){return m[1]+' of '+m[2]+' points';}],
+  [/^([\d٠-٩]+) صور$/,function(m){return m[1]+' photos';}],
+  [/^([\d٠-٩]+) (ممتاز|جيد|مقبول|رسوب)$/,function(m){return m[1]+' '+{'ممتاز':'Excellent','جيد':'Good','مقبول':'Acceptable','رسوب':'Fail'}[m[2]];}],
+  [/^[\d٠-٩\s%/.:,+\-–]+$/,function(m){return /[٠-٩]/.test(m[0])?m[0]:null;}]
+];
+function _i18nDigits(s){return s.replace(/[٠-٩]/g,function(d){return String(d.charCodeAt(0)-0x660);});}
 var _i18nRev=null, LANG=localStorage.getItem('habaq_lang')||'ar';
 
 function _i18nSplit(s){
@@ -22098,6 +22145,10 @@ function _i18nLookup(txt){
   if(I18N[t])return I18N[t];
   var p=_i18nSplit(t);
   if(p.core&&I18N[p.core.trim()])return p.pre+I18N[p.core.trim()]+p.post;
+  var q=t.match(/^([^\u0600-\u06FFA-Za-z]*)([\s\S]+)$/);
+  if(q&&I18N[q[2]])return q[1]+I18N[q[2]];
+  var c=q?q[2]:t;
+  for(var i=0;i<I18N_RX.length;i++){var m=c.match(I18N_RX[i][0]);if(m){var r=I18N_RX[i][1](m);if(r!==null)return (q?q[1]:'')+_i18nDigits(r);}}
   return null;
 }
 function _i18nWalk(root){
