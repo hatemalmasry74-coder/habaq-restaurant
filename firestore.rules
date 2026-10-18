@@ -287,7 +287,7 @@ service cloud.firestore {
     // ===== التنبؤ الذكي بالطلبيات =====
     // مبيعات الأصناف اليومية من رواء — القراءة للمحاسب أيضاً من أجل اللوحة المالية
     match /fc_daily/{id} {
-      allow read: if isManager() || (hasPerms() ? permAny(['forecast', 'findash']) : hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']));
+      allow read: if isManager() || (hasPerms() ? permAny(['forecast', 'findash', 'accounting']) : hasRole(['branch_manager', 'store_manager', 'accountant', 'owner']));
       allow create, update, delete: if isManager() || (hasPerms() ? perm('edit:forecast') : hasRole(['branch_manager', 'store_manager']));
     }
 
@@ -338,6 +338,13 @@ service cloud.firestore {
     // عدّاد أرقام القيود المتسلسلة
     match /acc_counters/{id} {
       allow read, write: if isManager() || (hasPerms() ? permAny(['edit:accounting', 'admin:accounting']) : hasRole(['accountant']));
+    }
+
+    // إقرارات ضريبة القيمة المضافة: مشتريات الفترة اليدوية وحالة الاعتماد
+    match /vat_returns/{id} {
+      allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create, update: if isManager() || (hasPerms() ? permAny(['edit:accounting', 'admin:accounting']) : hasRole(['accountant']));
+      allow delete: if isManager();
     }
 
     // إعدادات المحاسبة (نسبة الضريبة وتاريخ إقفال الفترات)
