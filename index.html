@@ -22227,7 +22227,9 @@ function accVatQuarter(){
 // المشتريات: فواتير النظام (قيود حساب ضريبة المدخلات) + فواتير تُضاف يدوياً أو من ملف Excel
 // Firestore: vat_returns/{من_إلى} = {purchases:[...],includeSystem,salesSource,corrections,carried,status,filed...}
 var VAT={key:'',f:'',t:'',doc:null,rw:null,jr:null,busy:false};
-function accVatDefault(){return {purchases:[],includeSystem:true,salesSource:'rewaa',corrections:0,carried:0,status:'draft'};}
+function accVatDefault(){return {purchases:[],includeSystem:true,salesSource:'rewaa',purchMode:'detail',mSales:{base:0,vat:0},mPurch:{base:0,vat:0},corrections:0,carried:0,status:'draft'};}
+// ضريبة رواء المسجلة غير منطقية؟ (أقل بكثير أو أكثر من النسبة الأساسية على الصافي)
+function accVatRwOdd(R,rate){return R&&R.base>0&&Math.abs(R.vat/R.base-rate)>rate*0.2;}
 function accVatRate(){return (Number(ACC.settings&&ACC.settings.vatRate)||15)/100;}
 function accVatCanEdit(){return accCanWrite()&&!(VAT.doc&&VAT.doc.status==='filed');}
 function accRenderVAT(){
@@ -22268,7 +22270,8 @@ function accRenderVAT(){
       var doc=accVatDefault();
       if(r[1]&&!r[1].err&&r[1].exists)Object.assign(doc,r[1].data());
       if(r[1]&&r[1].err)doc._loadErr=r[1].err.message;
-      if(!rw.days&&!(r[1]&&r[1].exists))doc.salesSource='journal';
+      if(!(r[1]&&r[1].exists)){if(!rw.days)doc.salesSource='journal';else if(accVatRwOdd(rw,rate))doc.salesSource='rewaa15';}
+      doc.mSales=Object.assign({base:0,vat:0},doc.mSales||{});doc.mPurch=Object.assign({base:0,vat:0},doc.mPurch||{});doc.purchMode=doc.purchMode||'detail';
       doc._key=VAT.key;VAT.doc=doc;
     }
     accVatDraw();
@@ -22284,13 +22287,16 @@ function accVatCalc(){
   if(D.status==='filed'&&D.snapshot&&D.snapshot.s)return D.snapshot; // الإقرار المعتمد: أرقامه مثبتة
   var s={};
   if(D.salesSource==='rewaa'){s.base=R.base;s.vat=R.vat;s.adjBase=0;s.adjVat=0;}
+  else if(D.salesSource==='rewaa15'){s.vat=accR(R.incl*rate/(1+rate));s.base=accR(R.incl-s.vat);s.adjBase=0;s.adjVat=0;}
+  else if(D.salesSource==='manual'){s.base=accR(D.mSales.base);s.vat=accR(D.mSales.vat);s.adjBase=0;s.adjVat=0;}
   else{s.base=accR(J.o.base);s.vat=accR(J.o.vat);s.adjBase=-accR(J.o.ret);s.adjVat=-accR(J.o.retVat);}
   var mp=accVatPurch().filter(function(p){return !p.dup;});
   var mb=accR(mp.reduce(function(a,p){return a+(+p.base||0);},0)),mv=accR(mp.reduce(function(a,p){return a+(+p.vat||0);},0));
   var pb=accR((D.includeSystem?J.i.base:0)+mb),pv=accR((D.includeSystem?J.i.vat:0)+mv);
+  if(D.purchMode==='manual'){pb=accR(D.mPurch.base);pv=accR(D.mPurch.vat);}
   var salesVat=accR(s.vat+s.adjVat),due=accR(salesVat-pv);
   var corr=accR(D.corrections),carr=accR(D.carried),net=accR(due+corr-carr);
-  return {s:s,sales:{base:accR(s.base+s.adjBase),vat:salesVat},p:{base:pb,vat:pv,sysBase:accR(J.i.base),sysVat:accR(J.i.vat),manBase:mb,manVat:mv,manN:mp.length},due:due,corr:corr,carr:carr,net:net,rate:rate};
+  return {s:s,sales:{base:accR(s.base+s.adjBase),vat:salesVat},p:{base:pb,vat:pv,sysBase:accR(J.i.base),sysVat:accR(J.i.vat),manBase:mb,manVat:mv,manN:mp.length,mode:D.purchMode||'detail'},due:due,corr:corr,carr:carr,net:net,rate:rate};
 }
 function accVatDraw(){
   var box=document.getElementById('acc-vat-body');if(!box)return;
@@ -22302,17 +22308,27 @@ function accVatDraw(){
   // 1) المبيعات
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">🧾 المبيعات</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px">'
-    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="rewaa" '+(D.salesSource==='rewaa'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'rewaa\')" style="width:auto"> <b>مبيعات رواء الفعلية</b></label>'
-    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="journal" '+(D.salesSource==='journal'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'journal\')" style="width:auto"> قيود تقفيل الكاشير في دفتر اليومية</label></div>'
+    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="rewaa" '+(D.salesSource==='rewaa'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'rewaa\')" style="width:auto"> رواء — الضريبة المسجلة في الملف</label>'
+    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="rewaa15" '+(D.salesSource==='rewaa15'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'rewaa15\')" style="width:auto"> <b>رواء — احتساب '+Math.round(C.rate*100)+'% من الإجمالي</b></label>'
+    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="journal" '+(D.salesSource==='journal'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'journal\')" style="width:auto"> قيود تقفيل الكاشير</label>'
+    +'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-src" value="manual" '+(D.salesSource==='manual'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'salesSource\',\'manual\')" style="width:auto"> <b>إدخال الإجمالي يدوياً</b></label>'
+    +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px;font-size:12px">'
-    +'<div style="border:1px solid '+(D.salesSource==='rewaa'?'var(--r)':'var(--br)')+';border-radius:8px;padding:8px 10px;background:#fff"><b>رواء</b> — '+(R.err?'<span style="color:#B71C1C">'+accE(R.err)+'</span>':(R.days+' يوماً من '+R.period+(R.days<R.period?' <span style="color:#B71C1C;font-weight:700">(ناقص '+(R.period-R.days)+' يوماً — ارفع ملف رواء من صفحة التنبؤ بالطلبيات)</span>':' ✅')))
-      +'<br>شامل الضريبة: <b>'+M(R.incl)+'</b> · الضريبة: <b>'+M(R.vat)+'</b> · الصافي: <b>'+M(R.base)+'</b>'+(R.est?'<br><span style="color:#8D6E00">⚠️ '+R.est+' يوماً بلا عمود ضريبة في الملف — حُسبت ضريبتها '+Math.round(C.rate*100)+'% من الشامل</span>':'')+'</div>'
+    +'<div style="border:1px solid '+(/^rewaa/.test(D.salesSource)?'var(--r)':'var(--br)')+';border-radius:8px;padding:8px 10px;background:#fff"><b>رواء</b> — '+(R.err?'<span style="color:#B71C1C">'+accE(R.err)+'</span>':(R.days+' يوماً من '+R.period+(R.days<R.period?' <span style="color:#B71C1C;font-weight:700">(ناقص '+(R.period-R.days)+' يوماً — ارفع ملف رواء من صفحة التنبؤ بالطلبيات)</span>':' ✅')))
+      +'<br>شامل الضريبة: <b>'+M(R.incl)+'</b> · الضريبة: <b>'+M(R.vat)+'</b> · الصافي: <b>'+M(R.base)+'</b>'+(R.est?'<br><span style="color:#8D6E00">⚠️ '+R.est+' يوماً بلا عمود ضريبة في الملف — حُسبت ضريبتها '+Math.round(C.rate*100)+'% من الشامل</span>':'')
+      +(accVatRwOdd(R,C.rate)?'<br><span style="color:#B71C1C;font-weight:700">⚠️ الضريبة المسجلة في ملفات رواء '+(R.vat/R.base*100).toFixed(1)+'% فقط من الصافي (المتوقع '+Math.round(C.rate*100)+'%) — عمود الضريبة في الملف غالباً غير مكتمل. استخدم «احتساب '+Math.round(C.rate*100)+'% من الإجمالي» أو أدخل الإجمالي يدوياً.</span>':'')
+      +'<br><span style="color:var(--tl)">باحتساب '+Math.round(C.rate*100)+'% من الإجمالي: الضريبة '+M(R.incl*C.rate/(1+C.rate))+' · الصافي '+M(R.incl/(1+C.rate))+'</span></div>'
     +'<div style="border:1px solid '+(D.salesSource==='journal'?'var(--r)':'var(--br)')+';border-radius:8px;padding:8px 10px;background:#fff"><b>دفتر اليومية</b> — الصافي: <b>'+M(J.o.base)+'</b> · الضريبة: <b>'+M(J.o.vat)+'</b>'+(J.o.ret?'<br>المردودات: '+M(J.o.ret)+' · ضريبتها '+M(J.o.retVat):'')+'</div>'
-    +'</div></div>';
+    +'</div>'
+    +(D.salesSource==='manual'?accVatManBlock('mSales','المبيعات',ed):'')
+    +'</div>';
   // 2) المشتريات
   var P=accVatPurch();
   h+='<div class="card" style="margin-bottom:10px"><div class="ct" style="justify-content:space-between"><span>🛒 المشتريات وضريبة المدخلات</span>'
     +(ed?'<span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="file" id="acc-vat-file" accept=".xlsx,.csv" style="font-size:11px;max-width:200px"><button class="btn bsm bo" onclick="accVatImport()">📥 استيراد من Excel</button></span>':'')+'</div>'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-bottom:8px"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-pm" '+(D.purchMode!=='manual'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'purchMode\',\'detail\')" style="width:auto"> تفصيلي (فواتير المنصة + الفواتير المضافة)</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="acc-vat-pm" '+(D.purchMode==='manual'?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'purchMode\',\'manual\')" style="width:auto"> <b>إدخال الإجمالي يدوياً</b></label></div>'
+    +(D.purchMode==='manual'?accVatManBlock('mPurch','المشتريات',ed)+'<div style="font-size:11px;color:var(--tl);margin:6px 0 10px">في وضع الإجمالي اليدوي يُستخدم هذا المبلغ في الإقرار بدلاً من التفاصيل أدناه.</div>':'')
+    +'<div style="'+(D.purchMode==='manual'?'opacity:.45':'')+'">'
     +'<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:8px"><input type="checkbox" '+(D.includeSystem?'checked':'')+(ed?'':' disabled')+' onchange="accVatSet(\'includeSystem\',this.checked)" style="width:auto"> تضمين فواتير الموردين المسجلة في المنصة ('+J.i.n+' قيداً — الأساس '+M(J.i.base)+' · الضريبة '+M(J.i.vat)+')</label>'
     +'<div style="overflow-x:auto"><table class="dt" style="width:100%"><thead><tr><th>التاريخ</th><th>المورد</th><th>الرقم الضريبي</th><th>رقم الفاتورة</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th></th></tr></thead><tbody>'
     +(P.length?P.map(function(p,ix){return '<tr style="'+(p.dup?'opacity:.5;text-decoration:line-through':'')+'"><td dir="ltr">'+accE(p.date||'')+'</td><td>'+accE(p.supplier||'')+'</td><td dir="ltr">'+accE(p.vatNo||'')+'</td><td>'+accE(p.invNo||'')+(p.dup?'<div class="bdg bg-w" style="text-decoration:none">مكررة مع فاتورة مسجلة — مستبعدة</div>':'')+'</td><td>'+M(p.base)+'</td><td>'+M(p.vat)+'</td><td>'+M((+p.base||0)+(+p.vat||0))+'</td><td>'+(ed?'<button class="btn bsm bo" onclick="accVatDel('+ix+')">✕</button>':'')+'</td></tr>';}).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--tl);padding:10px">لا توجد مشتريات مضافة يدوياً</td></tr>')
@@ -22320,7 +22336,7 @@ function accVatDraw(){
       +'<td><input type="number" step="0.01" id="acc-vp-base" placeholder="0.00" oninput="accVatAutoTax()" style="'+inp+';width:100px"></td><td><input type="number" step="0.01" id="acc-vp-vat" placeholder="0.00" style="'+inp+';width:90px"></td><td><input type="number" step="0.01" id="acc-vp-total" placeholder="أو الإجمالي" oninput="accVatFromTotal()" style="'+inp+';width:100px"></td><td><button class="btn bsm bp" onclick="accVatAdd()">➕ إضافة</button></td></tr>':'')
     +'<tr style="font-weight:900"><td colspan="4">إجمالي المشتريات المضافة يدوياً ('+C.p.manN+')</td><td>'+M(C.p.manBase)+'</td><td>'+M(C.p.manVat)+'</td><td>'+M(C.p.manBase+C.p.manVat)+'</td><td></td></tr>'
     +'</tbody></table></div>'
-    +'<div style="font-size:11px;color:var(--tl);margin-top:6px">أدخل المبلغ قبل الضريبة وتُحسب الضريبة '+Math.round(C.rate*100)+'% تلقائياً، أو أدخل الإجمالي فيُفصل. ملف Excel يقبل أعمدة: التاريخ، المورد، الرقم الضريبي، رقم الفاتورة، المبلغ قبل الضريبة، الضريبة، الإجمالي. الفاتورة التي رقمها مطابق لفاتورة مسجلة في المنصة تُستبعد تلقائياً لمنع التكرار. احتفظ بأصول الفواتير الضريبية — شرط لخصم ضريبة المدخلات.</div></div>';
+    +'<div style="font-size:11px;color:var(--tl);margin-top:6px">أدخل المبلغ قبل الضريبة وتُحسب الضريبة '+Math.round(C.rate*100)+'% تلقائياً، أو أدخل الإجمالي فيُفصل. ملف Excel يقبل أعمدة: التاريخ، المورد، الرقم الضريبي، رقم الفاتورة، المبلغ قبل الضريبة، الضريبة، الإجمالي. الفاتورة التي رقمها مطابق لفاتورة مسجلة في المنصة تُستبعد تلقائياً لمنع التكرار. احتفظ بأصول الفواتير الضريبية — شرط لخصم ضريبة المدخلات.</div></div></div>';
   // 3) التعديلات
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">⚖️ تعديلات الإقرار</div><div class="fg2">'
     +'<div class="fr"><label>تصحيحات من الفترات السابقة (بند 14)</label><input type="number" step="0.01" value="'+(+D.corrections||0)+'"'+(ed?'':' disabled')+' onchange="accVatSet(\'corrections\',parseFloat(this.value)||0)"></div>'
@@ -22329,7 +22345,7 @@ function accVatDraw(){
   var row=function(n,l,a,adj,v,bold){return '<tr'+(bold?' style="font-weight:900;background:#F5F0E8"':'')+'><td>'+n+'</td><td style="text-align:right">'+l+'</td><td>'+M(a)+'</td><td>'+M(adj)+'</td><td>'+M(v)+'</td></tr>';};
   var z=function(n,l){return row(n,l,0,0,0);};
   var sb=C.s.base,sa=C.s.adjBase,sv=C.sales.vat;
-  h+='<div id="acc-vat-print"><div style="font-size:12px;margin-bottom:6px">الفترة الضريبية: <b dir="ltr">'+accE(VAT.f)+'</b> إلى <b dir="ltr">'+accE(VAT.t)+'</b>'+(S.vatNo?' — الرقم الضريبي: <b dir="ltr">'+accE(S.vatNo)+'</b>':' — <span style="color:#B71C1C">أدخل الرقم الضريبي من «الإعدادات والإقفال»</span>')+' — النسبة الأساسية '+Math.round(C.rate*100)+'% — مصدر المبيعات: '+(D.salesSource==='rewaa'?'رواء':'دفتر اليومية')+'</div>'
+  h+='<div id="acc-vat-print"><div style="font-size:12px;margin-bottom:6px">الفترة الضريبية: <b dir="ltr">'+accE(VAT.f)+'</b> إلى <b dir="ltr">'+accE(VAT.t)+'</b>'+(S.vatNo?' — الرقم الضريبي: <b dir="ltr">'+accE(S.vatNo)+'</b>':' — <span style="color:#B71C1C">أدخل الرقم الضريبي من «الإعدادات والإقفال»</span>')+' — النسبة الأساسية '+Math.round(C.rate*100)+'% — مصدر المبيعات: '+({rewaa:'رواء (الضريبة المسجلة)',rewaa15:'رواء (احتساب النسبة من الإجمالي)',journal:'دفتر اليومية',manual:'إدخال يدوي'}[D.salesSource]||'')+(C.p.mode==='manual'?' — المشتريات: إجمالي يدوي':'')+'</div>'
     +'<table class="dt" style="width:100%"><thead><tr><th style="width:36px">#</th><th>البند</th><th>المبلغ (﷼)</th><th>مبلغ التعديل (﷼)</th><th>مبلغ ضريبة القيمة المضافة (﷼)</th></tr></thead><tbody>'
     +'<tr><td colspan="5" style="background:#E8F5E9;font-weight:900;color:#1B5E20;text-align:right">ضريبة القيمة المضافة على المبيعات</td></tr>'
     +row(1,'المبيعات الخاضعة للنسبة الأساسية',sb,sa,sv)
@@ -22344,7 +22360,7 @@ function accVatDraw(){
     +'<tr><td>15</td><td style="text-align:right" colspan="3">ضريبة القيمة المضافة المُرحّلة من الفترة/الفترات السابقة</td><td>'+M(C.carr)+'</td></tr>'
     +'<tr style="font-weight:900;font-size:15px"><td colspan="4" style="background:#7a1515;color:#fff;text-align:right">'+(C.net>=0?'صافي الضريبة المستحقة للسداد':'صافي الضريبة الدائنة (قابلة للترحيل أو الاسترداد)')+'</td><td style="background:#7a1515;color:#fff">'+M(Math.abs(C.net))+'</td></tr>'
     +'</tbody></table>'
-    +'<div style="font-size:11px;color:var(--tl);margin:6px 0">المشتريات: فواتير المنصة '+(D.includeSystem?M(C.p.sysBase)+' (ضريبة '+M(C.p.sysVat)+')':'غير مضمّنة')+' + يدوية '+M(C.p.manBase)+' (ضريبة '+M(C.p.manVat)+'). راجع الأرقام قبل رفعها في بوابة هيئة الزكاة والضريبة والجمارك.</div></div>'
+    +'<div style="font-size:11px;color:var(--tl);margin:6px 0">'+(C.p.mode==='manual'?'المشتريات: إجمالي مُدخل يدوياً ('+M(C.p.base)+' · ضريبة '+M(C.p.vat)+'). التفاصيل للمرجع: ':'')+'فواتير المنصة '+(D.includeSystem?M(C.p.sysBase)+' (ضريبة '+M(C.p.sysVat)+')':'غير مضمّنة')+' + يدوية '+M(C.p.manBase)+' (ضريبة '+M(C.p.manVat)+'). راجع الأرقام قبل رفعها في بوابة هيئة الزكاة والضريبة والجمارك.</div></div>'
     +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">'
     +'<button class="btn bsm" style="background:#1B5E20;color:#fff" onclick="accPrint(\'acc-vat-print\',\'إقرار ضريبة القيمة المضافة\')">🖨️ طباعة / PDF</button>'
     +'<button class="btn bsm bo" onclick="accVatCSV()">📊 تصدير Excel (CSV)</button>'
@@ -22354,12 +22370,28 @@ function accVatDraw(){
       +J.det.map(function(x){return '<tr><td dir="ltr">'+accE(x[0].date)+'</td><td>'+x[0].no+'</td><td style="font-size:11px">'+accE(x[0].desc)+'</td><td>'+x[1]+'</td><td>'+M(x[2])+'</td><td>'+M(x[3])+'</td></tr>';}).join('')+'</tbody></table></details>':'');
   box.innerHTML=h;
 }
+function accVatManBlock(k,label,ed){
+  var v=VAT.doc[k]||{base:0,vat:0},st='padding:7px 9px;border:1.5px solid var(--br);border-radius:7px;font-family:Cairo,sans-serif;font-size:13px;width:100%',dis=ed?'':' disabled';
+  return '<div style="background:#FFF8E1;border:1.5px dashed #FFB74D;border-radius:9px;padding:10px 12px;margin-top:8px"><div style="font-size:12px;font-weight:800;margin-bottom:6px">✍️ إجمالي '+label+' للفترة</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:11px">'
+    +'<label>الإجمالي شامل الضريبة<input type="number" step="0.01" value="'+(accR((+v.base||0)+(+v.vat||0))||'')+'" placeholder="0.00" onchange="accVatMan(\''+k+'\',\'incl\',this.value)" style="'+st+'"'+dis+'></label>'
+    +'<label>المبلغ قبل الضريبة<input type="number" step="0.01" value="'+(+v.base||'')+'" placeholder="0.00" onchange="accVatMan(\''+k+'\',\'base\',this.value)" style="'+st+'"'+dis+'></label>'
+    +'<label>مبلغ الضريبة<input type="number" step="0.01" value="'+(+v.vat||'')+'" placeholder="0.00" onchange="accVatMan(\''+k+'\',\'vat\',this.value)" style="'+st+'"'+dis+'></label>'
+    +'</div><div style="font-size:10.5px;color:var(--tl);margin-top:4px">أدخل الإجمالي شامل الضريبة فيُفصل تلقائياً، أو أدخل المبلغ قبل الضريبة فتُحسب الضريبة '+Math.round(accVatRate()*100)+'%، ويمكن تعديل الضريبة مباشرة.</div></div>';
+}
+function accVatMan(k,f,val){
+  if(!accVatCanEdit())return;var r=accVatRate(),x=accR(val),o=Object.assign({base:0,vat:0},VAT.doc[k]||{});
+  if(f==='incl'){o.base=accR(x/(1+r));o.vat=accR(x-o.base);}
+  else if(f==='base'){o.base=x;o.vat=accR(x*r);}
+  else o.vat=x;
+  VAT.doc[k]=o;accVatSave();accVatDraw();
+}
 function accVatAutoTax(){var b=parseFloat(document.getElementById('acc-vp-base').value)||0;document.getElementById('acc-vp-vat').value=b?accR(b*accVatRate()):'';document.getElementById('acc-vp-total').value='';}
 function accVatFromTotal(){var t=parseFloat(document.getElementById('acc-vp-total').value)||0;if(!t)return;var r=accVatRate(),b=accR(t/(1+r));document.getElementById('acc-vp-base').value=b;document.getElementById('acc-vp-vat').value=accR(t-b);}
 function accVatSave(){
   if(!accVatCanEdit())return Promise.resolve();
   var D=VAT.doc,data={from:VAT.f,to:VAT.t,purchases:(D.purchases||[]).map(function(p){return {id:p.id,date:p.date||'',supplier:p.supplier||'',vatNo:p.vatNo||'',invNo:p.invNo||'',base:accR(p.base),vat:accR(p.vat)};}),
-    includeSystem:!!D.includeSystem,salesSource:D.salesSource,corrections:accR(D.corrections),carried:accR(D.carried),status:D.status||'draft',updatedBy:CU.name||'',updatedAt:new Date().toISOString()};
+    includeSystem:!!D.includeSystem,salesSource:D.salesSource,purchMode:D.purchMode||'detail',mSales:{base:accR(D.mSales&&D.mSales.base),vat:accR(D.mSales&&D.mSales.vat)},mPurch:{base:accR(D.mPurch&&D.mPurch.base),vat:accR(D.mPurch&&D.mPurch.vat)},corrections:accR(D.corrections),carried:accR(D.carried),status:D.status||'draft',updatedBy:CU.name||'',updatedAt:new Date().toISOString()};
   return db.collection('vat_returns').doc(VAT.key).set(data,{merge:true}).catch(function(e){alert('تعذّر حفظ الإقرار: '+e.message+' — تأكد من نشر قواعد Firestore الجديدة');});
 }
 function accVatSet(k,v){if(!accVatCanEdit())return;VAT.doc[k]=v;accVatSave();accVatDraw();}
@@ -22414,7 +22446,7 @@ function accVatFile(){
   if(!confirm('اعتماد إقرار الفترة '+VAT.f+' إلى '+VAT.t+' — صافي '+(C.net>=0?'مستحق ':'دائن ')+accM(Math.abs(C.net))+' ﷼؟\nتُثبَّت الأرقام ولا تُعدّل بعد الاعتماد.'))return;
   VAT.doc.status='filed';
   var snap=JSON.parse(JSON.stringify(C));snap.vatNo=ACC.settings.vatNo||'';VAT.doc.snapshot=snap;
-  db.collection('vat_returns').doc(VAT.key).set({from:VAT.f,to:VAT.t,purchases:VAT.doc.purchases||[],includeSystem:!!VAT.doc.includeSystem,salesSource:VAT.doc.salesSource,corrections:C.corr,carried:C.carr,status:'filed',snapshot:snap,filedAt:new Date().toISOString(),filedBy:CU.name||''},{merge:true}).then(function(){
+  db.collection('vat_returns').doc(VAT.key).set({from:VAT.f,to:VAT.t,purchases:VAT.doc.purchases||[],includeSystem:!!VAT.doc.includeSystem,salesSource:VAT.doc.salesSource,purchMode:VAT.doc.purchMode||'detail',mSales:VAT.doc.mSales||{base:0,vat:0},mPurch:VAT.doc.mPurch||{base:0,vat:0},corrections:C.corr,carried:C.carr,status:'filed',snapshot:snap,filedAt:new Date().toISOString(),filedBy:CU.name||''},{merge:true}).then(function(){
     VAT.doc.filedAt=new Date().toISOString();VAT.doc.filedBy=CU.name||'';sdAuditLog('edit','vat_returns',VAT.key,'اعتماد إقرار ضريبة '+VAT.f+' إلى '+VAT.t+' — صافي '+accM(C.net));accVatDraw();
   }).catch(function(e){VAT.doc.status='draft';alert('خطأ: '+e.message);});
 }
