@@ -4154,7 +4154,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
             <div class="fr"><label>تاريخ السداد</label><input type="date" id="exp-s-date"></div>
           </div>
           <div class="fr" id="exp-s-cust-wrap" style="display:none"><label>🧑‍💼 العهدة المصروف منها</label><select id="exp-s-cust"></select></div>
-          <div style="display:flex;gap:8px"><button class="btn bp" onclick="expSettleDo()">تأكيد السداد</button><button class="btn" style="background:#888" onclick="expSettleClose()">إلغاء</button></div>
+          <div style="display:flex;gap:8px"><button class="btn bp" id="exp-settle-btn" onclick="expSettleDo()">تأكيد السداد</button><button class="btn" style="background:#888" onclick="expSettleClose()">إلغاء</button></div>
         </div>
         <div class="card">
           <div class="ct">📋 سجل المصروفات</div>
@@ -22019,6 +22019,8 @@ function accAutoPost(){
 var ACC_SYNC={running:false,again:false,timer:null,quiet:0,days:62,sessionDone:false};
 var ACC_SRC_COLLS={cashier_reports:1,purchases_invoices:1,purchases_payments:1,hr_payroll:1,hr_advances:1,custody_ledger:1,expenses:1};
 var ACC_ALL_SRCS=['cashier','purchase','payment','payroll','advance','custody','expense'];
+// نوع المصدر ← مجموعته (لعكس قيد المستند المحذوف)
+var ACC_SRC_COLL={cashier:'cashier_reports',purchase:'purchases_invoices',opening:'purchases_invoices',payment:'purchases_payments',payroll:'hr_payroll',advance:'hr_advances',custody:'custody_ledger',expense:'expenses'};
 function accToast(msg,color){
   var t=document.createElement('div');t.style.cssText='position:fixed;bottom:18px;right:18px;left:18px;max-width:420px;margin:auto;background:'+(color||'#1B5E20')+';color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 18px rgba(0,0,0,.3);text-align:center';
   t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},5000);
@@ -22060,12 +22062,13 @@ function accSyncAuto(){
         var total=accR(p.lines.reduce(function(s,l){return s+l.debit;},0));
         return db.collection('acc_journal').doc(p.id).update({date:p.date,desc:p.desc,ref:p.ref||'',lines:p.lines,total:total,editedBy:'auto',editedByName:'مزامنة تلقائية',editedAt:new Date().toISOString(),editCount:(ex.editCount||0)+1}).then(function(){updated++;}).catch(function(e){console.warn('auto update',p.id,e.message);});
       });});
-      // مصروف حُذف: نعكس قيده
+      // مستند مصدر حُذف (تقفيل، فاتورة، دفعة، مسير، سلفة، عهدة، مصروف): نعكس قيده الآلي
       if(accCanFix()){
-        var cand=ACC.entries.filter(function(e){return e.auto&&!e.reversed&&e.source&&e.source.type==='expense'&&e.date>=from&&!e.reversalOf;});
+        var inPlan={};plan.forEach(function(p){inPlan[p.id]=1;});
+        var cand=ACC.entries.filter(function(e){return e.auto&&!e.reversed&&!e.reversalOf&&e.source&&ACC_SRC_COLL[e.source.type]&&e.date>=from&&!inPlan[e._id]&&!(e.editedBy&&e.editedBy!=='auto');});
         cand.slice(0,40).forEach(function(e){chain=chain.then(function(){
           var sid=String(e.source.id||'').replace(/_s$/,'');if(!sid)return;
-          return db.collection('expenses').doc(sid).get().then(function(d){if(d.exists)return;return accReverseAuto(e,'حذف المصروف').then(function(ok){if(ok)reversed++;});}).catch(function(){});
+          return db.collection(ACC_SRC_COLL[e.source.type]).doc(sid).get().then(function(d){if(d.exists)return;return accReverseAuto(e,'حذف '+(ACC_SRC[e.source.type]||'المستند')).then(function(ok){if(ok)reversed++;});}).catch(function(){});
         });});
       }
       return chain;
@@ -22450,9 +22453,14 @@ function expSave(){
     else{data.status='paid';data.paidVia=FV.delete();data.paidDate=FV.delete();data.paidCustody=FV.delete();data.paidLedgerId=FV.delete();}
     data.updatedBy=CU.name||'';data.updatedAt=new Date().toISOString();
     var chain=Promise.resolve();
+    // حركة عهدة سداد الآجل: تُحذف إذا لم يعد المصروف آجلاً، وتُحدَّث بالمبلغ الجديد إذا بقي آجلاً مسدّداً
+    if(old.paidLedgerId){
+      if(pay==='credit'&&data.status==='paid')chain=chain.then(function(){return db.collection('custody_ledger').doc(old.paidLedgerId).update({amount:amount,cashAmount:amount,note:'سداد مصروف آجل — '+(payee||'')+' — '+cat});});
+      else chain=chain.then(function(){return db.collection('custody_ledger').doc(old.paidLedgerId).delete();});
+    }
     if(old.payType==='cash'&&old.custodyLedgerId){
-      if(pay==='cash')chain=db.collection('custody_ledger').doc(old.custodyLedgerId).update({amount:amount,cashAmount:amount,person:cust,date:date,note:note()});
-      else{chain=db.collection('custody_ledger').doc(old.custodyLedgerId).delete();data.custodyLedgerId=FV.delete();}
+      if(pay==='cash')chain=chain.then(function(){return db.collection('custody_ledger').doc(old.custodyLedgerId).update({amount:amount,cashAmount:amount,person:cust,date:date,note:note()});});
+      else{chain=chain.then(function(){return db.collection('custody_ledger').doc(old.custodyLedgerId).delete();});data.custodyLedgerId=FV.delete();}
     }
     chain.then(function(){
       if(pay==='cash'&&!old.custodyLedgerId)return expCustodyOut(cust,amount,date,note(),id).then(function(c){data.custodyLedgerId=c.id;});
@@ -22475,15 +22483,18 @@ function expSettle(id){
 function expSettleToggle(){document.getElementById('exp-s-cust-wrap').style.display=(document.getElementById('exp-s-via').value==='cash')?'':'none';}
 function expSettleClose(){document.getElementById('exp-settle').style.display='none';EXP.settleId=null;}
 function expSettleDo(){
-  var id=EXP.settleId,r=expFind(id);if(!r)return;
+  var id=EXP.settleId,r=expFind(id);if(!r||EXP.settling)return;
+  if(r.status==='paid'){expSettleClose();return;}
   var via=document.getElementById('exp-s-via').value,d=document.getElementById('exp-s-date').value,cust=document.getElementById('exp-s-cust').value;
   if(!d){alert('حدّد تاريخ السداد');return;}
   if(via==='cash'&&!expCanCustody()){alert('السداد النقدي من العهدة لمن يملك صلاحية حركات العهد');return;}
   if(via==='cash'&&!cust){alert('اختر العهدة');return;}
   var upd={status:'paid',paidVia:via,paidDate:d};
+  EXP.settling=true;var sb=document.getElementById('exp-settle-btn');if(sb)sb.disabled=true;
   var p=Promise.resolve();
   if(via==='cash'){upd.paidCustody=cust;p=expCustodyOut(cust,Number(r.amount),d,'سداد مصروف آجل — '+(r.payee||'')+' — '+r.category,id).then(function(c){upd.paidLedgerId=c.id;});}
-  p.then(function(){return db.collection('expenses').doc(id).update(upd);}).then(function(){sdAuditLog('edit','expenses',id,'سداد مصروف آجل — '+(r.payee||'')+' — '+expN(r.amount)+' ﷼');expSettleClose();expLoad();}).catch(function(e){alert('تعذّر السداد: '+e.message);});
+  p.then(function(){return db.collection('expenses').doc(id).update(upd);}).then(function(){r.status='paid';sdAuditLog('edit','expenses',id,'سداد مصروف آجل — '+(r.payee||'')+' — '+expN(r.amount)+' ﷼');expSettleClose();expLoad();}).catch(function(e){alert('تعذّر السداد: '+e.message);})
+    .then(function(){EXP.settling=false;if(sb)sb.disabled=false;});
 }
 function expDelete(id){
   if(!expCanDelete())return;
