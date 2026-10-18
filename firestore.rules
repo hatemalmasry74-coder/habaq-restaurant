@@ -326,10 +326,42 @@ service cloud.firestore {
       allow delete: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
     }
 
+    // دفتر اليومية الجديد: الإضافة للمحاسب ومدير الفرع (يدوي + ترحيل آلي)،
+    // والتعديل والعكس لمدير الفرع أو admin:accounting، ولا حذف للقيود
+    match /acc_journal/{id} {
+      allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create: if isManager() || (hasPerms() ? permAny(['edit:accounting', 'admin:accounting']) : hasRole(['accountant']));
+      allow update: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
+      allow delete: if false;
+    }
+
+    // عدّاد أرقام القيود المتسلسلة
+    match /acc_counters/{id} {
+      allow read, write: if isManager() || (hasPerms() ? permAny(['edit:accounting', 'admin:accounting']) : hasRole(['accountant']));
+    }
+
     // إعدادات المحاسبة (نسبة الضريبة وتاريخ إقفال الفترات)
     match /acc_settings/{id} {
       allow read: if isManager() || (hasPerms() ? perm('accounting') : hasRole(['branch_manager', 'accountant', 'owner']));
       allow create, update, delete: if isManager() || (hasPerms() ? perm('admin:accounting') : false);
+    }
+
+    // المصروفات: التسجيل لمن يملك الصفحة، وتعديل مصروف الغير لـ edit:finance، والحذف لـ delete:finance
+    match /expenses/{id} {
+      allow read: if isManager() || (hasPerms() ? permAny(['expenses', 'accounting']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create: if isManager() || (hasPerms() ? perm('expenses') : hasRole(['accountant']));
+      allow update: if isManager()
+        || (hasPerms()
+            ? (perm('edit:finance') || (perm('expenses') && resource.data.createdBy == request.auth.uid))
+            : (hasRole(['accountant']) && resource.data.createdBy == request.auth.uid));
+      allow delete: if isManager() || (hasPerms() ? perm('delete:finance') : false);
+    }
+
+    // أنواع المصروفات المضافة (مع الحساب المحاسبي لكل نوع)
+    match /expense_types/{id} {
+      allow read: if isManager() || (hasPerms() ? permAny(['expenses', 'accounting']) : hasRole(['branch_manager', 'accountant', 'owner']));
+      allow create: if isManager() || (hasPerms() ? perm('expenses') : hasRole(['accountant']));
+      allow update, delete: if isManager();
     }
 
     // الرفض الافتراضي: أي مجموعة غير مذكورة أعلاه ممنوعة قراءةً وكتابةً
