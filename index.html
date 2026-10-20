@@ -19045,6 +19045,7 @@ var HB_SEED={
     {k:'sambal',name:'شطة سومطرا / كريستال',unit:'جم',price:25,pack:1000,alias:['شطة','صلصة حارة']},
     {k:'sesoil',name:'زيت سمسم محمص',unit:'مل',price:50,pack:1000,alias:['زيت سمسم']},
     {k:'soy',name:'صلصة صويا',unit:'مل',price:15,pack:1000,alias:['صويا','صوص صويا','صلصة الصويا']},
+    {k:'bpesto',name:'بيستو ريحان جاهز',unit:'جم',price:75,pack:1000,alias:['بيستو ريحان','صلصة بيستو','بيستو جاهز']},
     {k:'lemon',name:'عصير ليمون',unit:'مل',price:14,pack:1000,alias:['عصير الليمون','ليمون']},
     {k:'paprika',name:'بابريكا مدخنة',unit:'جم',price:60,pack:1000,alias:['بابريكا','بابريكا مدخنه']},
     {k:'ronion',name:'بصل أحمر',unit:'جم',price:3,pack:1000,alias:['بصل احمر']},
@@ -19089,8 +19090,8 @@ var HB_SEED={
     // ===== الساندوتشات (أكتوبر 2026) — الزيت بالمل (الجرام × 1.087) =====
     {k:'b_pesto',name:'بيستو الجوز والطماطم المجففة (دفعة 215 جم)',batch:true,yield:215,items:[['walnut',50],['parsley',15],['olivegreen',40],['sdtomato',60],['pmol',15],['olive',38]],note:'فرم ناعم خشن قليلاً · يُحفظ 5 أيام في علبة زجاج تحت طبقة زيت زيتون'},
     {k:'b_tuna',name:'سبايسي تونة كريمية (دفعة 375 جم)',batch:true,yield:375,items:[['tuna',240],['mayo',70],['sriracha',20],['soy',5],['sesoil',5],['lemon',20],['gonion',15]],note:'اخلط المايونيز والسريراتشا والصويا وزيت السمسم والليمون، ثم أضف التونة المصفّاة والبصل الأخضر وقلّب بالشوكة مع إبقاء القوام · تكفي 5 ساندوتشات تقريباً (70 جم لكل ساندوتش)'},
-    {k:'m_halloumi',name:'ساندوتش حلوم بيستو',en:'Halloumi Pesto Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:22,yield:1,items:[['focaccia',1],['halloumi',125],['pmol',5],['salt',0.75],['tomato',60],['arugula',15],['labnah',20],['b_pesto',20],['wrapsand',1]],note:'حلوم 125 جم شرائح 1 سم تُحمّر بلا زيت 4 دقائق · فوكاتشا محمّصة من الداخل · بيستو + لبنة + نصف طماطم شرائح + جرجير 15 جم · دبس الرمان 5 جم (افتراض — راجعه) · خيار أوفر: حلوم 90 جم'},
-    {k:'m_tuna',name:'ساندوتش سبايسي تونة',en:'Spicy Tuna Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:18,yield:1,items:[['focaccia',1],['b_tuna',70],['butter',5],['labnah',15],['b_pesto',10],['iceberg',20],['arugula',2],['salt',2],['bpepper',1],['wrapsand',1]],note:'فوكاتشا تُشق نصفين وتُدهن بـ 5 جم زبدة وتُحمّص 2:30 دقيقة · ورقتا خس + 70 جم خليط التونة + لبنة + بيستو + جرجير'},
+    {k:'m_halloumi',name:'ساندوتش حلوم بيستو',en:'Halloumi Pesto Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:25,yield:1,items:[['focaccia',1],['halloumi',125],['pmol',30],['salt',0.75],['tomato',60],['arugula',15],['labnah',20],['bpesto',20],['wrapsand',1]],note:'حلوم 125 جم شرائح 1 سم تُحمّر بلا زيت 4 دقائق · فوكاتشا محمّصة من الداخل · بيستو ريحان جاهز 20 جم + لبنة 20 جم + نصف طماطم شرائح + جرجير 15 جم + دبس رمان 30 جم'},
+    {k:'m_tuna',name:'ساندوتش سبايسي تونة',en:'Spicy Tuna Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:18,yield:1,items:[['focaccia',1],['b_tuna',70],['butter',5],['labnah',15],['bpesto',10],['iceberg',20],['arugula',2],['salt',2],['bpepper',1],['wrapsand',1]],note:'فوكاتشا تُشق نصفين وتُدهن بـ 5 جم زبدة وتُحمّص 2:30 دقيقة · ورقتا خس + 70 جم خليط التونة + لبنة 15 جم + بيستو ريحان 10 جم + جرجير'},
   ],
 
   stock:[
@@ -19355,7 +19356,7 @@ function hbApplyInvoiceCosts(after){
 
 /* ---------- إضافة أصناف منيو جديدة من HB_SEED بدون إعادة الاستيراد الكامل ----------
    تنشئ المواد الخام الناقصة فقط (المادة الموجودة يُستخدم سعرها كما هو)، ثم تنشئ/تحدّث الوصفات المطلوبة. */
-var HB_NEW_MENU=[{label:'الساندوتشات: حلوم بيستو + سبايسي تونة (الوصفة المحدّثة)',keys:['b_pesto','b_tuna','m_halloumi','m_tuna']}];
+var HB_NEW_MENU=[{label:'الساندوتشات: حلوم بيستو + سبايسي تونة (الوصفة المحدّثة)',keys:['b_tuna','m_halloumi','m_tuna']}];
 function hbAddMenuItems(keys){
   if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
   keys=keys||HB_NEW_MENU[0].keys;
