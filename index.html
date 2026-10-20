@@ -4458,9 +4458,9 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
             <input type="hidden" id="rec-id">
             <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:10px">
               <div class="fr" style="margin:0"><label>اسم الصنف / الوصفة</label><input id="rec-name" placeholder="مثال: تشيز عسير"></div>
-              <div class="fr" style="margin:0"><label>عدد الوحدات الناتجة</label><input id="rec-yield" type="number" step="1" value="1"></div>
-              <div class="fr" style="margin:0"><label>سعر البيع شامل الضريبة (﷼)</label><input id="rec-price" type="number" step="0.01"></div>
-              <div class="fr" style="margin:0"><label>Food Cost المستهدف %</label><input id="rec-target" type="number" step="0.5" value="35"></div>
+              <div class="fr" style="margin:0"><label>عدد الوحدات الناتجة</label><input id="rec-yield" type="number" step="1" value="1" oninput="ccCalcRec()"></div>
+              <div class="fr" style="margin:0"><label>سعر البيع المقترح شامل الضريبة (﷼)</label><input id="rec-price" type="number" step="0.5" oninput="ccCalcRec()" placeholder="اكتب السعر لترى النتيجة"></div>
+              <div class="fr" style="margin:0"><label>Food Cost المستهدف %</label><input id="rec-target" type="number" step="0.5" value="35" oninput="ccCalcRec()"></div>
               <div class="fr" style="margin:0"><label>اسم الشيف (للبطاقة)</label><input id="rec-chef" placeholder="اختياري"></div>
             </div>
             <div class="ct" style="font-size:12px">🥣 مكونات الوصفة (كمية دفعة كاملة)</div>
@@ -18785,9 +18785,9 @@ function ccAddIngRow(ingId,qty){
   var wrap=document.getElementById('rec-ing-rows');
   var row=document.createElement('div');
   row.className='cc-ing-row';
-  row.innerHTML='<div class="fr" style="margin:0"><label>المادة<\/label><select class="ri-ing" onchange="ccCalcRec()">'+ccIngOptions(ingId||'')+'<\/select><\/div>'
+  row.innerHTML='<div class="fr" style="margin:0"><label>المادة<\/label><select class="ri-ing" onchange="delete this.closest(\'.cc-ing-row\').dataset.uc;ccCalcRec()">'+ccIngOptions(ingId||'')+'<\/select><\/div>'
     +'<div class="fr" style="margin:0"><label>الكمية<\/label><input class="ri-qty" type="number" step="0.01" value="'+(qty||'')+'" oninput="ccCalcRec()"><\/div>'
-    +'<div class="fr" style="margin:0"><label>تكلفة الوحدة<\/label><input class="ri-uc" disabled><\/div>'
+    +'<div class="fr" style="margin:0"><label>تكلفة الوحدة ✏️<\/label><input class="ri-uc" type="number" step="0.0001" min="0" title="عدّل تكلفة الوحدة لتحديث سعر المادة الخام عند الحفظ" oninput="ccUcEdit(this)" style="background:#FFF8E1"><\/div>'
     +'<div class="fr" style="margin:0"><label>تكلفة المكوّن<\/label><input class="ri-tc" disabled><\/div>'
     +'<button class="btn bsm bo" style="color:#B71C1C;height:34px" onclick="this.parentNode.remove();ccCalcRec()">🗑️<\/button>';
   wrap.appendChild(row);
@@ -18797,9 +18797,11 @@ function ccCalcRec(){
   var total=0;
   document.querySelectorAll('#rec-ing-rows .cc-ing-row').forEach(function(r){
     var id=r.querySelector('.ri-ing').value, q=parseFloat(r.querySelector('.ri-qty').value)||0;
-    var lc=ccLineUnit(id), g=lc.ok;
-    var uc=lc.uc, tc=uc*q;
-    r.querySelector('.ri-uc').value=g?uc.toFixed(4):'';
+    var lc=ccLineUnit(id), g=lc.ok, ucEl=r.querySelector('.ri-uc'), isRec=String(id).indexOf('R:')===0;
+    var edited=!isRec&&id&&r.dataset.uc!==undefined&&r.dataset.ucIng===id;
+    var uc=edited?(parseFloat(r.dataset.uc)||0):lc.uc, tc=uc*q;
+    ucEl.disabled=!id||isRec;ucEl.style.background=(!id||isRec)?'':(edited?'#FFE0B2':'#FFF8E1');
+    if(document.activeElement!==ucEl)ucEl.value=(g||edited)?uc.toFixed(4):'';
     r.querySelector('.ri-tc').value=g?tc.toFixed(2):'';
     total+=tc;
   });
@@ -18815,8 +18817,31 @@ function ccCalcRec(){
   box.innerHTML='<b>تكلفة الدفعة:<\/b> '+total.toFixed(2)+' ﷼ &nbsp;|&nbsp; <b>تكلفة الوحدة:<\/b> <span style="color:var(--r);font-weight:900">'+unit.toFixed(2)+' ﷼<\/span>'
     +' &nbsp;|&nbsp; <b>السعر الصافي (بعد الضريبة):<\/b> '+net.toFixed(2)+' ﷼'
     +' &nbsp;|&nbsp; <b>Food Cost:<\/b> <span style="color:'+col+';font-weight:900">'+fc.toFixed(1)+'%<\/span> (المستهدف '+target+'%)'
-    +' &nbsp;|&nbsp; <b>هامش المساهمة:<\/b> '+(net-unit).toFixed(2)+' ﷼';
+    +' &nbsp;|&nbsp; <b>هامش المساهمة:<\/b> '+(net-unit).toFixed(2)+' ﷼'
+    +(unit>0&&target>0?(function(){
+      var sug=Math.ceil(unit/(target/100)*1.15*2)/2,opts=[sug-2,sug-1,sug,sug+1,sug+2].filter(function(x){return x>0;});
+      return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--br)">💡 <b>السعر المقترح عند Food Cost '+target+'%:<\/b> <span style="color:var(--r);font-weight:900">'+sug.toFixed(2)+' ﷼<\/span> شامل الضريبة '
+        +'<button class="btn bsm bp" style="margin-right:6px" onclick="document.getElementById(\'rec-price\').value='+sug+';ccCalcRec()">استخدمه<\/button>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+opts.map(function(p){var n=p/1.15,f=unit/n*100;return '<span onclick="document.getElementById(\'rec-price\').value='+p+';ccCalcRec()" style="cursor:pointer;background:#fff;border:1px solid '+(f<=target?'#A5D6A7':'#FFCDD2')+';border-radius:8px;padding:3px 9px;font-size:11px"><b>'+p+' ﷼<\/b> · '+f.toFixed(0)+'% · مساهمة '+(n-unit).toFixed(2)+'<\/span>';}).join('')+'<\/div><\/div>';
+    })():'');
   return {total:total,unit:unit,net:net,fc:fc};
+}
+// تعديل تكلفة الوحدة من داخل الوصفة → يُحدَّث سعر المادة الخام عند حفظ الوصفة
+function ccUcEdit(el){
+  var r=el.closest('.cc-ing-row'),id=r.querySelector('.ri-ing').value;if(!id||String(id).indexOf('R:')===0)return;
+  r.dataset.uc=el.value;r.dataset.ucIng=id;ccCalcRec();
+}
+function ccRecPriceChanges(){
+  var ch={};
+  document.querySelectorAll('#rec-ing-rows .cc-ing-row').forEach(function(r){
+    var id=r.querySelector('.ri-ing').value;if(!id||r.dataset.uc===undefined||r.dataset.ucIng!==id)return;
+    var g=_ccIngs.find(function(x){return x._id===id;});if(!g)return;
+    var uc=parseFloat(r.dataset.uc);if(!(uc>=0))return;
+    if(Math.abs(uc-ccUnitCost(g))<0.00005)return;
+    var pk=parseFloat(g.pack)||1,w=parseFloat(g.waste)||0;
+    ch[id]={g:g,uc:uc,price:Math.round(uc*pk*(w<100?(1-w/100):1)*10000)/10000};
+  });
+  return ch;
 }
 function ccResetRec(){
   ['rec-id','rec-name','rec-price','rec-chef'].forEach(function(i){document.getElementById(i).value='';});
@@ -18838,8 +18863,14 @@ function ccSaveRec(){
          items:items, updatedAt:new Date().toISOString(), updatedBy:CU.name||''};
   if(!d.name||items.length===0){alert('أكمل اسم الوصفة وأضف مكوّناً واحداً على الأقل');return;}
   var id=document.getElementById('rec-id').value;
-  var op=id?db.collection('cost_recipes').doc(id).update(d):db.collection('cost_recipes').add(d);
+  var ch=ccRecPriceChanges(),ids=Object.keys(ch);
+  if(ids.length&&!confirm('سيتم تحديث سعر '+ids.length+' مادة خام، ويتغيّر في كل الوصفات التي تستخدمها:\n\n'
+    +ids.map(function(k){var c=ch[k];return '• '+c.g.name+': تكلفة الوحدة '+ccUnitCost(c.g).toFixed(4)+' ← '+c.uc.toFixed(4)+' (سعر العبوة '+(parseFloat(c.g.price)||0)+' ← '+c.price+' لعبوة '+(parseFloat(c.g.pack)||1)+' '+(c.g.unit||'')+')';}).join('\n')+'\n\nمتابعة؟'))return;
+  var now=new Date().toISOString();
+  var pc=Promise.all(ids.map(function(k){var c=ch[k];return db.collection('cost_ingredients').doc(k).update({price:c.price,updatedAt:now,updatedBy:CU.name||''}).then(function(){c.g.price=c.price;c.g.updatedAt=now;});}));
+  var op=pc.then(function(){return id?db.collection('cost_recipes').doc(id).update(d):db.collection('cost_recipes').add(d);});
   op.then(function(ref){
+    if(ids.length&&typeof ccRenderIngs==='function')ccRenderIngs();
     if(id){var i=_ccRecs.findIndex(function(x){return x._id===id;});d._id=id;_ccRecs[i]=Object.assign({},_ccRecs[i],d);}
     else{d._id=ref.id;_ccRecs.push(d);}
     _ccRecs.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
