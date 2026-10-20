@@ -185,7 +185,9 @@ SETUP_JS = r"""
       : k === 'p' ? [nth('p', +a, outside)]
       : k === 'table' ? [nth('table', +a)]
       : (k === 'ol' || k === 'ul') ? [nth(k, +a, outside)]
-      : k === 'box' ? [M.querySelector('.box.' + a)] : [];
+      : k === 'box' ? [M.querySelector('.box.' + a)]
+      : k === 'flow' ? [nth('.flow', +a)]
+      : k === 'h4' ? [nth('h4', +a)] : [];
     if (sub && els[0]) {
       const [s, b] = sub.split(':'), el = els[0];
       els = s === 'row' ? [[...el.querySelectorAll('tr')][+b]]          // row:1 = first row under the header
