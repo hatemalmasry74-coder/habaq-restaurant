@@ -13,6 +13,7 @@ import build
 
 FF = build.FF
 FPS = build.FPS
+LOUD = "loudnorm=I=-16:TP=-1.5:LRA=9"
 
 
 def _probe_silence(src):
@@ -69,12 +70,12 @@ def prep(src, work):
     return {**m, "path": out, "pcm": pcm, "dur": len(pcm) / 2 / build.SR}
 
 
-def _crop(c, aspect, scale):
+def _crop(c, aspect, scale, cyf=0.62):
     """Crop rect around the face: width = scale * face width, given aspect (w/h); clamped to the frame."""
     W, H = c["W"], c["H"]
     if c["box"]:
         x, y, w, h = c["box"]
-        cx, cy = x + w / 2, y + h * 0.62          # a little below the eyes: keeps beard and shoulders in
+        cx, cy = x + w / 2, y + h * cyf           # a little below the eyes: keeps beard and shoulders in
     else:
         cx, cy, w = W / 2, H * 0.45, W / 3
     cw = min(W, scale * w)
@@ -87,12 +88,12 @@ def _crop(c, aspect, scale):
     return ev(cw), ev(ch), ev(x0), ev(y0)
 
 
-def _track(clips, starts, lead, tail, aspect, scale, size, work, name):
+def _track(clips, starts, lead, tail, aspect, scale, size, work, name, cyf=0.62):
     """One video stream: every clip cropped to `size`, padded with held frames, placed at its start time."""
     work.mkdir(parents=True, exist_ok=True)
     parts = []
     for i, c in enumerate(clips):
-        cw, ch, x0, y0 = _crop(c, aspect, scale)
+        cw, ch, x0, y0 = _crop(c, aspect, scale, cyf)
         p = work / f"{name}-{i:02d}.mp4"
         subprocess.run([FF, "-v", "error", "-y", "-i", str(c["path"]), "-an", "-vf",
                         f"crop={cw}:{ch}:{x0}:{y0},scale={size[0]}:{size[1]},setsar=1,fps={FPS},"
@@ -123,14 +124,14 @@ def overlay_full(base, clips, out, work, *, intro, lead, tail, d=330, margin=40)
     subprocess.run([FF, "-v", "error", "-y", "-i", str(base), "-itsoffset", str(intro), "-i", str(track),
                     "-loop", "1", "-i", str(work / "mask.png"), "-loop", "1", "-i", str(work / "ring.png"),
                     "-filter_complex", fc, "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-crf", "20",
-                    "-preset", "medium", "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out)], check=True)
+                    "-preset", "medium", "-af", LOUD, "-ar", "48000", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out)], check=True)
 
 
 def overlay_reel(base, clips, out, work, *, lead, tail, fh=820, W=1080, H=1920):
-    track = _track(clips, None, lead, tail, W / fh, 3.6, (W, fh), work, "face-reel")
+    track = _track(clips, None, lead, tail, W / fh, 3.6, (W, fh), work, "face-reel", cyf=0.42)
     end = sum(lead + c["dur"] + tail for c in clips)
     fc = (f"[0:v][1:v]overlay=0:{H - fh}:enable='lte(t,{end:.3f})'[v1];"
           f"[v1]drawbox=x=0:y={H - fh - 6}:w={W}:h=6:color=0xd9a441:t=fill:enable='lte(t,{end:.3f})'[v]")
     subprocess.run([FF, "-v", "error", "-y", "-i", str(base), "-i", str(track), "-filter_complex", fc,
                     "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-crf", "20", "-preset", "medium",
-                    "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out)], check=True)
+                    "-af", LOUD, "-ar", "48000", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out)], check=True)
