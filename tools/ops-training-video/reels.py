@@ -20,11 +20,14 @@ REEL_CSS = """
   #vcard .wa{font-size:19px!important;padding:6px 16px!important}
 """
 
+FACE_CSS = "#vwm{bottom:auto!important;top:192px!important}"
+
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--script", default=str(build.DEFAULT_SCRIPT), help="beats file with a 'reels' list")
-    ap.add_argument("--voice-dir", required=True)
+    ap.add_argument("--voice-dir")
+    ap.add_argument("--face-dir", help="presenter videos per beat; the face fills the bottom of each reel")
     ap.add_argument("--page")
     ap.add_argument("--out-dir", help="default: out/<script id>-reels/")
     ap.add_argument("--only", nargs="*", help="reel ids to build")
@@ -34,11 +37,15 @@ def main():
     script = build.load_script(args.script)
     cfg = script
     out_dir = Path(args.out_dir or build.HERE / "out" / f"{script['id']}-reels")
+    out_dir.mkdir(parents=True, exist_ok=True)
     work = build.HERE / "out" / script["id"] / "work-reels"
     work.mkdir(parents=True, exist_ok=True)
     page = build.fetch_page(work, args.page)
     wm, contact = build.brand_html(script)
-    have = {int(f.stem[:2]) for f in Path(args.voice_dir).iterdir() if f.stem[:2].isdigit()}
+    src_dir = args.face_dir or args.voice_dir
+    if not src_dir:
+        sys.exit("give --voice-dir or --face-dir")
+    have = {int(f.stem[:2]) for f in Path(src_dir).iterdir() if f.stem[:2].isdigit()}
     for r in cfg["reels"]:
         if args.only and r["id"] not in args.only:
             continue
@@ -46,8 +53,20 @@ def main():
             print(f"skip {r['id']}: missing recordings {sorted(set(r['beats']) - have)}", file=sys.stderr)
             continue
         beats = [script["beats"][n - 1] for n in r["beats"]]
+        out = out_dir / f"{r['id']}.mp4"
+        if args.face_dir:
+            import face
+            clips = build.face_clips(args.face_dir, beats, build.HERE / "out" / script["id"] / "work" / "face")
+            narr = [(c["pcm"], c["dur"], None) for c in clips]
+            base = work / f"{r['id']}-base.mp4"
+            build.render(page, beats, narr, base, work, module=script["module"],
+                         size=(540, 960), dpr=2, css=REEL_CSS + FACE_CSS, chromium=args.chromium,
+                         hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
+                         cam_top=205, cam_bottom=430, cap_bottom=422, lead=0.5)
+            face.overlay_reel(base, clips, out, work / "face", lead=0.5, tail=build.TAIL)
+            continue
         narr = build.narration(script, beats, work, args.voice_dir)
-        build.render(page, beats, narr, out_dir / f"{r['id']}.mp4", work, module=script["module"],
+        build.render(page, beats, narr, out, work, module=script["module"],
                      size=(540, 960), dpr=2, css=REEL_CSS, chromium=args.chromium,
                      hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
                      cam_top=205, cam_bottom=150, cap_bottom=70, lead=0.5)

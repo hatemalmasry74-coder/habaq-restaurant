@@ -538,6 +538,24 @@ def brand_html(script):
     return wm, card
 
 
+def face_clips(face_dir, beats, work):
+    import face
+    files = {}
+    for f in sorted(Path(face_dir).iterdir()):
+        m = re.match(r"(\d+)", f.stem)
+        if m and f.is_file():
+            files[int(m.group(1))] = f
+    missing = [b["n"] for b in beats if b["n"] not in files]
+    if missing:
+        sys.exit(f"missing presenter videos for beats: {missing}")
+    clips = []
+    for b in beats:
+        c = face.prep(files[b["n"]], work)
+        print(f"beat {b['n']:02d}: {c['dur']:5.1f}s  {b['label']}  <- {files[b['n']].name}  face={c['box']}")
+        clips.append(c)
+    return clips
+
+
 def load_script(path=None):
     script = json.loads(Path(path or DEFAULT_SCRIPT).read_text(encoding="utf-8"))
     script.setdefault("id", Path(path or DEFAULT_SCRIPT).stem)
@@ -568,6 +586,8 @@ def main():
     ap.add_argument("--no-tts", action="store_true", help="silent preview with estimated timing")
     ap.add_argument("--voice-dir", help="folder of recorded narration, one file per beat named 01, 02, ... "
                     "(any audio format); captions then show each beat's key points")
+    ap.add_argument("--face-dir", help="folder of presenter videos, one per beat (01.mp4, 02.mp4 ...): "
+                    "their sound is the narration and the face appears in a circle")
     ap.add_argument("--skip-missing", action="store_true",
                     help="with --voice-dir: leave out beats that have no recording yet")
     ap.add_argument("--chromium", default=os.environ.get("CHROMIUM_PATH"))
@@ -575,8 +595,9 @@ def main():
 
     script = load_script(args.script)
     beats = script["beats"]
-    if args.voice_dir and args.skip_missing:
-        have = {int(f.stem[:2]) for f in Path(args.voice_dir).iterdir() if f.stem[:2].isdigit()}
+    src_dir = args.face_dir or args.voice_dir
+    if src_dir and args.skip_missing:
+        have = {int(f.stem[:2]) for f in Path(src_dir).iterdir() if f.stem[:2].isdigit()}
         skipped = [b["n"] for b in beats if b["n"] not in have]
         beats = [b for b in beats if b["n"] in have]
         if skipped:
@@ -584,9 +605,20 @@ def main():
     work = HERE / "out" / script["id"] / "work"
     work.mkdir(parents=True, exist_ok=True)
     page = fetch_page(work, args.page)
-    narr = narration(script, beats, work, args.voice_dir, args.no_tts)
+    out = args.out or HERE / "out" / f"{script['id']}.mp4"
     wm, intro, outro = cards(script)
-    render(page, beats, narr, args.out or HERE / "out" / f"{script['id']}.mp4", work, badge=script["badge"],
+    if args.face_dir:
+        import face
+        clips = face_clips(args.face_dir, beats, work / "face")
+        narr = [(c["pcm"], c["dur"], None) for c in clips]
+        base = work / "base.mp4"
+        render(page, beats, narr, base, work, badge=script["badge"], chromium=args.chromium, intro_card=intro,
+               outro_card=outro, outro=OUTRO + 1.5, watermark=wm, module=script["module"])
+        face.overlay_full(base, clips, out, work / "face", intro=INTRO, lead=MOVE, tail=TAIL)
+        print("wrote", out, "(with presenter)")
+        return
+    narr = narration(script, beats, work, args.voice_dir, args.no_tts)
+    render(page, beats, narr, out, work, badge=script["badge"],
            chromium=args.chromium, intro_card=intro, outro_card=outro, outro=OUTRO + 1.5, watermark=wm,
            module=script["module"])
 
