@@ -3444,6 +3444,14 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
 
         <!-- PS INVOICES -->
         <div id="ps-inv" style="display:none">
+          <div class="card" id="ps-scan-card" style="border:1px dashed #1565C0;background:#F5F9FF">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="ct" style="margin:0">📄 فواتير ممسوحة (سكان) — بانتظار الإدخال</div><button class="btn bsm bo" onclick="psScanToggle()">عرض / إخفاء</button></div>
+            <div id="ps-scan-panel" style="display:none;margin-top:10px">
+              <div style="font-size:11px;color:var(--tl);margin-bottom:8px;line-height:1.7">10 فواتير مقروءة من الملف الممسوح (11 صفحة — فاتورة ميرة 2601100008064 مكررة في صفحتين). التاريخ المعتمد هو <b>تاريخ الفاتورة المطبوع</b>. فواتير الربع الثالث محددة تلقائياً، وفواتير أكتوبر (الربع الرابع) غير محددة. اختر طريقة السداد لكل فاتورة: «آجل» تُسجَّل على حساب المورد، و«تحويل بنكي» تُعتبر مدفوعة.</div>
+              <div style="overflow-x:auto"><table class="dt" id="ps-scan-tbl"><thead><tr><th></th><th>التاريخ</th><th>المورد</th><th>رقم الفاتورة</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>طريقة السداد</th><th>الحالة</th></tr></thead><tbody></tbody></table></div>
+              <button class="btn bp" style="margin-top:10px" onclick="psScanImport(this)">📥 إدخال الفواتير المحددة</button>
+            </div>
+          </div>
           <div class="card" id="ps-inv-form-card">
             <div class="ct">➕ إضافة فاتورة شراء جديدة</div>
             <div class="fg2">
@@ -15899,6 +15907,7 @@ function psInit(){
   // إخفاء أقسام الكتابة للمحاسب (قراءة فقط)
   if(!psCanWrite()){
     var ifc=document.getElementById('ps-inv-form-card');if(ifc)ifc.style.display='none';
+    var scc=document.getElementById('ps-scan-card');if(scc)scc.style.display='none';
     var pfc=document.getElementById('ps-pay-form-card');if(pfc)pfc.style.display='none';
     var sfc=document.querySelector('#ps-sup .card:first-child');if(sfc)sfc.style.display='none';
   }
@@ -16516,6 +16525,116 @@ function psiView(id){
     (linked.length>0?'<h4 style="margin-top:14px;color:var(--r)">الدفعات المرتبطة:</h4><table class="dt"><thead><tr><th>التاريخ</th><th>الطريقة</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+payRows+'</tbody></table>':'')+
     (inv.createdByName?'<div style="margin-top:10px;font-size:10px;color:var(--tl)">سُجل بواسطة: '+inv.createdByName+'</div>':'');
   psShowModal('تفاصيل الفاتورة '+inv.number, html);
+}
+
+// ===== استيراد فواتير ممسوحة (سكان) — دفعة لمرة واحدة، كل فاتورة بتاريخها =====
+// المعرّف ثابت (scan_<مورد>_<رقم>) فلا تتكرر الفاتورة لو ضُغط الزر مرتين
+var PS_SCAN_SUPS={
+  bidaya:{name:'مؤسسة بداية وتميز لبيع المواد الغذائية بالجملة',vatNo:'311313004600003',category:'مواد خام',match:'بداية'},
+  mera:{name:'شركة مدار ميرة للنقل والتخزين',vatNo:'313003279700003',cr:'8580234664',category:'مواد خام',match:'ميرة'},
+  atala:{name:'مؤسسة بيت العتلة التجارية',vatNo:'310159215400003',cr:'5855059880',category:'مواد خام',match:'العتلة'}
+};
+var PS_SCAN_BATCH=[
+  {sup:'bidaya',number:'113732',date:'2026-08-22',sub:991.30,vat:148.70,total:1140,pm:'آجل',desc:'زيتون أسود شرائح، صدور دجاج طرية ×2، مايونيز بيدر جالون، زيت زيتون، تونة المواسم، مكرونة برفيتو'},
+  {sup:'bidaya',number:'113876',date:'2026-08-22',sub:133.04,vat:19.96,total:153,pm:'آجل',desc:'ذرة حب فرشلي 6×2125جم'},
+  {sup:'bidaya',number:'9518',date:'2026-09-01',sub:801.74,vat:120.26,total:922,pm:'آجل',desc:'ذرة حب، خل المواسم، حمص لونا ×2، صلصة صويا، تونة المواسم، جبنة فيتا المراعي'},
+  {sup:'bidaya',number:'9556',date:'2026-09-01',sub:103.48,vat:15.52,total:119,pm:'آجل',desc:'مكرونة برفيتو رقم 236'},
+  {sup:'bidaya',number:'28029',date:'2026-09-16',sub:1174.78,vat:176.22,total:1351,pm:'آجل',desc:'مايونيز بيدر، ذرة حب، زيتون أسود، صدور دجاج ×2، ليمون جوس، شاي ربيع، عسل روكان'},
+  {sup:'bidaya',number:'28656',date:'2026-09-17',sub:137.39,vat:20.61,total:158,pm:'آجل',desc:'مايونيز ماما 4×3.78 لتر ×2'},
+  {sup:'bidaya',number:'28657',date:'2026-09-17',sub:133.04,vat:19.96,total:153,pm:'آجل',desc:'ذرة حب فرشلي 6×2125جم'},
+  {sup:'mera',number:'2601100008064',date:'2026-09-27',sub:1175,vat:176.25,total:1351.25,pm:'آجل',desc:'صدور طرية مليدا ×3، جبنة فيتا البقرات الثلاث، زيت زيتون كنوز الخليج ×2، تونة تايلندي ×2 (تاريخ التوريد 28/09/2026)'},
+  {sup:'mera',number:'2601100008474',date:'2026-10-10',sub:630,vat:94.50,total:724.50,pm:'آجل',desc:'ذرة حلوة ليان ×2، صدور طرية مليدا ×3 (تاريخ التوريد 11/10/2026)'},
+  {sup:'atala',number:'13709',date:'2026-10-08',sub:522.20,vat:78.33,total:600.53,pm:'آجل',desc:'مكسرات أرز الرشيد ×2، مكسرات مشكل ×2 — الفاتورة لا تحمل الرقم الضريبي للمنشأة'}
+];
+function psScanQ(d){return d>='2026-07-01'&&d<='2026-09-30';}
+function psScanSupFind(k){
+  var s=PS_SCAN_SUPS[k];
+  return PS_SUPPLIERS.find(function(x){return x.vatNo&&String(x.vatNo).replace(/\s/g,'')===s.vatNo;})||PS_SUPPLIERS.find(function(x){return (x.name||'').indexOf(s.match)>=0;});
+}
+function psScanDocId(r){return 'scan_'+r.sup+'_'+r.number;}
+function psScanExisting(r){
+  var sp=psScanSupFind(r.sup);
+  return PS_INVOICES.find(function(x){return x._id===psScanDocId(r)||(sp&&x.supplierId===sp._id&&String(x.number||'').trim()===r.number);});
+}
+// ترحيل القيود المحاسبية للفواتير المستوردة حتى تدخل ضريبتها في إقرار القيمة المضافة
+function psScanPost(pick){
+  if(typeof accCanWrite!=='function'||!accCanWrite())return Promise.resolve('القيود تُرحَّل عند أول دخول لمدير الفرع أو المحاسب (صفحة المحاسبة ← الترحيل الآلي).');
+  if(ACC_SYNC.running)return Promise.resolve('المزامنة المحاسبية تعمل الآن — راجع صفحة المحاسبة ← الترحيل الآلي للتأكد من ترحيل القيود.');
+  var ids={};pick.forEach(function(r){ids[psScanDocId(r)]=1;});
+  var from=pick.map(function(r){return r.date;}).sort()[0];
+  return accLoad().then(function(){
+    if(!ACC.loaded||!ACC.list.length)return 'شجرة الحسابات غير منشأة — لم تُرحَّل القيود.';
+    return accAutoBuild(from,'9999-12-31',['purchase'],{strict:true}).then(function(plan){
+      var mine=plan.filter(function(p){return p.source&&ids[p.source.id];});
+      var locked=mine.filter(function(p){return p.status==='new'&&accCheckLock(p.date);});
+      var news=mine.filter(function(p){return p.status==='new'&&!accCheckLock(p.date);});
+      var clean=news.map(function(p){return {id:p.id,date:p.date,desc:p.desc,ref:p.ref,lines:p.lines,source:p.source,auto:true};});
+      return accPostEntries(clean).then(function(n){
+        return 'تم ترحيل '+n.length+' قيداً محاسبياً (ضريبة المدخلات على حساب 1301).'+(locked.length?'\n⚠️ '+locked.length+' فاتورة في فترة مقفلة لم تُرحَّل: '+locked.map(function(p){return p.ref;}).join('، '):'');
+      });
+    });
+  }).catch(function(e){console.error(e);return '⚠️ الفواتير حُفظت لكن ترحيل القيود فشل: '+e.message+'\nرحّلها من صفحة المحاسبة ← الترحيل الآلي.';});
+}
+function psScanToggle(){
+  var p=document.getElementById('ps-scan-panel');if(!p)return;
+  var show=p.style.display==='none';p.style.display=show?'block':'none';
+  if(show)psScanRender();
+}
+function psScanRender(){
+  var tb=document.querySelector('#ps-scan-tbl tbody');if(!tb)return;
+  var M=function(v){return Number(v).toFixed(2);};
+  var qs=0,qv=0;
+  tb.innerHTML=PS_SCAN_BATCH.map(function(r,i){
+    var ex=psScanExisting(r),q=psScanQ(r.date),sp=psScanSupFind(r.sup);
+    if(q){qs+=r.sub;qv+=r.vat;}
+    return '<tr style="'+(q?'':'background:#FFF8E1')+'">'
+      +'<td><input type="checkbox" id="ps-scan-ck-'+i+'" '+(ex?'disabled':(q?'checked':''))+' style="width:auto"></td>'
+      +'<td>'+r.date+(q?'':'<div style="font-size:10px;color:#E65100">خارج الربع الثالث</div>')+'</td>'
+      +'<td>'+PS_SCAN_SUPS[r.sup].name+(sp?'':'<div style="font-size:10px;color:#1565C0">مورد جديد — سيُضاف</div>')+'</td>'
+      +'<td>'+r.number+'</td><td>'+M(r.sub)+'</td><td>'+M(r.vat)+'</td><td><b>'+M(r.total)+'</b></td>'
+      +'<td>'+(ex?(ex.payMethod||ex.paymentMethod||'—'):'<select id="ps-scan-pm-'+i+'"><option value="آجل"'+(r.pm==='آجل'?' selected':'')+'>آجل</option><option value="بنكي"'+(r.pm==='بنكي'?' selected':'')+'>تحويل بنكي (مدفوعة)</option></select>')+'</td>'
+      +'<td>'+(ex?'<span style="color:#2E7D32;font-weight:700">✓ مُدخلة</span>':'—')+'</td></tr>';
+  }).join('')+'<tr style="font-weight:700;background:#E8F5E9"><td colspan="4">إجمالي فواتير الربع الثالث</td><td>'+M(qs)+'</td><td>'+M(qv)+'</td><td>'+M(qs+qv)+'</td><td colspan="2"></td></tr>';
+}
+function psScanImport(btn){
+  if(!psCanWrite()){alert('ليس لديك صلاحية إضافة فواتير');return;}
+  var pick=PS_SCAN_BATCH.map(function(r,i){var c=document.getElementById('ps-scan-ck-'+i);var p=document.getElementById('ps-scan-pm-'+i);return c&&c.checked&&!c.disabled?Object.assign({},r,{pm:p?p.value:r.pm}):null;}).filter(Boolean);
+  if(!pick.length){alert('لم تحدد أي فاتورة');return;}
+  if(!confirm('سيتم إدخال '+pick.length+' فاتورة شراء، كل فاتورة بتاريخها المطبوع.\nمتابعة؟'))return;
+  btn.disabled=true;btn.textContent='⏳ جارٍ الإدخال...';
+  var supIds={};
+  var need=Object.keys(PS_SCAN_SUPS).filter(function(k){return pick.some(function(r){return r.sup===k;});});
+  need.reduce(function(pr,k){
+    return pr.then(function(){
+      var ex=psScanSupFind(k);if(ex){supIds[k]=ex._id;return;}
+      var s=PS_SCAN_SUPS[k];
+      var data={name:s.name,category:s.category,vatNo:s.vatNo,cr:s.cr||'',phone:'',email:'',address:'',openingBalance:0,openingDate:null,
+        creditAllowed:true,creditLimit:0,alertThreshold:0,createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+      return db.collection('purchases_suppliers').add(data).then(function(ref){supIds[k]=ref.id;var x=Object.assign({},data);x._id=ref.id;PS_SUPPLIERS.push(x);});
+    });
+  },Promise.resolve()).then(function(){
+    var batch=db.batch();
+    pick.forEach(function(r){
+      batch.set(db.collection('purchases_invoices').doc(psScanDocId(r)),{
+        date:r.date,number:r.number,supplierId:supIds[r.sup],type:'ضريبية',payMethod:r.pm,
+        subtotal:r.sub,vat:r.vat,total:r.total,paidNow:r.pm==='آجل'?0:r.total,desc:r.desc,
+        imageName:'فواتير ممسوحة (سكان)',lines:[],paidFromCustody:'',source:'scan',
+        createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    // نوقف المزامنة التلقائية مؤقتاً ونرحّل قيود هذه الفواتير بأنفسنا (المزامنة التلقائية تغطي آخر 62 يوماً فقط)
+    if(typeof ACC_SYNC!=='undefined')ACC_SYNC.quiet=Date.now()+60000;
+    return batch.commit();
+  }).then(function(){
+    psLogAudit('add_invoice','استيراد '+pick.length+' فاتورة ممسوحة: '+pick.map(function(r){return r.number;}).join('، '));
+    return psLoadAll();
+  }).then(function(){
+    return psScanPost(pick);
+  }).then(function(msg){
+    psScanRender();
+    alert('✅ تم إدخال '+pick.length+' فاتورة، كل فاتورة بتاريخها.\n'+msg);
+  }).catch(function(e){console.error(e);alert('خطأ: '+e.message);})
+  .finally(function(){btn.disabled=false;btn.textContent='📥 إدخال الفواتير المحددة';});
 }
 
 // ===== SUPPLIERS =====
