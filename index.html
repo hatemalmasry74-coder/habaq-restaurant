@@ -19239,9 +19239,9 @@ var HB_SEED={
     {k:'m_nuts2',name:'مكسرات يابانية',en:'Japanese Nuts',menu:true,cat:'nuts',price:6,yield:1,items:[['nuts_rice',100]],note:'علبة 100 جم — عدّل الوزن إن اختلف'},
     // ===== الساندوتشات (أكتوبر 2026) — الزيت بالمل (الجرام × 1.087) =====
     {k:'b_pesto',name:'بيستو الجوز والطماطم المجففة (دفعة 215 جم)',batch:true,yield:215,items:[['walnut',50],['parsley',15],['olivegreen',40],['sdtomato',60],['pmol',15],['olive',38]],note:'فرم ناعم خشن قليلاً · يُحفظ 5 أيام في علبة زجاج تحت طبقة زيت زيتون'},
-    {k:'b_tuna',name:'سبايسي تونة كريمية (دفعة 375 جم)',batch:true,yield:375,items:[['tuna',240],['mayo',70],['sriracha',20],['soy',5],['sesoil',5],['lemon',20],['gonion',15]],note:'اخلط المايونيز والسريراتشا والصويا وزيت السمسم والليمون، ثم أضف التونة المصفّاة والبصل الأخضر وقلّب بالشوكة مع إبقاء القوام · تكفي 5 ساندوتشات تقريباً (70 جم لكل ساندوتش)'},
-    {k:'m_halloumi',name:'ساندوتش حلوم بيستو',en:'Halloumi Pesto Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:25,yield:1,items:[['focaccia',1],['halloumi',125],['pmol',30],['salt',0.75],['tomato',60],['arugula',15],['labnah',20],['bpesto',20],['wrapsand',1]],note:'حلوم 125 جم شرائح 1 سم تُحمّر بلا زيت 4 دقائق · فوكاتشا محمّصة من الداخل · بيستو ريحان جاهز 20 جم + لبنة 20 جم + نصف طماطم شرائح + جرجير 15 جم + دبس رمان 30 جم'},
-    {k:'m_tuna',name:'ساندوتش سبايسي تونة',en:'Spicy Tuna Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:18,yield:1,items:[['focaccia',1],['b_tuna',70],['butter',5],['labnah',15],['bpesto',10],['iceberg',20],['arugula',2],['salt',2],['bpepper',1],['wrapsand',1]],note:'فوكاتشا تُشق نصفين وتُدهن بـ 5 جم زبدة وتُحمّص 2:30 دقيقة · ورقتا خس + 70 جم خليط التونة + لبنة 15 جم + بيستو ريحان 10 جم + جرجير'},
+    {k:'b_tuna',name:'سبايسي تونة كريمية (دفعة 428 جم)',batch:true,yield:428,items:[['tuna',280],['mayo',45],['sriracha',20],['labnah',40],['soy',8],['sesoil',5],['lemon',10],['gonion',20]],note:'صفِّ التونة جيداً واضغطها (280 جم بعد التصفية = علبتان 185 جم) · اخلط المايونيز (يفضّل كيوبي) مع السريراتشا والصويا وزيت السمسم والليمون واللبنة، صبّ الصوص على التونة وقلّب بخفة ثم أضف البصل الأخضر · كل 60 جم من الخليط تكفي ساندوتشين (30 جم لكل ساندوتش فوكاتشا) — الدفعة تكفي 14 ساندوتشاً تقريباً · الحرارة: خفيف 15 جم سريراتشا · وسط 20 جم (المعتمد) · قوي 25 جم + 10 جم تشيلي كرسب'},
+    {k:'m_halloumi',name:'ساندوتش حلوم بيستو',en:'Halloumi Pesto Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:25,yield:1,items:[['focaccia',1],['halloumi',70],['bpesto',25],['labnah',20],['arugula',15],['tomato',40],['pmol',5],['wrapsand',1]],note:'خبز فوكاتشا يُقص ويُحمّص 30 ثانية · حلوم 70 جم (3 شرائح بسماكة 1 سم) تُجفف وتُشوى دقيقتين لكل جهة بلا زيت · صوص البيستو: 25 جم بيستو جاهز + 20 جم لبنة = 45 جم يُدهن داخل الخبز · ثم الحلوم + 15 جم جرجير + 40 جم طماطم أنصاف + 5 جم دبس'},
+    {k:'m_tuna',name:'ساندوتش سبايسي تونة',en:'Spicy Tuna Sandwich',menu:true,cat:'sandwich',bep:'bkr',price:18,yield:1,items:[['focaccia',1],['b_tuna',30],['butter',15],['bpesto',10],['iceberg',20],['wrapsand',1]],note:'ميلت ساندوتش: حبة فوكاتشا تُدهن بـ 15 جم زبدة وتُحمّص · 30 جم خليط التونة (60 جم لكل حبتين) · بيستو 10 جم + خس 20 جم'},
   ],
 
   stock:[
@@ -19506,7 +19506,7 @@ function hbApplyInvoiceCosts(after){
 
 /* ---------- إضافة أصناف منيو جديدة من HB_SEED بدون إعادة الاستيراد الكامل ----------
    تنشئ المواد الخام الناقصة فقط (المادة الموجودة يُستخدم سعرها كما هو)، ثم تنشئ/تحدّث الوصفات المطلوبة. */
-var HB_NEW_MENU=[{label:'الساندوتشات: حلوم بيستو + سبايسي تونة (الوصفة المحدّثة)',keys:['b_tuna','m_halloumi','m_tuna']}];
+var HB_NEW_MENU=[{label:'الساندوتشات: حلوم بيستو + سبايسي تونة (وصفة أكتوبر المحدّثة)',keys:['b_tuna','m_halloumi','m_tuna']}];
 function hbAddMenuItems(keys){
   if(!ccGuard()){alert('صلاحية مدير الفرع فقط');return;}
   keys=keys||HB_NEW_MENU[0].keys;
@@ -19542,7 +19542,8 @@ function hbAddMenuItems(keys){
         else{var er=exRec.find(function(r){return r.seedKey===it[0];});if(er)items.push({recId:er._id,qty:it[1]});}
       });
       var rm=recMap[sr.k];
-      writes.push({ref:db.collection('cost_recipes').doc(rm.id),merge:rm.exists,data:{name:sr.name,yield:sr.yield,price:sr.price||0,target:35,items:items,
+      var exR=rm.exists?exRec.find(function(r){return r._id===rm.id;}):null;
+      writes.push({ref:db.collection('cost_recipes').doc(rm.id),merge:rm.exists,data:{name:sr.name,yield:sr.yield,price:(exR&&parseFloat(exR.price)>0)?parseFloat(exR.price):(sr.price||0),target:35,items:items,
         batch:!!sr.batch,menu:!!sr.menu,cat:sr.cat||'',bepCat:sr.bep||'',bepExclude:!!sr.bepEx,noCost:false,nameEn:sr.en||'',note:sr.note||'',
         seed:'habaq',seedKey:sr.k,updatedAt:now,updatedBy:by}});
     });
