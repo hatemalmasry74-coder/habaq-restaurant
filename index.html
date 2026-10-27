@@ -3882,7 +3882,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <!-- PS INVOICES -->
         <div id="ps-inv" style="display:none">
           <div class="card" id="ps-inv-form-card">
-            <div class="ct">➕ إضافة فاتورة شراء جديدة</div>
+            <div class="ct" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">➕ إضافة فاتورة شراء جديدة<button class="btn bsm bo" id="inv-imp-btn" style="display:none" onclick="invImportOpen()" title="استيراد فواتير موردين موجودة مسبقًا من ملف Excel/CSV">📥 استيراد من ملف</button></div>
             <div class="fg2">
               <div class="fr"><label>تاريخ الفاتورة *</label><input type="date" id="psi-date"></div>
               <div class="fr"><label>رقم الفاتورة *</label><input type="text" id="psi-number" placeholder="INV-2026-001"></div>
@@ -17281,6 +17281,61 @@ function psiLoadCustodyHolders(){
   });
 }
 
+// فحص سياسة الائتمان (الآجل) لفاتورة جديدة — يستعمله النموذج اليدوي والاستيراد. يرجع {block,confirm}: block = رفض بنص الرسالة، confirm = تنبيه يطلب المتابعة
+// extraDue: مستحق إضافي لم يُحفظ بعد (فواتير سابقة في دفعة الاستيراد نفسها)
+function psiCreditCheck(sup,supplierObj,pm,total,actualPaid,extraDue){
+  var r={block:'',confirm:''};
+  if(supplierObj){
+    var remainingOnInv = total - actualPaid; // المبلغ الذي سيُضاف للذمة
+
+    // 1) منع الآجل لمورد لا يقبله
+    if(pm==='آجل' && !supplierObj.creditAllowed){
+      r.block='🚫 لا يمكن حفظ الفاتورة كـ "آجل"\n\nالمورد "'+supplierObj.name+'" مُسجَّل أنه لا يقبل التعامل بالآجل.\n\n💡 الحل: غيّر طريقة السداد إلى نقدي أو بنكي، أو عدّل بيانات المورد لتفعيل الآجل.';
+      return r;
+    }
+
+    // 2) منع جزء آجل (متبقي بعد سداد جزئي) لمورد لا يقبل الآجل
+    if(remainingOnInv > 0.01 && !supplierObj.creditAllowed){
+      r.block='🚫 لا يمكن ترك جزء غير مسدَّد من الفاتورة\n\nالمورد "'+supplierObj.name+'" لا يقبل التعامل بالآجل.\nالمبلغ المتبقي: '+remainingOnInv.toFixed(2)+' ر.س\n\n💡 الحل: ادفع كامل المبلغ، أو فعّل الآجل في بيانات المورد.';
+      return r;
+    }
+
+    // 3) فحص الحد الائتماني (للموردين الذين يقبلون الآجل)
+    if(supplierObj.creditAllowed && remainingOnInv > 0.01){
+      var currentDue = Math.max(0, psSupTotalInv(sup) - psSupTotalPaid(sup)) + (extraDue||0);
+      var projectedDue = currentDue + remainingOnInv;
+      var limit = parseFloat(supplierObj.creditLimit) || 0;
+      var threshold = parseFloat(supplierObj.alertThreshold) || 0;
+
+      // تجاوز الحد الائتماني = منع
+      if(limit > 0 && projectedDue > limit){
+        r.block='🚫 تم تجاوز الحد الائتماني للمورد\n\n'+
+          '📊 المورد: '+supplierObj.name+'\n'+
+          '   المستحق الحالي: '+currentDue.toFixed(2)+' ر.س\n'+
+          '   المبلغ الجديد: '+remainingOnInv.toFixed(2)+' ر.س\n'+
+          '   الإجمالي بعد الإضافة: '+projectedDue.toFixed(2)+' ر.س\n'+
+          '   الحد الأقصى المسموح: '+limit.toFixed(2)+' ر.س\n'+
+          '   التجاوز: '+(projectedDue-limit).toFixed(2)+' ر.س\n\n'+
+          '💡 الحل: ادفع جزءاً من المستحق أولاً، أو ادفع كامل قيمة الفاتورة نقداً/بنكياً، أو ارفع الحد الائتماني بموافقة الإدارة.';
+        return r;
+      }
+
+      // تجاوز عتبة التحذير = تحذير مع خيار المتابعة
+      if(threshold > 0 && projectedDue >= threshold){
+        r.confirm = '⚠️ تنبيه: قارب أو تجاوز عتبة التحذير\n\n'+
+          '📊 المورد: '+supplierObj.name+'\n'+
+          '   المستحق الحالي: '+currentDue.toFixed(2)+' ر.س\n'+
+          '   بعد إضافة هذه الفاتورة: '+projectedDue.toFixed(2)+' ر.س\n'+
+          '   عتبة التحذير: '+threshold.toFixed(2)+' ر.س\n'+
+          (limit>0?'   الحد الائتماني: '+limit.toFixed(2)+' ر.س (متبقي: '+(limit-projectedDue).toFixed(2)+' ر.س)\n':'')+
+          '\n💡 يُنصح بسداد جزء من المستحق قريباً لتجنب الوصول للحد الأقصى.\n\n'+
+          'هل تريد المتابعة وحفظ الفاتورة؟';
+      }
+    }
+  }
+  return r;
+}
+
 function psiSave(){
   if(!psCanWrite()){alert('ليس لديك صلاحية لإضافة فواتير');return;}
   var d=document.getElementById('psi-date').value;
@@ -17309,55 +17364,10 @@ function psiSave(){
 
   // ===== فحص سياسة الائتمان (الآجل) =====
   var supplierObj = PS_SUPPLIERS.find(function(x){return x._id===sup});
-  if(supplierObj){
-    var remainingOnInv = total - actualPaid; // المبلغ الذي سيُضاف للذمة
+  var cc=psiCreditCheck(sup,supplierObj,pm,total,actualPaid,0);
+  if(cc.block){alert(cc.block);return;}
+  if(cc.confirm&&!confirm(cc.confirm))return;
 
-    // 1) منع الآجل لمورد لا يقبله
-    if(pm==='آجل' && !supplierObj.creditAllowed){
-      alert('🚫 لا يمكن حفظ الفاتورة كـ "آجل"\n\nالمورد "'+supplierObj.name+'" مُسجَّل أنه لا يقبل التعامل بالآجل.\n\n💡 الحل: غيّر طريقة السداد إلى نقدي أو بنكي، أو عدّل بيانات المورد لتفعيل الآجل.');
-      return;
-    }
-
-    // 2) منع جزء آجل (متبقي بعد سداد جزئي) لمورد لا يقبل الآجل
-    if(remainingOnInv > 0.01 && !supplierObj.creditAllowed){
-      alert('🚫 لا يمكن ترك جزء غير مسدَّد من الفاتورة\n\nالمورد "'+supplierObj.name+'" لا يقبل التعامل بالآجل.\nالمبلغ المتبقي: '+remainingOnInv.toFixed(2)+' ر.س\n\n💡 الحل: ادفع كامل المبلغ، أو فعّل الآجل في بيانات المورد.');
-      return;
-    }
-
-    // 3) فحص الحد الائتماني (للموردين الذين يقبلون الآجل)
-    if(supplierObj.creditAllowed && remainingOnInv > 0.01){
-      var currentDue = Math.max(0, psSupTotalInv(sup) - psSupTotalPaid(sup));
-      var projectedDue = currentDue + remainingOnInv;
-      var limit = parseFloat(supplierObj.creditLimit) || 0;
-      var threshold = parseFloat(supplierObj.alertThreshold) || 0;
-
-      // تجاوز الحد الائتماني = منع
-      if(limit > 0 && projectedDue > limit){
-        alert('🚫 تم تجاوز الحد الائتماني للمورد\n\n'+
-          '📊 المورد: '+supplierObj.name+'\n'+
-          '   المستحق الحالي: '+currentDue.toFixed(2)+' ر.س\n'+
-          '   المبلغ الجديد: '+remainingOnInv.toFixed(2)+' ر.س\n'+
-          '   الإجمالي بعد الإضافة: '+projectedDue.toFixed(2)+' ر.س\n'+
-          '   الحد الأقصى المسموح: '+limit.toFixed(2)+' ر.س\n'+
-          '   التجاوز: '+(projectedDue-limit).toFixed(2)+' ر.س\n\n'+
-          '💡 الحل: ادفع جزءاً من المستحق أولاً، أو ادفع كامل قيمة الفاتورة نقداً/بنكياً، أو ارفع الحد الائتماني بموافقة الإدارة.');
-        return;
-      }
-
-      // تجاوز عتبة التحذير = تحذير مع خيار المتابعة
-      if(threshold > 0 && projectedDue >= threshold){
-        var warnMsg = '⚠️ تنبيه: قارب أو تجاوز عتبة التحذير\n\n'+
-          '📊 المورد: '+supplierObj.name+'\n'+
-          '   المستحق الحالي: '+currentDue.toFixed(2)+' ر.س\n'+
-          '   بعد إضافة هذه الفاتورة: '+projectedDue.toFixed(2)+' ر.س\n'+
-          '   عتبة التحذير: '+threshold.toFixed(2)+' ر.س\n'+
-          (limit>0?'   الحد الائتماني: '+limit.toFixed(2)+' ر.س (متبقي: '+(limit-projectedDue).toFixed(2)+' ر.س)\n':'')+
-          '\n💡 يُنصح بسداد جزء من المستحق قريباً لتجنب الوصول للحد الأقصى.\n\n'+
-          'هل تريد المتابعة وحفظ الفاتورة؟';
-        if(!confirm(warnMsg))return;
-      }
-    }
-  }
 
   // ===== فحص إجباري: من عهدة من؟ (للسداد النقدي فقط) =====
   if(pm==='نقدي' && actualPaid>0){
@@ -17379,23 +17389,49 @@ function psiSave(){
   }
   
   var btn=event.target;btn.disabled=true;btn.textContent='⏳ جارٍ الحفظ...';
-  
+
+  psiPersist({
+    d:d, num:num, sup:sup, type:type, pm:pm, sub:sub, vat:vat, total:total, actualPaid:actualPaid, desc:desc,
+    imgName:imgName, imgKey:'psi', payFrom:payFrom, lines:lines, priceMode:lines.length?pslPriceMode('psi'):'',
+    autoRecv:(window.invxAutoRecv?invxAutoRecv('psi'):false), supplierObj:supplierObj
+  }).then(function(r){
+    psiReset();
+    psRefreshAll();
+    return (r.rcvP||Promise.resolve('')).then(function(rcvMsg){
+    alert('✅ تم حفظ الفاتورة بنجاح'+(r.imgFail?'\n⚠️ تعذّر رفع صورة الفاتورة — افتح الفاتورة وأضفها لاحقًا':'')+(payFrom?'\n💵 تم خصم '+actualPaid.toFixed(2)+' ر.س من عهدة '+payFrom:'')+(r.syncRes?'\n'+pslSyncSummary(r.syncRes):'')+(rcvMsg||''));
+    });
+  }).catch(function(e){
+    console.error(e);
+    alert('خطأ: '+e.message);
+  }).finally(function(){
+    btn.disabled=false;btn.textContent='💾 حفظ الفاتورة';
+  });
+}
+
+// ===== مسار الحفظ المشترك لفاتورة الشراء =====
+// يستعمله نموذج الإضافة (psiSave) واستيراد الفواتير من ملف (56-invoice-import.js) — بلا واجهة هنا (لا alert ولا تفريغ نموذج).
+// p: {d,num,sup,type,pm,sub,vat,total,actualPaid,desc,imgName,payFrom,lines,priceMode,autoRecv,supplierObj,imgKey?,extra?,auditNote?}
+//   imgKey: مفتاح أداة الصور (النموذج اليدوي 'psi')؛ بدونه تُحفظ الفاتورة بلا صور (الاستيراد)
+// يرجع Promise<{x,rcvP,syncRes,imgFail}>: x الفاتورة المحفوظة، rcvP وعد رسالة الاستلام التلقائي للمخزون
+function psiPersist(p){
+  var lines=p.lines,sup=p.sup,num=p.num,d=p.d,pm=p.pm,actualPaid=p.actualPaid,payFrom=p.payFrom,desc=p.desc,supplierObj=p.supplierObj;
   var invData={
-    date:d, number:num, supplierId:sup, type:type, payMethod:pm,
-    subtotal:sub, vat:vat, total:total, paidNow:actualPaid, desc:desc,
-    imageName: imgName, imageCount: imgCount('psi'),
+    date:d, number:num, supplierId:sup, type:p.type, payMethod:pm,
+    subtotal:p.sub, vat:p.vat, total:p.total, paidNow:actualPaid, desc:desc,
+    imageName: p.imgName, imageCount: p.imgKey?imgCount(p.imgKey):0,
     paidFromCustody: (pm==='نقدي' && actualPaid>0) ? payFrom : '',
-    lines: lines, linesCount: lines.length, priceMode: lines.length?pslPriceMode('psi'):'',
-    autoRecv: (window.invxAutoRecv?invxAutoRecv('psi'):false),
+    lines: lines, linesCount: lines.length, priceMode: p.priceMode,
+    autoRecv: p.autoRecv,
     createdBy: CU._id, createdByName: CU.name,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
+  if(p.extra)Object.keys(p.extra).forEach(function(k){invData[k]=p.extra[k];});
   var syncRes=null;
-  
+
   var imgFail=false;
-  db.collection('purchases_invoices').add(invData).then(function(docRef){
+  return db.collection('purchases_invoices').add(invData).then(function(docRef){
     var invoiceId=docRef.id;
-    var imgStep=imgUpload('psi','purchases_invoices',invoiceId).catch(function(e){imgFail=true;console.warn('invoice img',e);});
+    var imgStep=p.imgKey?imgUpload(p.imgKey,'purchases_invoices',invoiceId).catch(function(e){imgFail=true;console.warn('invoice img',e);}):Promise.resolve();
     // ===== مزامنة أسعار المواد الخام وتكلفة الأصناف من الفاتورة =====
     var syncStep=Promise.resolve();
     if(lines.length){
@@ -17441,22 +17477,14 @@ function psiSave(){
       });
     }
     return db.collection('purchases_invoices').doc(invoiceId).get();
-  }).then(function(d){
-    var x=d.data();x._id=d.id;PS_INVOICES.push(x);
+  }).then(function(dd){
+    var x=dd.data();x._id=dd.id;PS_INVOICES.push(x);
     var rcvP=window.invxAfterInvoiceSave?invxAfterInvoiceSave(x):null;
-    psLogAudit('add_invoice', 'إضافة فاتورة '+num+(lines.length?' ('+lines.length+' صنف)':'')+(payFrom?' (نقدي من عهدة '+payFrom+')':''));
-    psiReset();
-    psRefreshAll();
-    return (rcvP||Promise.resolve('')).then(function(rcvMsg){
-    alert('✅ تم حفظ الفاتورة بنجاح'+(imgFail?'\n⚠️ تعذّر رفع صورة الفاتورة — افتح الفاتورة وأضفها لاحقًا':'')+(payFrom?'\n💵 تم خصم '+actualPaid.toFixed(2)+' ر.س من عهدة '+payFrom:'')+(syncRes?'\n'+pslSyncSummary(syncRes):'')+(rcvMsg||''));
-    });
-  }).catch(function(e){
-    console.error(e);
-    alert('خطأ: '+e.message);
-  }).finally(function(){
-    btn.disabled=false;btn.textContent='💾 حفظ الفاتورة';
+    psLogAudit('add_invoice', 'إضافة فاتورة '+num+(lines.length?' ('+lines.length+' صنف)':'')+(payFrom?' (نقدي من عهدة '+payFrom+')':'')+(p.auditNote||''));
+    return {x:x,rcvP:rcvP,syncRes:syncRes,imgFail:imgFail};
   });
 }
+
 
 function psiReset(){
   if(typeof imgClear==='function')imgClear('psi');
@@ -18134,32 +18162,9 @@ function pslLinesTableHtml(lines,inv){
 }
 
 // ===== SUPPLIERS =====
-function pssSave(){
-  if(!psCanWrite()){alert('ليس لديك صلاحية إضافة موردين');return;}
-  var name=document.getElementById('pss-name').value.trim();
-  if(!name){alert('اكتب اسم المورد');return;}
-  var openingBal=parseFloat(document.getElementById('pss-opening-balance').value)||0;
-  var openingDate=document.getElementById('pss-opening-date').value || '';
-  if(openingBal<0){alert('الرصيد الافتتاحي لا يمكن أن يكون سالباً');return;}
-  var data={
-    name:name,
-    category:document.getElementById('pss-cat').value,
-    vatNo:document.getElementById('pss-vatno').value.trim(),
-    cr:document.getElementById('pss-cr').value.trim(),
-    phone:document.getElementById('pss-phone').value.trim(),
-    email:document.getElementById('pss-email').value.trim(),
-    address:document.getElementById('pss-address').value.trim(),
-    openingBalance: openingBal,
-    openingDate: openingDate || null,
-    // ===== سياسة الائتمان =====
-    creditAllowed: (document.getElementById('pss-credit-allowed').value === 'yes'),
-    creditLimit: parseFloat(document.getElementById('pss-credit-limit').value) || 0,
-    alertThreshold: parseFloat(document.getElementById('pss-alert-threshold').value) || 0,
-    createdBy: CU._id, createdByName: CU.name,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  var btn=event.target;btn.disabled=true;btn.textContent='⏳ جارٍ الحفظ...';
-  db.collection('purchases_suppliers').add(data).then(function(ref){
+// حفظ مورد جديد (مع فاتورة الرصيد الافتتاحي إن وُجد) — مشترك بين نموذج المورد والاستيراد؛ يرجع Promise<المورد المحفوظ>
+function pssPersist(data,name,openingBal,openingDate){
+  return db.collection('purchases_suppliers').add(data).then(function(ref){
     var supplierId=ref.id;
     // إذا فيه رصيد افتتاحي، نسجّل فاتورة افتتاحية تلقائية
     if(openingBal>0){
@@ -18205,6 +18210,36 @@ function pssSave(){
   }).then(function(d){
     var x=d.data();x._id=d.id;PS_SUPPLIERS.push(x);
     psLogAudit('add_supplier','إضافة مورد '+name+(openingBal>0?' برصيد افتتاحي '+openingBal.toFixed(2)+' ر.س':''));
+    return x;
+  });
+}
+
+function pssSave(){
+  if(!psCanWrite()){alert('ليس لديك صلاحية إضافة موردين');return;}
+  var name=document.getElementById('pss-name').value.trim();
+  if(!name){alert('اكتب اسم المورد');return;}
+  var openingBal=parseFloat(document.getElementById('pss-opening-balance').value)||0;
+  var openingDate=document.getElementById('pss-opening-date').value || '';
+  if(openingBal<0){alert('الرصيد الافتتاحي لا يمكن أن يكون سالباً');return;}
+  var data={
+    name:name,
+    category:document.getElementById('pss-cat').value,
+    vatNo:document.getElementById('pss-vatno').value.trim(),
+    cr:document.getElementById('pss-cr').value.trim(),
+    phone:document.getElementById('pss-phone').value.trim(),
+    email:document.getElementById('pss-email').value.trim(),
+    address:document.getElementById('pss-address').value.trim(),
+    openingBalance: openingBal,
+    openingDate: openingDate || null,
+    // ===== سياسة الائتمان =====
+    creditAllowed: (document.getElementById('pss-credit-allowed').value === 'yes'),
+    creditLimit: parseFloat(document.getElementById('pss-credit-limit').value) || 0,
+    alertThreshold: parseFloat(document.getElementById('pss-alert-threshold').value) || 0,
+    createdBy: CU._id, createdByName: CU.name,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  var btn=event.target;btn.disabled=true;btn.textContent='⏳ جارٍ الحفظ...';
+  pssPersist(data,name,openingBal,openingDate).then(function(x){
     pssReset();psRefreshAll();
     alert('✅ تم حفظ المورد'+(openingBal>0?'\n💰 تم تسجيل رصيد افتتاحي: '+openingBal.toFixed(2)+' ر.س':''));
   }).catch(function(e){alert('خطأ: '+e.message)})
@@ -26949,7 +26984,7 @@ function htmlRows(t){
 }
 function unxml(t){return t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');}
 // قارئ xlsx بلا مكتبات: zip + deflate-raw (DecompressionStream) — أول ورقة فقط
-function xlsxRows(buf){
+function xlsxRows(buf,all){
   var dv=new DataView(buf),u8=new Uint8Array(buf),eocd=-1,i;
   for(i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-70000);i--){if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;}}
   if(eocd<0)return Promise.reject(new Error('الملف ليس xlsx صالحاً'));
@@ -26967,12 +27002,13 @@ function xlsxRows(buf){
     if(typeof DecompressionStream==='undefined')return Promise.reject(new Error('المتصفح لا يدعم قراءة xlsx — احفظ الملف بصيغة csv'));
     return new Response(new Blob([slice]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
   }
-  var sheet=Object.keys(entries).filter(function(x){return /^xl\/worksheets\/sheet\d+\.xml$/.test(x);})
-    .sort(function(a,b){return parseInt(a.match(/(\d+)\.xml/)[1],10)-parseInt(b.match(/(\d+)\.xml/)[1],10);})[0];
-  return Promise.all([read('xl/sharedStrings.xml'),read(sheet||'')]).then(function(r){
-    var ss=[];(r[0].match(/<si>[\s\S]*?<\/si>/g)||[]).forEach(function(si){var t='';(si.match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).forEach(function(x){t+=unxml(x.replace(/<[^>]+>/g,''));});ss.push(t);});
+  var files=Object.keys(entries).filter(function(x){return /^xl\/worksheets\/sheet\d+\.xml$/.test(x);})
+    .sort(function(a,b){return parseInt(a.match(/(\d+)\.xml/)[1],10)-parseInt(b.match(/(\d+)\.xml/)[1],10);});
+  var sheet=files[0];
+  function parseSS(txt){var ss=[];(txt.match(/<si>[\s\S]*?<\/si>/g)||[]).forEach(function(si){var t='';(si.match(/<t[^>]*>[\s\S]*?<\/t>/g)||[]).forEach(function(x){t+=unxml(x.replace(/<[^>]+>/g,''));});ss.push(t);});return ss;}
+  function parseSheet(xml,ss){
     var rows=[];
-    (r[1].match(/<row[^>]*>[\s\S]*?<\/row>/g)||[]).forEach(function(rw){
+    (xml.match(/<row[^>]*>[\s\S]*?<\/row>/g)||[]).forEach(function(rw){
       var row=[];
       (rw.match(/<c [^>]*?(?:\/>|>[\s\S]*?<\/c>)/g)||[]).forEach(function(c){
         var ref=(c.match(/r="([A-Z]+)\d+"/)||[])[1]||'',col=0;for(var j=0;j<ref.length;j++)col=col*26+(ref.charCodeAt(j)-64);
@@ -26986,7 +27022,22 @@ function xlsxRows(buf){
       rows.push(row);
     });
     return rows;
-  });
+  }
+  if(all){   // كل الأوراق بأسمائها (ترتيب المصنّف): يستعملها مستورد الفواتير
+    return Promise.all([read('xl/sharedStrings.xml'),read('xl/workbook.xml'),read('xl/_rels/workbook.xml.rels')].concat(files.map(read))).then(function(r){
+      var ss=parseSS(r[0]),rel={};
+      (r[2].match(/<Relationship\b[^>]*>/g)||[]).forEach(function(t){var id=(t.match(/\bId="([^"]+)"/)||[])[1],tg=(t.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&tg)rel[id]=tg.replace(/^\/?(xl\/)?/,'xl/');});
+      var named={};files.forEach(function(f,i){named[f]=parseSheet(r[3+i],ss);});
+      var out=[];
+      (r[1].match(/<sheet\b[^>]*>/g)||[]).forEach(function(t){
+        var nm=unxml((t.match(/\bname="([^"]*)"/)||[])[1]||''),rid=(t.match(/\br:id="([^"]+)"/)||[])[1],f=rel[rid];
+        if(f&&named[f])out.push({name:nm,rows:named[f]});
+      });
+      if(!out.length)files.forEach(function(f){out.push({name:f,rows:named[f]});});
+      return out;
+    });
+  }
+  return Promise.all([read('xl/sharedStrings.xml'),read(sheet||'')]).then(function(r){return parseSheet(r[1],parseSS(r[0]));});
 }
 function decodeText(u8){
   try{return new TextDecoder('utf-8',{fatal:true}).decode(u8);}
@@ -26999,6 +27050,17 @@ SI.readFile=function(file){
     if(u[0]===0xD0&&u[1]===0xCF&&u[2]===0x11&&u[3]===0xE0)throw new Error('«'+file.name+'» بصيغة xls القديمة (ثنائية) — احفظه بصيغة xlsx أو csv ثم ارفعه');
     var text=decodeText(u);
     return {name:file.name,rows:/^\s*</.test(text)?htmlRows(text):csvRows(text)};
+  });
+};
+
+// كل أوراق الملف: [{name,rows}] (xlsx بأسماء الأوراق؛ csv/html ورقة واحدة) — لمستورد الفواتير
+SI.readBook=function(file){
+  return file.arrayBuffer().then(function(buf){
+    var u=new Uint8Array(buf);
+    if(u[0]===0x50&&u[1]===0x4b)return xlsxRows(buf,true).then(function(sheets){return {name:file.name,sheets:sheets};});
+    if(u[0]===0xD0&&u[1]===0xCF&&u[2]===0x11&&u[3]===0xE0)throw new Error('«'+file.name+'» بصيغة xls القديمة (ثنائية) — احفظه بصيغة xlsx أو csv ثم ارفعه');
+    var text=decodeText(u);
+    return {name:file.name,sheets:[{name:'',rows:/^\s*</.test(text)?htmlRows(text):csvRows(text)}]};
   });
 };
 
@@ -29472,6 +29534,688 @@ X.renameUnit=function(i){
     .then(function(){return X.afterItems();}).then(function(){X.unitsManager();alert('✅ تم توحيد '+items.length+' صنف إلى «'+to+'»');})
     .catch(function(e){alert('خطأ: '+e.message);});
 };
+})();
+
+</script>
+<script>/* module: 56-invoice-import.js */
+/* =====================================================================
+   استيراد فواتير المشتريات من ملف Excel/CSV (دفعة فواتير موردين موجودة مسبقًا)
+   • الزر «📥 استيراد من ملف» في شاشة فواتير المشتريات ← نافذة: اختيار الملف ← معاينة كاملة ← تأكيد ← تقرير نهائي. لا كتابة قبل التأكيد.
+   • قراءة الملف بقارئ مستورد المبيعات نفسه (salesImport.readFile: xlsx / csv / xls-HTML) — بلا مكتبات وبلا اتصال بالشبكة.
+   • الحفظ يمرّ على مسار النموذج اليدوي نفسه حرفيًا: psiPersist (الفاتورة + تكلفة الأصناف + العهدة + الاستلام التلقائي للمخزون + سجل المشتريات)
+     وpssPersist (مورد جديد) وpsiCreditCheck (سياسة الآجل/الحد الائتماني). الترحيل المحاسبي يجري بمسار المزامنة المعتاد (accAutoBuild/accPostEntries).
+   • الصف = سطر فاتورة أو فاتورة كاملة؛ الصفوف المتجاورة بنفس (المورد، الرقم) فاتورة واحدة. التكرار (مورد + رقم) يُتخطى (إعادة الرفع لا تنشئ شيئًا).
+   • كل خلية غير موثوقة: تُهرَّب عند العرض (esc) ولا تدخل في سلاسل onclick أو innerHTML خام.
+   • المصروفات خارج النطاق عمدًا (مسار حفظها مرتبط بالعهدة والحسابات) — انظر docs/INVOICE-IMPORT.md
+   الاختبارات: tests/e2e/invoice-import.mjs
+   ===================================================================== */
+(function(){
+'use strict';
+var II=window.invImport={state:null};
+var MAX_ROWS=2000,MAX_BYTES=5*1024*1024,TOL=0.05;
+
+function $(id){return document.getElementById(id);}
+function r2(n){return Math.round((+n||0)*100)/100;}
+function money(n){return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+/* ---------- الصلاحيات: نفس شرط إضافة فاتورة يدويًا (psCanWrite) ولا مشرف زيارات ولا حساب مشاهدة ---------- */
+II.canImport=function(){
+  return !!CU&&CU.role!=='visit_supervisor'&&!(typeof isRO==='function'&&isRO())&&typeof psCanWrite==='function'&&psCanWrite();
+};
+II.syncButton=function(){
+  var b=$('inv-imp-btn');if(!b)return;
+  b.style.display=II.canImport()?'':'none';
+};
+(function wrapGo(){
+  var _go=window.go;
+  if(typeof _go==='function')window.go=function(pid){var r=_go.apply(this,arguments);if(pid==='purchase-system'){try{II.syncButton();}catch(e){}}return r;};
+})();
+
+/* ---------- تطبيع النصوص والأرقام والعناوين ---------- */
+var AR='٠١٢٣٤٥٦٧٨٩',FA='۰۱۲۳۴۵۶۷۸۹';
+function latin(s){return String(s==null?'':s).replace(/[٠-٩]/g,function(d){return AR.indexOf(d);}).replace(/[۰-۹]/g,function(d){return FA.indexOf(d);}).replace(/٫/g,'.').replace(/٬/g,',');}
+function cell(v){return String(v==null?'':v).replace(/[‎‏‪-‮⁦-⁩﻿ ]/g,' ').replace(/\s+/g,' ').trim();}
+function fold(s){return String(s).toLowerCase().replace(/[ً-ٰٟـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');}
+function nh(s){return fold(cell(s)).replace(/\([^)]*\)|（[^）]*）/g,'').replace(/[^\p{L}\p{N}]+/gu,'');}   // عنوان عمود: بلا مسافات/رموز/أقواس
+function nName(s){return fold(latin(cell(s))).replace(/\s+/g,' ');}                                    // اسم المورد/رقم الفاتورة للمقارنة
+var FIELDS={
+  supplier:['المورد','اسم المورد','مورد','supplier','vendor','supplier name','vendor name'],
+  vatNo:['الرقم الضريبي للمورد','الرقم الضريبي','رقم ضريبي','الرقم الضريبي للمنشأة','supplier vat no','vat no','vat number','tax number','tax no'],
+  number:['رقم الفاتورة','رقم فاتوره','الفاتورة','رقم','invoice','invoice no','invoice number','invoice #','inv no','inv','number','no'],
+  date:['التاريخ','تاريخ الفاتورة','تاريخ','date','invoice date'],
+  item:['الصنف','المادة','البند','الصنف/المادة','اسم الصنف','المادة الخام','item','item name','product','material'],
+  itemsText:['الأصناف','الاصناف','ملخص الأصناف','items','items summary'],
+  qty:['الكمية','كمية','العدد','qty','quantity'],
+  unit:['الوحدة','وحدة','unit','uom'],
+  price:['سعر الوحدة','السعر','سعر العبوة','سعر الوحده','سعر الوحدة قبل الضريبة','unit price','price','unitprice'],
+  lineSub:['الإجمالي قبل الضريبة','الاجمالي قبل الضريبة','line subtotal','line total ex vat'],
+  sub:['المبلغ قبل الضريبة','قبل الضريبة','المبلغ','الصافي','المبلغ قبل الضريبه','subtotal','sub total','amount before vat','net','net amount','amount ex vat','amount'],
+  vat:['الضريبة','ضريبة القيمة المضافة','ضريبة','vat','tax','vat amount'],
+  total:['الإجمالي','الاجمالي','الإجمالي شامل الضريبة','المبلغ شامل الضريبة','المبلغ بعد الضريبة','الاجمالي مع الضريبة','total','grand total','total with vat','amount incl vat'],
+  pay:['طريقة الدفع/الحالة','طريقة الدفع','طريقة السداد','الحالة','حالة الدفع','الدفع','السداد','payment','payment method','pay method','status','pay'],
+  deductible:['ضريبة قابلة للخصم','ضريبة قابلة للخصم؟','ضريبة مدخلات قابلة للخصم','vat deductible','deductible'],
+  quarter:['الربع','quarter'],
+  notes:['ملاحظات','ملاحظة','بيان','البيان','الوصف','notes','note','desc','description','remarks']
+};
+var FIELD_NH={};Object.keys(FIELDS).forEach(function(k){FIELD_NH[k]=FIELDS[k].map(nh);});
+
+function mapHeader(row){
+  var m={},used={};
+  (row||[]).forEach(function(h,ci){
+    var n=nh(h);if(!n)return;
+    Object.keys(FIELD_NH).some(function(f){
+      if(m[f]!==undefined||used[ci])return false;
+      if(FIELD_NH[f].indexOf(n)>=0){m[f]=ci;used[ci]=1;return true;}
+      return false;
+    });
+  });
+  return m;
+}
+function findHeader(rows){      // ورقة الفواتير: مورد + رقم + تاريخ
+  var lim=Math.min(25,rows.length);
+  for(var i=0;i<lim;i++){var m=mapHeader(rows[i]);if(m.supplier!==undefined&&m.number!==undefined&&m.date!==undefined)return {idx:i,map:m};}
+  return null;
+}
+function findLinesHeader(rows){  // ورقة الأصناف: رقم الفاتورة + الصنف + الكمية + (السعر أو إجمالي السطر)
+  var lim=Math.min(25,rows.length);
+  for(var i=0;i<lim;i++){var m=mapHeader(rows[i]);if(m.number!==undefined&&m.item!==undefined&&m.qty!==undefined&&(m.price!==undefined||m.lineSub!==undefined))return {idx:i,map:m};}
+  return null;
+}
+var TOTAL_WORDS=['الاجماليه','الاجمالي','المجموع','اجمالي','total','grand total','totals'].map(function(x){return nh(x);});
+function isTotalWord(s){var n=nh(s);return !!n&&TOTAL_WORDS.indexOf(n)>=0;}
+
+/* رقم: فارغ/صالح/غير صالح — الفاصل العشري يُكتشف لكل عمود (نفس منطق مستورد المبيعات) */
+function numOf(v,mode){
+  if(v==null)return {empty:true};
+  if(typeof v==='number')return isFinite(v)?{n:v}:{bad:true};
+  var t=latin(cell(v)).replace(/\s/g,'').replace(/(?:ر\.?س\.?|sar|﷼)$/i,'');
+  if(t==='')return {empty:true};
+  if(!/^[+-]?[\d.,]*\d[\d.,]*$/.test(t))return {bad:true};
+  var n=window.salesImport._toNumM(t,mode);
+  return isFinite(n)?{n:n}:{bad:true};
+}
+
+/* طريقة الدفع (نماذج الفاتورة اليدوية: نقدي / بنكي / آجل فقط): تابي وشبكة ← بنكي (مدفوعة) والتسمية الأصلية تُحفظ في البيان؛ «آجل — يستحق YYYY-MM-DD» ← آجل والاستحقاق في البيان */
+var PAY_MAP=(function(){
+  var m={};
+  function add(val,list){list.forEach(function(x){m[nh(x)]=val;});}
+  add('نقدي',['نقدي','نقد','كاش','cash','مدفوعة','مدفوع','مسددة','مسدد','paid','مدفوعه']);
+  add('بنكي',['بنكي','تحويل','تحويل بنكي','بنك','bank','transfer','شبكة','مدى','حوالة','تابي','tabby','بطاقة','فيزا','visa','mada']);
+  add('آجل',['آجل','آجلة','اجل','أجل','على الحساب','غير مدفوعة','غير مسددة','غير مدفوع','credit','unpaid','on account','ذمة']);
+  return m;
+})();
+function parsePay(raw){
+  var t=cell(raw),r={};
+  var dm=latin(t).match(/(\d{4})-(\d{2})-(\d{2})/);if(dm)r.due=dm[0];
+  var base=t.replace(/[—–].*$/,'').replace(/\s-\s.*$/,'').replace(/\(.*$/,'').trim();
+  var pm=PAY_MAP[nh(base)]||PAY_MAP[nh(t)];
+  if(!pm){var w=nh(base.split(/\s+/)[0]);pm=PAY_MAP[w];}
+  if(!pm)return {err:true};
+  r.pay=pm;
+  if(nh(base)!==nh(pm)&&pm!=='آجل'&&nh(base)!==nh('مدفوعة'))r.label=base;   // «تابي»/«شبكة»: التسمية الأصلية في البيان
+  return r;
+}
+var DEDUCT_MAP={};[['نعم','yes'],['yes','yes'],['لا','no'],['no','no'],['بعد التأكد','check'],['تأكد','check'],['check','check']].forEach(function(p){DEDUCT_MAP[nh(p[0])]=p[1];});
+var DEDUCT_TXT={yes:'نعم',no:'لا',check:'بعد التأكد'};
+var FIELD_LBL_ALL={qty:'الكمية',price:'سعر الوحدة',sub:'المبلغ قبل الضريبة',vat:'الضريبة',total:'الإجمالي',lineSub:'الإجمالي قبل الضريبة'};
+function digits(s){return latin(cell(s)).replace(/\D+/g,'');}
+
+/* ---------- تحليل الكتاب (أوراق) إلى فواتير ---------- */
+// تخطيطان: (١) ورقة واحدة مسطّحة: صف لكل فاتورة أو لكل سطر صنف؛ (٢) ورقتان: «الفواتير» صف لكل فاتورة + «الأصناف» أسطر منظَّمة تُربط برقم الفاتورة
+// أي ورقة أخرى (مثل المصروفات) تُتجاهل مع إشعار.
+function parseBook(sheets){
+  var inv=null,lin=null,ignored=[];
+  sheets.forEach(function(sh){
+    if(!inv){var h=findHeader(sh.rows);if(h){inv={sh:sh,hd:h};return;}}
+    if(!lin){var l=findLinesHeader(sh.rows);if(l&&!(inv&&inv.sh===sh)){lin={sh:sh,hd:l};return;}}
+    ignored.push(sh.name||'');
+  });
+  if(!inv){
+    return {error:'لم أتعرّف على أعمدة الملف. الأعمدة المطلوبة على الأقل: «المورد» و«رقم الفاتورة» و«التاريخ» ثم «المبلغ قبل الضريبة» (أو الأصناف: «الصنف» «الكمية» «سعر الوحدة»).\nحمّل «نموذج الملف» وانسخ بياناتك إليه.'};
+  }
+  var fileWarn=[];
+  var P=parseInvoiceSheet(inv.sh.rows,inv.hd,!!lin,fileWarn);
+  if(P.error)return P;
+  P.layout='flat';
+  var flatLines=inv.hd.map.item!==undefined&&inv.hd.map.qty!==undefined&&inv.hd.map.price!==undefined;
+  if(lin&&!flatLines){
+    var L=parseLinesSheet(lin.sh.rows,lin.hd,fileWarn);
+    if(L.error)return L;
+    P.layout='two-sheets';P.linesRead=L.rowsRead;
+    attachLines(P.invoices,L.lines,fileWarn);
+  }else if(lin){ignored.push(lin.sh.name||'');}
+  ignored.forEach(function(n){
+    fileWarn.push('ℹ️ تم تجاهل الورقة «'+n+'»'+(/مصروف/.test(n)?' (المصروفات): استيراد المصروفات غير مدعوم هنا — أدخلها من شاشة المصروفات.':' (ليست ورقة فواتير ولا أصناف).'));
+  });
+  P.fileWarn=fileWarn;P.ignored=ignored;
+  return P;
+}
+function parseRows(rows){return parseBook([{name:'',rows:rows}]);}   // ورقة واحدة (للاختبارات)
+
+function dataRows(rows,hd,isTot){
+  var data=[],i;
+  for(i=hd.idx+1;i<rows.length;i++){
+    var r=rows[i];
+    if(!r||!r.some(function(x){return cell(x)!=='';}))continue;
+    if(isTot(r))continue;   // سطر الإجمالي أسفل الورقة
+    data.push({no:i+1,r:r});
+  }
+  return data;
+}
+function numWarns(modes,fields,fileWarn){
+  if(fields.some(function(f){return modes[f]==='comma';}))fileWarn.push('ℹ️ فُسِّرت الفاصلة «,» كفاصل عشري (مثل 1234,56 = 1234.56) في بعض الأعمدة — راجع المبالغ في المعاينة.');
+  if(fields.some(function(f){return modes[f]==='mixed';}))fileWarn.push('⚠️ صيغة الأرقام ملتبسة في عمود واحد (فاصلة ونقطة عشرية معًا) — راجع المبالغ بعناية أو وحّد الصيغة وأعد الرفع.');
+}
+function parseInvoiceSheet(rows,hd,hasLinesSheet,fileWarn){
+  var map=hd.map,hasLinesCols=map.item!==undefined&&map.qty!==undefined&&map.price!==undefined;
+  if(map.sub===undefined&&map.total===undefined&&!hasLinesCols&&!hasLinesSheet){
+    return {error:'لا يوجد عمود مبالغ: أضف «المبلغ قبل الضريبة» أو «الإجمالي» (أو أعمدة الأصناف «الصنف» و«الكمية» و«سعر الوحدة»).'};
+  }
+  var data=dataRows(rows,hd,function(r){
+    var sup=cell(r[map.supplier]),num=cell(r[map.number]);
+    return !num&&(isTotalWord(sup)||(!sup&&map.item!==undefined&&isTotalWord(r[map.item])));
+  });
+  if(!data.length)return {error:'الملف لا يحتوي صفوف بيانات بعد صف العناوين.'};
+  if(data.length>MAX_ROWS)return {error:'عدد الصفوف ('+data.length+') أكبر من الحد المسموح ('+MAX_ROWS+'). قسّم الملف إلى أجزاء أصغر.'};
+  var SI=window.salesImport;
+  var col=function(f){return map[f]===undefined?[]:data.map(function(d){return d.r[map[f]];});};
+  var NUMF=['qty','price','sub','vat','total'];
+  var modes={};NUMF.forEach(function(f){modes[f]=map[f]===undefined?'dot':SI._colMode(col(f));});
+  var dord=SI._inferDateOrder(col('date'));
+  numWarns(modes,NUMF,fileWarn);
+  if(dord.conflict)fileWarn.push('⚠️ التواريخ ملتبسة: توجد قيم يوم>12 وشهر>12 معًا في العمود — افتُرضت صيغة يوم/شهر/سنة، تحقق من التواريخ.');
+  else if(dord.order==='mdy')fileWarn.push('ℹ️ فُسِّرت التواريخ بصيغة شهر/يوم/سنة (وجدت قيمة بعد الشهر >12) — تحقق من التواريخ.');
+  else if(dord.ambiguous)fileWarn.push('⚠️ صيغة التواريخ غير محسومة (كل القيم ≤12): افتُرضت يوم/شهر/سنة. إن كان ملفك شهر/يوم/سنة فالتواريخ خاطئة — لا تؤكد.');
+
+  // 1) صفوف خام
+  var recs=data.map(function(d){
+    var r=d.r,g=function(f){return map[f]===undefined?'':r[map[f]];};
+    var rec={no:d.no,errs:[],supplier:cell(g('supplier')),vatNo:digits(g('vatNo')),number:cell(latin(g('number'))),dateRaw:g('date'),
+      item:cell(g('item')),unit:cell(g('unit')),payRaw:cell(g('pay')),notes:cell(g('notes')),itemsText:cell(g('itemsText')),deductRaw:cell(g('deductible'))};
+    rec.date=SI._parseDate(rec.dateRaw,dord.order);
+    NUMF.forEach(function(f){
+      var o=numOf(g(f),modes[f]);
+      if(o.bad)rec.errs.push('قيمة غير رقمية في «'+FIELD_LBL_ALL[f]+'»: '+cell(g(f)).slice(0,30));
+      else if(o.n!==undefined&&o.n<0)rec.errs.push('قيمة سالبة في «'+FIELD_LBL_ALL[f]+'» (إشعارات الدائن غير مدعومة)');
+      else rec[f]=o.empty?null:o.n;
+    });
+    return rec;
+  });
+  // 2) تجميع: متجاورة بنفس المفتاح = فاتورة واحدة؛ ظهور المفتاح بعد فاصل = مكرر داخل الملف. مفتاح المورد: الرقم الضريبي إن وُجد وإلا الاسم
+  var blocks=[],seen={},prev=null;
+  recs.forEach(function(rec){
+    if(!rec.supplier||!rec.number){
+      var miss=!rec.supplier&&!rec.number?'المورد ورقم الفاتورة':(!rec.supplier?'المورد':'رقم الفاتورة');
+      blocks.push({key:null,rows:[rec],rowErr:'«'+miss+'» فارغ (كرّر المورد ورقم الفاتورة في كل صف)'});
+      prev=null;return;
+    }
+    var key=(rec.vatNo?'v'+rec.vatNo:nName(rec.supplier))+'\u0001'+nName(rec.number);
+    if(prev&&prev.key===key){prev.rows.push(rec);return;}
+    var b={key:key,rows:[rec]};
+    if(seen[key]){b.dupInFile=seen[key].rows[0].no;}else seen[key]=b;
+    blocks.push(b);prev=b;
+  });
+  var invoices=blocks.map(function(b,bi){return buildInvoice(b,bi);});
+  return {invoices:invoices,fileWarn:fileWarn,rowsRead:data.length,hasLinesCols:hasLinesCols};
+}
+
+/* ورقة الأصناف المنظَّمة: تُربط بالفاتورة برقمها (اسم المورد فيها قد يكون مختصرًا فلا يُعتمد عليه إلا للفصل عند تكرار الرقم) */
+function parseLinesSheet(rows,hd,fileWarn){
+  var map=hd.map;
+  var data=dataRows(rows,hd,function(r){return !cell(r[map.number])&&isTotalWord(r[map.item]);});
+  if(data.length>MAX_ROWS)return {error:'عدد أسطر الأصناف ('+data.length+') أكبر من الحد المسموح ('+MAX_ROWS+').'};
+  var SI=window.salesImport,NUMF=['qty','price','lineSub','vat','total'];
+  var col=function(f){return map[f]===undefined?[]:data.map(function(d){return d.r[map[f]];});};
+  var modes={};NUMF.forEach(function(f){modes[f]=map[f]===undefined?'dot':SI._colMode(col(f));});
+  numWarns(modes,NUMF,fileWarn);
+  var lines=data.map(function(d){
+    var r=d.r,g=function(f){return map[f]===undefined?'':r[map[f]];};
+    var l={rowNo:d.no,sheetLine:true,errs:[],number:cell(latin(g('number'))),short:cell(g('supplier')),name:cell(g('item')),unit:cell(g('unit'))};
+    NUMF.forEach(function(f){
+      var o=numOf(g(f),modes[f]),k=f==='lineSub'?'fSub':f==='vat'?'fVat':f==='total'?'fTotal':f;
+      if(o.bad)l.errs.push('قيمة غير رقمية في «'+(FIELD_LBL_ALL[f]||(f==='total'?'الإجمالي':f))+'»: '+cell(g(f)).slice(0,30));
+      else if(o.n!==undefined&&o.n<0)l.errs.push('قيمة سالبة (إشعارات الدائن غير مدعومة)');
+      else l[k]=o.empty?null:o.n;
+    });
+    return l;
+  });
+  return {lines:lines,rowsRead:data.length};
+}
+function attachLines(invoices,lines,fileWarn){
+  var by={},unmatched=0;
+  invoices.forEach(function(i){if(i.numKey&&i.status==='ok'){(by[i.numKey]=by[i.numKey]||[]).push(i);}});
+  lines.forEach(function(l){
+    var c=by[nName(l.number)]||[];
+    if(c.length>1){
+      var sh=fold(l.short);
+      var f=sh?c.filter(function(i){var s=fold(i.supplier);return s.indexOf(sh)>=0||sh.indexOf(s)>=0;}):[];
+      if(f.length===1)c=f;
+    }
+    if(c.length!==1){unmatched++;return;}
+    var inv=c[0];
+    if(l.short&&!inv.shortName)inv.shortName=l.short;
+    if(inv.lines.length&&!inv.lines[0].sheetLine)return;   // أسطر الصفوف المسطّحة أولى
+    var le=l.errs.slice();
+    if(!l.name)le.push('اسم الصنف فارغ');
+    else if(l.name.length>120)le.push('اسم الصنف أطول من 120 حرفًا');
+    if(!(l.qty>0))le.push('الكمية يجب أن تكون أكبر من صفر');
+    if(!(l.price>0)&&!(l.fSub>0))le.push('سعر الوحدة (أو الإجمالي قبل الضريبة) مطلوب');
+    if(le.length)inv.errors.push('ورقة الأصناف صف '+l.rowNo+' («'+String(l.name).slice(0,30)+'»): '+le.join('، '));
+    inv.lines.push(l);
+  });
+  if(unmatched)fileWarn.push('⚠️ '+unmatched+' سطر في ورقة الأصناف بلا فاتورة مطابقة (برقم الفاتورة) — تُجوهلت.');
+}
+
+function distinct(vals){
+  var out=[];vals.forEach(function(v){if(v==null)return;if(!out.some(function(x){return Math.abs(x-v)<0.005;}))out.push(v);});return out;
+}
+/* فاتورة خام (قبل سياق البراند والبيانات الحيّة): مدخلات الملف فقط */
+function buildInvoice(b,bi){
+  var rows=b.rows,first=rows[0];
+  var vno=''; rows.forEach(function(r){if(!vno&&r.vatNo)vno=r.vatNo;});
+  var inv={id:bi,rowNos:rows.map(function(x){return x.no;}),firstRow:first.no,supplier:first.supplier,number:first.number,errors:[],warns:[],status:'ok',lines:[],
+    date:null,pay:'',payBlank:false,notes:'',sub:null,vat:null,total:null,vatNo:vno,supKey:vno?'v'+vno:nName(first.supplier),nameKey:nName(first.supplier),numKey:nName(first.number)};
+  if(b.rowErr){inv.status='error';inv.errors.push(b.rowErr);inv.supplier=first.supplier||'—';inv.number=first.number||'—';return inv;}
+  if(/^\s*\(?\s*مثال\s*\)?/.test(first.supplier)){inv.status='skipped';inv.reason='سطر مثال من النموذج — احذفه من ملفك';return inv;}
+  if(b.dupInFile){inv.status='skipped';inv.reason='مكررة داخل الملف (ظهرت أول مرة في الصف '+b.dupInFile+')';return inv;}
+  rows.forEach(function(r){r.errs.forEach(function(e){inv.errors.push('صف '+r.no+': '+e);});});
+  if(first.supplier.length>120)inv.errors.push('اسم المورد أطول من 120 حرفًا');
+  if(first.number.length>60)inv.errors.push('رقم الفاتورة أطول من 60 حرفًا');
+  // رأس الفاتورة: القيم تُكتب مرة واحدة (أو تتكرر بنفس القيمة)؛ اختلافها داخل الفاتورة خطأ
+  var dates=[],pays=[],notes=[],items='',ded='';
+  rows.forEach(function(r){
+    if(r.date)dates.push(r.date);else if(cell(r.dateRaw)!=='')inv.errors.push('صف '+r.no+': تاريخ غير صالح «'+cell(r.dateRaw).slice(0,25)+'» (الصيغ المقبولة: YYYY-MM-DD أو D/M/YYYY أو رقم إكسل التسلسلي)');
+    if(r.payRaw)pays.push(r.payRaw);
+    if(r.notes&&notes.indexOf(r.notes)<0)notes.push(r.notes);
+    if(!items&&r.itemsText)items=r.itemsText;
+    if(!ded&&r.deductRaw)ded=r.deductRaw;
+  });
+  var ud=dates.filter(function(x,i){return dates.indexOf(x)===i;});
+  if(!ud.length&&!inv.errors.some(function(e){return /تاريخ/.test(e);}))inv.errors.push('التاريخ فارغ');
+  else if(ud.length>1)inv.errors.push('تواريخ مختلفة لنفس الفاتورة: '+ud.join('، '));
+  inv.date=ud[0]||null;
+  var up=pays.filter(function(x,i){return pays.indexOf(x)===i;}),extra=[];
+  if(up.length>1)inv.errors.push('طرق دفع مختلفة لنفس الفاتورة: '+up.slice(0,3).join('، '));
+  if(up.length){
+    var pp=parsePay(up[0]);
+    if(pp.err)inv.errors.push('طريقة الدفع غير مفهومة «'+up[0].slice(0,25)+'» (المقبول: نقدي، بنكي/شبكة/تابي، آجل، مدفوعة)');
+    else{inv.pay=pp.pay;if(pp.due)inv.dueDate=pp.due;if(pp.label)extra.push('السداد: '+pp.label);if(pp.due)extra.push('يستحق '+pp.due);}
+  }else{inv.pay='نقدي';inv.payBlank=true;inv.warns.push('طريقة الدفع غير محددة — اعتُبرت نقدي (مدفوعة بالكامل)');}
+  if(ded){
+    var dk=DEDUCT_MAP[nh(ded)];
+    if(dk){inv.deductible=dk;extra.push('ضريبة المدخلات قابلة للخصم: '+DEDUCT_TXT[dk]);
+      if(dk!=='yes')inv.warns.push('الضريبة قابلة للخصم؟ «'+DEDUCT_TXT[dk]+'» — تُرحَّل كضريبة مدخلات كالإدخال اليدوي، راجعها قبل الإقرار الضريبي');}
+    else extra.push('قابلة للخصم: '+ded.slice(0,30));
+  }
+  if(items)inv.itemsText=items.slice(0,400);
+  inv.notes=notes.concat(items?['الأصناف: '+items.slice(0,400)]:[]).concat(extra).join(' | ').slice(0,900);
+  // أسطر الأصناف المسطّحة: صف له «الصنف» = سطر
+  rows.forEach(function(r){
+    if(!r.item)return;
+    var le=[];
+    if(!(r.qty>0))le.push('الكمية يجب أن تكون أكبر من صفر');
+    if(!(r.price>0))le.push('سعر الوحدة يجب أن يكون أكبر من صفر');
+    if(r.item.length>120)le.push('اسم الصنف أطول من 120 حرفًا');
+    if(le.length&&!r.errs.length)inv.errors.push('صف '+r.no+' («'+r.item.slice(0,30)+'»): '+le.join('، '));
+    inv.lines.push({name:r.item,unit:r.unit,qty:r.qty,price:r.price,rowNo:r.no});
+  });
+  // المبالغ: نفس القيمة المتكررة مقبولة، المختلفة خطأ
+  ['sub','vat','total'].forEach(function(f){
+    var ds=distinct(rows.map(function(r){return r[f];}));
+    if(ds.length>1)inv.errors.push('قيم مختلفة في «'+FIELD_LBL_ALL[f]+'» داخل الفاتورة نفسها ('+ds.slice(0,3).map(money).join('، ')+'): المبالغ تُكتب مرة واحدة للفاتورة أو تتكرر بنفس القيمة في كل صف');
+    else inv[f]=ds.length?ds[0]:null;
+  });
+  return inv;
+}
+
+/* ---------- التحقق مع سياق البراند والبيانات الحيّة ---------- */
+// ctx: {rate (نسبة مئوية), supplierIds:{nameKey:[id,...]}, existing:{supplierId|numKey:true}, today, lockDate, ingFind(name), canStock}
+function validate(invs,ctx){
+  var rate=ctx.rate/100,due={},newSup={};
+  invs.forEach(function(inv){
+    if(inv.status!=='ok')return;
+    var fail=function(m){inv.errors.push(m);};
+    // تكرار مع المحفوظ (يسبق أخطاء الصف: الفاتورة الموجودة تُتخطى)
+    var res=ctx.resolveSupplier?ctx.resolveSupplier(inv):{ids:ctx.supplierIds[inv.nameKey]||[]},ids=res.ids;
+    if(ids.some(function(id){return ctx.existing[id+'|'+inv.numKey];})){inv.status='skipped';inv.reason='مسجَّلة مسبقًا لهذا المورد (نفس رقم الفاتورة)';return;}
+    if(inv.errors.length){inv.status='error';return;}
+    inv.supplierId=ids[0]||'';inv.newSupplier=!ids.length;
+    if(res.warn)inv.warns.push(res.warn);
+    // الأصناف
+    var n=inv.lines.length,lineSum=0;
+    var adj=0;
+    inv.lines.forEach(function(l){
+      var g=ctx.ingFind(l.name);l.ing=g?g._id:'';l.ingName=g?g.name:'';
+      if(l.fSub!=null){   // إجمالي السطر من الملف (قد يتضمن خصمًا): سعر الوحدة المخزَّن = إجمالي السطر ÷ الكمية حتى لا يتغير عند تعديل الفاتورة
+        l.lineSub=r2(l.fSub);
+        if(l.price>0&&Math.abs(l.qty*l.price-l.lineSub)<=TOL)l.exPrice=Math.round(l.price*10000)/10000;
+        else{l.exPrice=Math.round(l.lineSub/l.qty*10000)/10000;if(l.price>0)adj++;}
+      }else{l.exPrice=Math.round(l.price*10000)/10000;l.lineSub=r2(l.qty*l.exPrice);}
+      lineSum+=l.lineSub;
+    });
+    if(adj)inv.warns.push('سعر الوحدة في '+adj+' سطر لا يطابق الكمية × الإجمالي قبل الضريبة (خصم؟) — حُفظ سعر الوحدة = إجمالي السطر ÷ الكمية');
+    lineSum=r2(lineSum);
+    // المبلغ قبل الضريبة
+    var sub=inv.sub,vat=inv.vat,total=inv.total;
+    if(n){
+      var tol=Math.max(TOL,0.005*n);
+      if(sub!=null&&Math.abs(sub-lineSum)>tol)fail('مجموع الأصناف ('+money(lineSum)+') لا يطابق «المبلغ قبل الضريبة» ('+money(sub)+')');
+      sub=lineSum;
+    }else{
+      if(sub==null){
+        if(total!=null&&vat!=null)sub=r2(total-vat);
+        else if(total!=null&&rate===0){sub=total;vat=0;}
+        else fail('«المبلغ قبل الضريبة» مفقود (أو أضف الأصناف)');
+      }
+    }
+    if(sub!=null&&!(sub>0))fail('المبلغ قبل الضريبة يجب أن يكون أكبر من صفر');
+    // الضريبة
+    if(sub!=null){
+      if(vat==null){
+        if(total!=null)vat=r2(total-sub);
+        else if(rate===0)vat=0;
+        else fail('«الضريبة» مفقودة — اكتبها، أو اكتب 0 لفاتورة بلا ضريبة');
+      }
+    }
+    if(!inv.errors.length&&vat!=null){
+      if(vat<-0.005)fail('الضريبة سالبة');
+      else if(rate===0&&vat>0.005)fail('هذا البراند غير مسجَّل بضريبة القيمة المضافة (النسبة في الإعدادات 0%) لكن الملف يحوي ضريبة '+money(vat));
+      else if(rate>0&&vat>0.005&&Math.abs(vat-sub*rate)>TOL)inv.warns.push('الضريبة ('+money(vat)+') لا تساوي '+(ctx.rate)+'% من المبلغ قبل الضريبة ('+money(r2(sub*rate))+') — مقبولة لأن قبل+ضريبة=إجمالي (بند معفى/بدون ضريبة؟)');
+    }
+    if(!inv.errors.length&&total!=null&&Math.abs(sub+vat-total)>TOL)fail('المبلغ قبل الضريبة + الضريبة ('+money(r2(sub+vat))+') لا يساوي الإجمالي ('+money(total)+')');
+    // التاريخ
+    if(inv.date&&inv.date>ctx.today)inv.warns.push('تاريخ الفاتورة في المستقبل ('+inv.date+')');
+    if(inv.date&&ctx.lockDate&&inv.date<=ctx.lockDate)inv.warns.push('الفترة المحاسبية مقفلة حتى '+ctx.lockDate+' — لن يُرحَّل قيد هذه الفاتورة محاسبيًا');
+    if(inv.errors.length){inv.status='error';return;}
+    inv.sub=r2(sub);inv.vat=r2(vat);inv.total=r2(inv.sub+inv.vat);
+    inv.type=inv.vat>0.005?'ضريبية':'غير ضريبية';
+    if(inv.vat>0.005&&Math.abs(inv.vat-r2(inv.sub*rate))>0.005&&Math.abs(inv.vat-r2(inv.sub*rate))<=TOL)inv.warns.push('الضريبة في الملف ('+money(inv.vat)+') تختلف بهللات عن الحساب القياسي ('+money(r2(inv.sub*rate))+') — حُفظت كما في الملف');
+    inv.paid=inv.pay==='آجل'?0:inv.total;
+    inv.linesBuilt=inv.lines.map(function(l){
+      var lv=l.fVat!=null?r2(l.fVat):(inv.type==='ضريبية'?r2(l.lineSub*rate):0),g=l.ing?ctx.ingById[l.ing]:null;
+      return {ingId:l.ing||'',name:g?g.name:l.name,unit:g?(g.unit||''):l.unit,pack:g?(parseFloat(g.pack)||0):0,qty:l.qty,unitPrice:l.exPrice,enteredPrice:l.price>0?l.price:l.exPrice,
+        lineSubtotal:l.lineSub,lineVat:lv,lineTotal:r2(l.lineSub+lv),updateCost:false,isNew:false};
+    });
+    var unl=inv.linesBuilt.filter(function(l){return !l.ingId;}).length;
+    if(unl)inv.warns.push(unl+' صنف غير مربوط بالمواد الخام (يُحفظ في الفاتورة بلا أثر على التكلفة أو المخزون)');
+    inv.linked=inv.linesBuilt.length-unl;
+    // سياسة الآجل (نفس فحص النموذج اليدوي). مورد جديد: يُنشأ بقبول الآجل إن احتاجه
+    if(inv.newSupplier){
+      var nk=inv.supKey;(newSup[nk]=newSup[nk]||{name:inv.supplier,credit:false});if(inv.pay==='آجل')newSup[nk].credit=true;
+    }else{
+      var sobj=ctx.supplierById[inv.supplierId];
+      var cc=psiCreditCheck(inv.supplierId,sobj,inv.pay,inv.total,inv.paid,due[inv.supplierId]||0);
+      if(cc.block){inv.status='error';inv.errors.push(cc.block.replace(/\n+/g,' ').replace(/^🚫\s*/,'').slice(0,220));return;}
+      if(cc.confirm)inv.warns.push('المورد قارب عتبة التحذير الائتمانية');
+      due[inv.supplierId]=(due[inv.supplierId]||0)+Math.max(0,inv.total-inv.paid);
+    }
+  });
+  return {newSuppliers:newSup};
+}
+
+/* ---------- الواجهة ---------- */
+var MODAL='inv-imp-modal';
+function modalEl(){return $(MODAL);}
+function closeIt(){var m=modalEl();if(m)m.remove();II.state=null;}
+window.invImportClose=closeIt;
+
+function shell(inner){
+  var m=modalEl();
+  if(!m){
+    m=document.createElement('div');m.id=MODAL;
+    m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML='<div style="background:#fff;border-radius:12px;max-width:1100px;width:100%;max-height:92vh;overflow:auto;display:flex;flex-direction:column"><div style="padding:12px 18px;border-bottom:2px solid var(--bd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2"><h3 style="font-size:16px;font-weight:900;color:var(--r)">📥 استيراد فواتير المشتريات من ملف</h3><button type="button" id="inv-imp-x" style="background:var(--bd);border:none;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px">×</button></div><div id="inv-imp-body" style="padding:16px"></div></div>';
+    document.body.appendChild(m);
+    $('inv-imp-x').addEventListener('click',function(){if(II.state&&II.state.committing){alert('الحفظ جارٍ — انتظر اكتماله');return;}closeIt();});
+  }
+  $('inv-imp-body').innerHTML=inner;
+}
+function body(){return $('inv-imp-body');}
+
+window.invImportOpen=function(){
+  if(!II.canImport()){alert('ليس لديك صلاحية استيراد فواتير المشتريات');return false;}
+  II.state={committing:false};
+  shell('<div style="font-size:12px;line-height:2;color:var(--tm)">ارفع ملف Excel (xlsx) أو CSV يحوي فواتير موردين <b>موجودة مسبقًا</b>. صف لكل فاتورة أو صف لكل <b>سطر صنف</b> (الصفوف المتجاورة بنفس المورد والرقم فاتورة واحدة). لن يُحفظ شيء قبل المعاينة وضغط «تأكيد».</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0"><input type="file" id="inv-imp-file" accept=".xlsx,.csv,.xls,.txt" style="max-width:340px">'
+    +'<button class="btn bp" onclick="invImportPreview()">🔍 قراءة الملف ومعاينة</button>'
+    +'<button class="btn bo" onclick="invImportTemplate()">⬇️ تحميل نموذج الملف</button></div>'
+    +'<div style="font-size:11px;color:var(--tl)">الأعمدة: المورد · رقم الفاتورة · التاريخ · الصنف (اختياري) · الكمية · الوحدة · سعر الوحدة · المبلغ قبل الضريبة · الضريبة · الإجمالي · طريقة الدفع/الحالة (نقدي / بنكي / آجل) · ملاحظات. الحد الأقصى '+MAX_ROWS+' صف و5 ميغابايت.</div>'
+    +'<div id="inv-imp-out" style="margin-top:12px"></div>');
+  return true;
+};
+
+/* نموذج الملف: CSV بـBOM (يفتحه Excel بالعربية مباشرة) */
+II.templateRows=function(){
+  return [
+    ['المورد','رقم الفاتورة','التاريخ','الصنف','الكمية','الوحدة','سعر الوحدة','المبلغ قبل الضريبة','الضريبة','الإجمالي','طريقة الدفع/الحالة','ملاحظات'],
+    ['(مثال) مورد تجريبي','EX-1001','2026-01-15','','','','','200','30','230','آجلة','فاتورة بالإجمالي فقط (صف واحد)'],
+    ['(مثال) مورد تجريبي','EX-1002','2026-01-16','دقيق','10','كيس','15','250','37.5','287.5','نقدي','فاتورة بأصناف: صف لكل صنف، والمبالغ تتكرر أو تُكتب في أول صف'],
+    ['(مثال) مورد تجريبي','EX-1002','2026-01-16','سكر','5','كيس','20','250','37.5','287.5','نقدي','']
+  ];
+};
+function csvText(rows){
+  return '﻿'+rows.map(function(r){return r.map(function(c){var s=String(c);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',');}).join('\r\n')+'\r\n';
+}
+II.csvText=csvText;
+window.invImportTemplate=function(){
+  var blob=new Blob([csvText(II.templateRows())],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='invoices-import-template.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1500);
+};
+
+/* مطابقة المورد (حيّة من PS_SUPPLIERS): الرقم الضريبي ← الاسم الكامل ← الاسم المختصر (من ورقة الأصناف) ← احتواء اسم وحيد (تحذير) */
+function resolveSupplier(inv){
+  var list=PS_SUPPLIERS,hit=[],res={ids:[]};
+  if(inv.vatNo){hit=list.filter(function(s){return digits(s.vatNo)===inv.vatNo;});}
+  if(!hit.length){hit=list.filter(function(s){return nName(s.name)===inv.nameKey;});}
+  if(!hit.length&&inv.shortName){var sk=nName(inv.shortName);hit=list.filter(function(s){return nName(s.name)===sk;});if(hit.length)res.warn='طُوبِق مع المورد المسجَّل «'+hit[0].name+'» بالاسم المختصر';}
+  if(!hit.length){
+    var fn=fold(inv.supplier);
+    var cand=list.filter(function(s){var n=fold(s.name);return n.length>=4&&(fn.indexOf(n)>=0||(fn.length>=4&&n.indexOf(fn)>=0));});
+    if(cand.length===1){hit=cand;res.warn='طُوبِق مع المورد المسجَّل «'+cand[0].name+'» (تطابق جزئي في الاسم) — راجع';}
+  }
+  if(hit.length&&inv.vatNo&&hit[0].vatNo&&digits(hit[0].vatNo)!==inv.vatNo)res.warn=(res.warn?res.warn+' — ':'')+'الرقم الضريبي في الملف يختلف عن المسجَّل للمورد';
+  res.ids=hit.map(function(s){return s._id;});
+  return res;
+}
+function loadContext(rows){
+  // الإعدادات والبيانات الحيّة: نسبة الضريبة، الموردون، الفواتير المحفوظة (من الخادم)، المواد الخام، الجرود (للتنبيه)
+  var rate=15,lockDate='';
+  var pAcc=(typeof accLoad==='function'&&!(window.ACC&&ACC.loaded))?accLoad():Promise.resolve();
+  return pAcc.then(function(){
+    var S=(window.ACC&&ACC.settings)||(typeof accDefaultSettings==='function'?accDefaultSettings():{vatRate:15});
+    var vr=Number(S.vatRate);rate=isFinite(vr)&&vr>=0?vr:15;lockDate=S.lockDate||'';
+    return Promise.all([psLoadAll(),(PS_INGS_LOADED?Promise.resolve():psLoadIngs()),db.collection('purchases_invoices').get()]);
+  }).then(function(r){
+    var existing={};
+    r[2].forEach(function(d){var x=d.data();if(x.isOpeningBalance||x.type==='opening'||x.invType==='opening')return;existing[x.supplierId+'|'+nName(x.number)]=true;});
+    var supplierById={},ingById={};
+    PS_SUPPLIERS.forEach(function(s){supplierById[s._id]=s;});
+    PS_INGS.forEach(function(g){ingById[g._id]=g;});
+    return {rate:rate,lockDate:lockDate,existing:existing,supplierById:supplierById,ingById:ingById,resolveSupplier:resolveSupplier,
+      ingFind:function(n){return PS_INGS_LOADED?pslFindIng(n):null;},today:(typeof accToday==='function'?accToday():new Date().toISOString().slice(0,10)),ingsOk:PS_INGS_LOADED};
+  });
+}
+
+window.invImportPreview=function(){
+  if(!II.canImport()){alert('ليس لديك صلاحية استيراد فواتير المشتريات');return;}
+  var S=II.state;if(!S||S.committing)return;
+  var f=($('inv-imp-file')||{}).files,out=$('inv-imp-out');
+  if(!f||!f.length){alert('اختر ملف الفواتير أولًا');return;}
+  var file=f[0];
+  if(file.size>MAX_BYTES){out.innerHTML='<div class="sdb-r" style="font-size:12px">حجم الملف أكبر من 5 ميغابايت.</div>';return;}
+  if(!window.salesImport||typeof salesImport.readFile!=='function'){out.innerHTML='<div class="sdb-r">قارئ الملفات غير متاح.</div>';return;}
+  out.innerHTML='⏳ جارٍ قراءة الملف…';S.parsed=null;
+  salesImport.readBook(file).then(function(rd){
+    var P=parseBook(rd.sheets);
+    if(P.error)throw new Error(P.error);
+    return loadContext().then(function(ctx){
+      var V=validate(P.invoices,ctx);
+      S.file=file.name;S.ctx=ctx;S.P=P;S.V=V;S.autoRecv=false;
+      render();
+    });
+  }).catch(function(e){out.innerHTML='<div class="sdb-r" style="font-size:12px;white-space:pre-line">خطأ: '+esc(e.message)+'</div>';});
+};
+
+function stBadge(inv){
+  if(inv.status==='ok')return '<span class="bdg bg-s">جاهزة</span>';
+  if(inv.status==='skipped')return '<span class="bdg" style="background:#E3F2FD;color:#1A4A6B">متخطاة</span>';
+  return '<span class="bdg bg-w" style="background:#FFCDD2;color:#B71C1C">خطأ</span>';
+}
+function render(){
+  var S=II.state,P=S.P,invs=P.invoices,out=$('inv-imp-out');if(!out)return;
+  var ok=invs.filter(function(i){return i.status==='ok';}),sk=invs.filter(function(i){return i.status==='skipped';}),er=invs.filter(function(i){return i.status==='error';});
+  var tot=0,vat=0;ok.forEach(function(i){tot+=i.total;vat+=i.vat;});
+  var newNames=Object.keys(S.V.newSuppliers).map(function(k){return S.V.newSuppliers[k].name;});
+  var canStock=window.INVX&&INVX.canWrite&&INVX.canWrite();
+  var hasLinked=ok.some(function(i){return i.linked>0;});
+  var h='<div style="padding:10px 14px;border:1px solid var(--br);border-radius:8px;background:#fff;font-size:12px;line-height:2">'
+    +'📄 '+esc(S.file)+' — '+P.rowsRead+' صف'+(P.layout==='two-sheets'?' فواتير + '+P.linesRead+' سطر أصناف (ورقتان)':'')+' — نسبة الضريبة المعتمدة: <b>'+esc(S.ctx.rate)+'%</b>'
+    +'<br><span class="bdg bg-s">جاهزة: '+ok.length+'</span> <span class="bdg" style="background:#E3F2FD;color:#1A4A6B">متخطاة: '+sk.length+'</span> <span class="bdg bg-w" style="background:#FFCDD2;color:#B71C1C">أخطاء: '+er.length+'</span>'
+    +(ok.length?' — إجمالي الجاهزة: <b>'+money(tot)+' ﷼</b> (ضريبة '+money(vat)+')':'')
+    +(newNames.length?'<br>🆕 موردون جدد سيُنشؤون ('+newNames.length+'): '+esc(newNames.slice(0,8).join('، '))+(newNames.length>8?'…':''):'')
+    +P.fileWarn.map(function(w){return '<br><span class="sdb-w">'+esc(w)+'</span>';}).join('')
+    +(S.ctx.ingsOk?'':'<br><span class="sdb-w">⚠️ تعذّر تحميل المواد الخام — ستُحفظ الأصناف غير مربوطة.</span>')
+    +'</div>';
+  h+='<div style="margin:10px 0;padding:8px 12px;border:1px dashed #FF9800;border-radius:8px;background:#FFF3E0;font-size:12px"><label style="display:flex;gap:6px;align-items:center;font-weight:700"><input type="checkbox" id="inv-imp-auto" style="width:auto"'+(canStock&&hasLinked?'':' disabled')+(S.autoRecv?' checked':'')+'> 📥 استلام تلقائي للمخزون (الأصناف المربوطة بالمواد الخام)</label>'
+    +'<div style="font-size:11px;color:var(--tl);margin-top:3px">'+(canStock?(hasLinked?'':'لا توجد أصناف مربوطة بالمواد الخام في الفواتير الجاهزة. '):'لا تملك صلاحية حركات المخزون. ')+'الافتراضي: <b>غير مفعّل</b> — الفواتير القديمة غالبًا معكوسة أصلًا في جرد المخزون، والاستلام التلقائي سيُضيف كمياتها مرة ثانية. فعّله فقط إن كانت الفواتير لم تُستلم في المخزن.</div>'
+    +'<div id="inv-imp-autowarn" style="font-size:11px;margin-top:3px"></div></div>';
+  h+='<div style="max-height:46vh;overflow:auto;border:1px solid var(--br);border-radius:8px"><table class="dt" style="width:100%;font-size:11.5px"><thead style="position:sticky;top:0"><tr><th>#</th><th>الحالة</th><th>المورد</th><th>رقم الفاتورة</th><th>التاريخ</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>أصناف</th><th>السداد</th><th>ملاحظات / السبب</th></tr></thead><tbody>'
+    +invs.map(function(i,ix){
+      var note=i.status==='skipped'?esc(i.reason):(i.errors.length?'<span style="color:#B71C1C">'+i.errors.map(esc).join('<br>')+'</span>':'')+(i.warns.length?(i.errors.length?'<br>':'')+'<span style="color:#E65100">'+i.warns.map(function(w){return '⚠️ '+esc(w);}).join('<br>')+'</span>':'');
+      var isOk=i.status==='ok';
+      return '<tr style="'+(i.status!=='ok'?'opacity:.85;':'')+'" data-i="'+ix+'"><td>'+i.firstRow+'</td><td>'+stBadge(i)+'</td><td>'+esc(i.supplier)+(i.newSupplier&&isOk?' <span class="bdg" style="background:#FFF9C4;color:#F57F17">جديد</span>':'')+'</td><td dir="ltr">'+esc(i.number)+'</td><td dir="ltr">'+esc(i.date||'')+'</td>'
+        +'<td dir="ltr">'+(isOk?money(i.sub):'')+'</td><td dir="ltr">'+(isOk?money(i.vat):'')+'</td><td dir="ltr" style="font-weight:700">'+(isOk?money(i.total):'')+'</td><td>'+(isOk?(i.linesBuilt.length||''):'')+'</td><td>'+esc(isOk?i.pay:'')+'</td><td style="font-size:11px;max-width:380px">'+note+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp" id="inv-imp-go" onclick="invImportCommit()"'+(ok.length?'':' disabled')+'>✅ تأكيد استيراد '+ok.length+' فاتورة</button><button class="btn bo" onclick="invImportClose()">إلغاء</button></div><div id="inv-imp-prog" style="margin-top:10px"></div>';
+  out.innerHTML=h;
+  var cb=$('inv-imp-auto');
+  if(cb)cb.addEventListener('change',function(){S.autoRecv=!!cb.checked;stockWarn();});
+  stockWarn();
+}
+/* تنبيه الاستلام التلقائي: فواتير مؤرَّخة قبل جرد معتمد يشمل الأصناف نفسها (كما ينبّه المسار اليدوي) */
+function stockWarn(){
+  var S=II.state,el=$('inv-imp-autowarn');if(!el)return;
+  if(!S.autoRecv){el.innerHTML='';return;}
+  el.innerHTML='⏳ جارٍ فحص الجرود…';
+  Promise.resolve(INVX.fresh()).then(function(){
+    var hit=[];
+    S.P.invoices.forEach(function(i){
+      if(i.status!=='ok')return;
+      var ids={};i.linesBuilt.forEach(function(l){if(l.ingId&&INV.items[l.ingId])ids[l.ingId]=1;});
+      if(!Object.keys(ids).length)return;
+      var lc=INVX.laterCounts(i.date,ids,null);
+      if(lc.length)hit.push(i.number+' (جرد '+(lc[0].month||lc[0].date)+')');
+    });
+    if(!S.autoRecv)return;
+    el.innerHTML=hit.length?'<span style="color:#B71C1C">⚠️ '+hit.length+' فاتورة مؤرَّخة قبل جرد معتمد يشمل أصنافها: '+esc(hit.slice(0,6).join('، '))+(hit.length>6?'…':'')+' — ستُستلم مع تنبيه كما في الإدخال اليدوي، ولن يطابق ذلك الجرد الدفتر (راجع «جرود غير متسقة مع الدفتر» في تبويب الجرد).</span>':'<span style="color:#1B5E20">لا جرود معتمدة لاحقة تتعارض مع الأصناف المربوطة.</span>';
+  }).catch(function(e){el.innerHTML='<span style="color:#B71C1C">تعذّر فحص الجرود ('+esc(e.message)+')</span>';});
+}
+
+/* ---------- الحفظ ---------- */
+function progress(done,total,msg){
+  var p=$('inv-imp-prog');if(!p)return;
+  var pct=total?Math.round(done/total*100):0;
+  p.innerHTML='<div style="font-size:12px;margin-bottom:4px">⏳ '+esc(msg||'')+' '+done+' من '+total+'</div><div style="height:8px;background:var(--bd);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--g,#2E7D32)"></div></div>';
+}
+function postAccounting(ids,minD,maxD){
+  if(typeof accCanWrite!=='function'||!accCanWrite())return Promise.resolve({note:'تُرحَّل قيودها محاسبيًا تلقائيًا عند أول دخول لمدير الفرع أو المحاسب (لا تملك صلاحية القيود).'});
+  return accLoad().then(function(){
+    if(!ACC.loaded||!ACC.list.length)return {note:'لم تُنشأ شجرة الحسابات بعد — لم تُرحَّل قيود محاسبية.'};
+    if(ACC.settings&&ACC.settings.autoPost===false)return {note:'الترحيل التلقائي معطّل في إعدادات المحاسبة — رحّل من «ترحيل تلقائي» في صفحة المحاسبة.'};
+    return accAutoBuild(minD,maxD,['purchase'],{strict:true,restrict:true}).then(function(plan){
+      var mine=plan.filter(function(p){return p.source&&p.source.type==='purchase'&&ids[p.source.id];});
+      var news=mine.filter(function(p){return p.status==='new';});
+      var stuck=mine.filter(function(p){return p.status!=='new'&&p.status!=='posted'&&p.status!=='stale';});
+      var clean=news.map(function(p){return {id:p.id,date:p.date,desc:p.desc,ref:p.ref,lines:p.lines,source:p.source,auto:true};});
+      return accPostEntries(clean).then(function(n){return {posted:n.length,stuck:stuck.length,stuckWhy:stuck[0]&&stuck[0].status};});
+    });
+  }).catch(function(e){return {note:'تعذّر الترحيل المحاسبي ('+e.message+') — يتم تلقائيًا في المزامنة التالية أو من صفحة المحاسبة.'};});
+}
+window.invImportCommit=function(){
+  var S=II.state;
+  if(!S||!S.P||S.committing)return;
+  if(!II.canImport()){alert('ليس لديك صلاحية استيراد فواتير المشتريات');return;}
+  var ok=S.P.invoices.filter(function(i){return i.status==='ok';});
+  if(!ok.length)return;
+  if(!confirm('سيتم حفظ '+ok.length+' فاتورة مشتريات'+(S.autoRecv?' مع الاستلام التلقائي للمخزون':' (بلا أثر على المخزون)')+'. لا يمكن التراجع إلا بحذف كل فاتورة. المتابعة؟'))return;
+  S.committing=true;
+  var go=$('inv-imp-go');if(go)go.disabled=true;
+  var created=[],failed=[],skipped=[],stockMsgs=[],newSupCreated=0,supCache={};
+  var total=ok.length,done=0,minD='9999',maxD='0000';
+  if(window.ACC_SYNC)ACC_SYNC.quiet=Date.now()+3600000;   // لا مزامنة محاسبية جزئية أثناء الاستيراد؛ نرحّل بأنفسنا في النهاية
+  progress(0,total,'تحقق نهائي من التكرار…');
+  // إعادة قراءة الفواتير المحفوظة قبل الكتابة (قد يكون أحد أضاف مثلها بعد المعاينة)
+  psLoadAll().then(function(){return db.collection('purchases_invoices').get();}).then(function(snap){
+    var existing={};
+    snap.forEach(function(d){var x=d.data();if(x.isOpeningBalance||x.type==='opening'||x.invType==='opening')return;existing[x.supplierId+'|'+nName(x.number)]=true;});
+        var batch='imp_'+Date.now().toString(36),nowIso=new Date().toISOString();
+    var creditNeed={};ok.forEach(function(i){if(i.pay==='آجل')creditNeed[i.supKey]=true;});
+    var chain=Promise.resolve();
+    ok.forEach(function(inv){
+      chain=chain.then(function(){
+        var ids=resolveSupplier(inv).ids;
+        if(ids.some(function(id){return existing[id+'|'+inv.numKey];})){skipped.push({inv:inv,why:'سُجّلت مسبقًا (ظهرت بعد المعاينة)'});done++;progress(done,total,'جارٍ الحفظ');return;}
+        // المورد: موجود، أو يُنشأ مرة واحدة عبر مسار «إضافة مورد»
+        var supP;
+        if(ids.length){supP=Promise.resolve(PS_SUPPLIERS.find(function(s){return s._id===ids[0];}));}
+        else if(supCache[inv.supKey]){supP=supCache[inv.supKey];}
+        else{
+          var data={name:inv.supplier,category:'أخرى',vatNo:inv.vatNo||'',cr:'',phone:'',email:'',address:'',openingBalance:0,openingDate:null,
+            creditAllowed:!!creditNeed[inv.supKey],creditLimit:0,alertThreshold:0,createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+          supP=supCache[inv.supKey]=pssPersist(data,inv.supplier,0,'').then(function(x){newSupCreated++;return x;});
+        }
+        return supP.then(function(sobj){
+          var cc=psiCreditCheck(sobj._id,sobj,inv.pay,inv.total,inv.paid,0);
+          if(cc.block)throw new Error(cc.block.replace(/\n+/g,' ').slice(0,200));
+          var lines=inv.linesBuilt.map(function(l){return Object.assign({},l);});
+          var auto=!!S.autoRecv&&inv.linked>0;
+          return psiPersist({d:inv.date,num:inv.number,sup:sobj._id,type:inv.type,pm:inv.pay,sub:inv.sub,vat:inv.vat,total:inv.total,actualPaid:inv.paid,desc:inv.notes,
+            imgName:'',payFrom:'',lines:lines,priceMode:lines.length?'ex':'',autoRecv:auto,supplierObj:sobj,
+            extra:Object.assign({importBatch:batch,importFile:String(S.file||'').slice(0,120),importRow:inv.firstRow},inv.dueDate?{dueDate:inv.dueDate}:{},inv.deductible?{vatDeductible:inv.deductible}:{}),auditNote:' [استيراد من ملف]'}).then(function(r){
+            created.push({inv:inv,id:r.x._id});existing[sobj._id+'|'+inv.numKey]=true;
+            if(inv.date<minD)minD=inv.date;if(inv.date>maxD)maxD=inv.date;
+            return (r.rcvP||Promise.resolve('')).then(function(m){if(m&&/⚠️|تعذّر/.test(m))stockMsgs.push('فاتورة '+inv.number+': '+m.replace(/^\n+/,'').replace(/\n+/g,' '));});
+          });
+        }).catch(function(e){failed.push({inv:inv,why:e.message||String(e)});}).then(function(){done++;progress(done,total,'جارٍ الحفظ');});
+      });
+    });
+    return chain.then(function(){
+      progress(total,total,'ترحيل القيود المحاسبية');
+      var idm={};created.forEach(function(c){idm[c.id]=1;});
+      return created.length?postAccounting(idm,minD,maxD):Promise.resolve({});
+    }).then(function(acc){
+      if(window.ACC_SYNC){ACC_SYNC.quiet=0;try{accSyncSoon();}catch(e){}}
+      try{psRefreshAll();}catch(e){}
+      var sumLine='استيراد '+created.length+' فاتورة من ملف «'+String(S.file||'')+'» — متخطاة '+(S.P.invoices.filter(function(i){return i.status==='skipped';}).length+skipped.length)+'، أخطاء '+(S.P.invoices.filter(function(i){return i.status==='error';}).length+failed.length);
+      if(created.length)sdAuditLog('create','purchases_invoices',batch,sumLine);
+      S.committing=false;S.P=null;
+      summary({created:created,failed:failed,skipped:skipped,acc:acc||{},stockMsgs:stockMsgs,newSup:newSupCreated,orig:S});
+    });
+  }).catch(function(e){
+    if(window.ACC_SYNC)ACC_SYNC.quiet=0;
+    S.committing=false;
+    var p=$('inv-imp-prog');if(p)p.innerHTML='<div class="sdb-r" style="font-size:12px">تعذّر إكمال الاستيراد: '+esc(e.message)+(/permission/i.test(e.message)?' — ليست لديك صلاحية الكتابة.':'')+'</div>';
+    if(go)go.disabled=false;
+  });
+};
+function summary(R){
+  var h='<div class="sdb-g" style="font-size:14px;font-weight:700;margin-bottom:8px">✅ اكتمل الاستيراد</div>'
+    +'<div style="font-size:13px;line-height:2"><span class="bdg bg-s">أُنشئت: '+R.created.length+'</span> <span class="bdg" style="background:#E3F2FD;color:#1A4A6B">متخطاة بعد المعاينة: '+R.skipped.length+'</span> <span class="bdg bg-w" style="background:#FFCDD2;color:#B71C1C">فشلت: '+R.failed.length+'</span>'
+    +(R.newSup?'<br>🆕 موردون جدد: '+R.newSup:'')
+    +(R.acc.posted!=null?'<br>📒 قيود محاسبية مرحَّلة: '+R.acc.posted+(R.acc.stuck?' — ⚠️ '+R.acc.stuck+' لم تُرحَّل ('+esc(R.acc.stuckWhy||'')+')':''):'')
+    +(R.acc.note?'<br>📒 '+esc(R.acc.note):'')
+    +'</div>';
+  if(R.failed.length)h+='<div style="margin-top:8px;font-size:12px;color:#B71C1C"><b>الفواتير التي فشلت (لم تُحفظ — صحّحها وأعد رفع الملف: المحفوظة لن تتكرر):</b><br>'+R.failed.slice(0,50).map(function(f){return 'صف '+f.inv.firstRow+' — '+esc(f.inv.supplier)+' / '+esc(f.inv.number)+': '+esc(f.why);}).join('<br>')+'</div>';
+  if(R.skipped.length)h+='<div style="margin-top:8px;font-size:12px;color:#1A4A6B">'+R.skipped.slice(0,30).map(function(f){return 'صف '+f.inv.firstRow+' — '+esc(f.inv.number)+': '+esc(f.why);}).join('<br>')+'</div>';
+  if(R.stockMsgs.length)h+='<div style="margin-top:8px;font-size:12px;color:#E65100"><b>تنبيهات المخزون:</b><br>'+R.stockMsgs.slice(0,30).map(esc).join('<br>')+'</div>';
+  h+='<div style="margin-top:12px"><button class="btn bp" onclick="invImportClose()">إغلاق</button></div>';
+  var o=$('inv-imp-out');if(o)o.innerHTML=h;
+}
+
+// للاختبارات
+II._parseRows=parseRows;II._parseBook=parseBook;II._validate=validate;II._nh=nh;II._numOf=numOf;
 })();
 
 </script>
