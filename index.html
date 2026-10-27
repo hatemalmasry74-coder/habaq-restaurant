@@ -5403,6 +5403,7 @@ function loadAuditLog(){
     if(tbody)tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:16px;color:red">خطأ: '+e.message+'</td></tr>';
   });
 }
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function sdFillAuditFilters(){
   var collSel=document.getElementById('al-f-coll');
   var userSel=document.getElementById('al-f-user');
@@ -5410,14 +5411,14 @@ function sdFillAuditFilters(){
     var curC=collSel.value;
     var colls={};_auditCache.forEach(function(l){if(l.collection)colls[l.collection]=1;});
     var h='<option value="">الكل</option>';
-    Object.keys(colls).forEach(function(c){h+='<option value="'+c+'">'+(AUDIT_COLL_NAMES[c]||c)+'</option>';});
+    Object.keys(colls).forEach(function(c){h+='<option value="'+esc(c)+'">'+esc(AUDIT_COLL_NAMES[c]||c)+'</option>';});
     collSel.innerHTML=h;collSel.value=curC;
   }
   if(userSel){
     var curU=userSel.value;
     var users={};_auditCache.forEach(function(l){if(l.userName)users[l.userName]=1;});
     var h2='<option value="">الكل</option>';
-    Object.keys(users).forEach(function(u){h2+='<option value="'+u+'">'+u+'</option>';});
+    Object.keys(users).forEach(function(u){h2+='<option value="'+esc(u)+'">'+esc(u)+'</option>';});
     userSel.innerHTML=h2;userSel.value=curU;
   }
 }
@@ -5461,19 +5462,19 @@ function renderAuditLog(){
   var rows='';
   list.forEach(function(l){
     var a=AUDIT_ACTION_NAMES[l.action]||{label:l.action,icon:'',bg:'var(--b)',color:'var(--tm)'};
-    var actions='<button class="btn bsm bo" onclick="sdViewAuditDetails(\''+l._id+'\')">عرض</button>';
+    var actions='<button class="btn bsm bo" data-id="'+esc(l._id)+'" onclick="sdViewAuditDetails(this.getAttribute(\'data-id\'))">عرض</button>';
     if(l.action==='delete'&&l.snapshot){
       if(l.restored){
-        actions+=' <span style="color:#1B5E20;font-size:10px;font-weight:700">♻️ استُرجع'+(l.restoredBy?(' ('+l.restoredBy+')'):'')+'</span>';
+        actions+=' <span style="color:#1B5E20;font-size:10px;font-weight:700">♻️ استُرجع'+(l.restoredBy?(' ('+esc(l.restoredBy)+')'):'')+'</span>';
       }else{
-        actions+=' <button class="btn bsm bs" onclick="sdRestoreDeleted(\''+l._id+'\')">♻️ استرجاع</button>';
+        actions+=' <button class="btn bsm bs" data-id="'+esc(l._id)+'" onclick="sdRestoreDeleted(this.getAttribute(\'data-id\'))">♻️ استرجاع</button>';
       }
     }
     rows+='<tr>'
       +'<td style="font-size:11px;white-space:nowrap">'+sdFmtLogDate(l.dateStr)+'</td>'
-      +'<td style="font-size:12px;font-weight:700">'+(l.userName||'—')+'<div style="font-size:10px;color:var(--tl);font-weight:400">'+(ROLE_NAMES[l.userRole]||l.userRole||'')+'</div></td>'
-      +'<td><span style="background:'+a.bg+';color:'+a.color+';padding:3px 9px;border-radius:8px;font-size:11px;font-weight:800;white-space:nowrap">'+a.icon+' '+a.label+'</span></td>'
-      +'<td style="font-size:11px">'+(AUDIT_COLL_NAMES[l.collection]||l.collection||'—')+'</td>'
+      +'<td style="font-size:12px;font-weight:700">'+(l.userName||'—')+'<div style="font-size:10px;color:var(--tl);font-weight:400">'+esc(ROLE_NAMES[l.userRole]||l.userRole||'')+'</div></td>'
+      +'<td><span style="background:'+a.bg+';color:'+a.color+';padding:3px 9px;border-radius:8px;font-size:11px;font-weight:800;white-space:nowrap">'+esc(a.icon)+' '+esc(a.label)+'</span></td>'
+      +'<td style="font-size:11px">'+esc(AUDIT_COLL_NAMES[l.collection]||l.collection||'—')+'</td>'
       +'<td style="font-size:11px;max-width:300px">'+(l.summary||'—')+'</td>'
       +'<td style="white-space:nowrap">'+actions+'</td>'
       +'</tr>';
@@ -5498,23 +5499,23 @@ function sdViewAuditDetails(logId){
   if(!l){alert('السجل غير موجود');return;}
   var a=AUDIT_ACTION_NAMES[l.action]||{label:l.action,icon:''};
   var html='<div style="font-size:12px;line-height:2">'
-    +'<div><b>العملية:</b> '+a.icon+' '+a.label+'</div>'
-    +'<div><b>القسم:</b> '+(AUDIT_COLL_NAMES[l.collection]||l.collection||'—')+'</div>'
-    +'<div><b>المستخدم:</b> '+(l.userName||'—')+' ('+(ROLE_NAMES[l.userRole]||l.userRole||'—')+')</div>'
+    +'<div><b>العملية:</b> '+esc(a.icon)+' '+esc(a.label)+'</div>'
+    +'<div><b>القسم:</b> '+esc(AUDIT_COLL_NAMES[l.collection]||l.collection||'—')+'</div>'
+    +'<div><b>المستخدم:</b> '+esc(l.userName||'—')+' ('+esc(ROLE_NAMES[l.userRole]||l.userRole||'—')+')</div>'
     +'<div><b>التاريخ:</b> '+sdFmtLogDate(l.dateStr)+'</div>'
     +'<div><b>التفاصيل:</b> '+(l.summary||'—')+'</div>'
-    +'<div><b>معرّف المستند:</b> <code style="direction:ltr;display:inline-block;font-size:10px">'+(l.docId||'—')+'</code></div>'
-    +(l.restored?'<div style="color:#1B5E20"><b>♻️ تم استرجاعه</b>'+(l.restoredBy?(' بواسطة '+l.restoredBy):'')+(l.restoredAtStr?(' في '+sdFmtLogDate(l.restoredAtStr)):'')+'</div>':'')
+    +'<div><b>معرّف المستند:</b> <code style="direction:ltr;display:inline-block;font-size:10px">'+esc(l.docId||'—')+'</code></div>'
+    +(l.restored?'<div style="color:#1B5E20"><b>♻️ تم استرجاعه</b>'+(l.restoredBy?(' بواسطة '+esc(l.restoredBy)):'')+(l.restoredAtStr?(' في '+sdFmtLogDate(l.restoredAtStr)):'')+'</div>':'')
     +'</div>';
   if(l.snapshot){
     html+='<div style="margin-top:12px;font-weight:900;font-size:13px;color:var(--r)">📄 نسخة البيانات المحفوظة'+(l.action==='edit'?' (قبل التعديل)':' (قبل الحذف)')+':</div>';
     html+='<table class="dt" style="margin-top:6px"><tbody>';
     Object.keys(l.snapshot).forEach(function(k){
-      html+='<tr><td style="font-weight:700;font-size:11px;width:140px">'+(AUDIT_FIELD_LABELS[k]||k)+'</td><td style="font-size:11px">'+sdFmtSnapValue(l.snapshot[k])+'</td></tr>';
+      html+='<tr><td style="font-weight:700;font-size:11px;width:140px">'+esc(AUDIT_FIELD_LABELS[k]||k)+'</td><td style="font-size:11px">'+sdFmtSnapValue(l.snapshot[k])+'</td></tr>';
     });
     html+='</tbody></table>';
     if(l.action==='delete'&&!l.restored){
-      html+='<div style="margin-top:12px;text-align:center"><button class="btn bs" onclick="psCloseModal();sdRestoreDeleted(\''+l._id+'\')">♻️ استرجاع هذا السجل</button></div>';
+      html+='<div style="margin-top:12px;text-align:center"><button class="btn bs" data-id="'+esc(l._id)+'" onclick="psCloseModal();sdRestoreDeleted(this.getAttribute(\'data-id\'))">♻️ استرجاع هذا السجل</button></div>';
     }
   }else if(l.action==='delete'){
     html+='<div style="margin-top:10px;color:#B71C1C;font-size:11px">⚠️ لا توجد نسخة محفوظة لهذا السجل (حُذف قبل تفعيل نظام النسخ أو حذف جماعي)</div>';
@@ -5527,7 +5528,10 @@ function sdRestoreDeleted(logId){
   if(!l){alert('السجل غير موجود');return;}
   if(l.restored){alert('تم استرجاع هذا السجل سابقاً');return;}
   if(!l.snapshot||!l.docId||!l.collection){alert('لا توجد نسخة محفوظة لهذا السجل');return;}
-  if(!confirm('استرجاع هذا السجل إلى "'+(AUDIT_COLL_NAMES[l.collection]||l.collection)+'"؟\n\n'+(l.summary||'')))return;
+  if(l.action!=='delete'){alert('الاسترجاع متاح لسجلات الحذف فقط');return;}
+  var SD_NO_RESTORE={users:1,app_config:1,audit_logs:1,acc_accounts:1,acc_settings:1,acc_counters:1,inv_moves:1,inv_counts:1,inv_counters:1,plan90:1,cost_settings:1};
+  if(SD_NO_RESTORE[l.collection]){alert('لا يمكن استرجاع هذا النوع من السجلات من هنا');return;}
+  if(!confirm('استرجاع هذا السجل إلى المجموعة "'+l.collection+'" ('+(AUDIT_COLL_NAMES[l.collection]||l.collection)+') بمعرّف "'+l.docId+'"؟\n\n'+(l.summary||'')))return;
   db.collection(l.collection).doc(l.docId).set(l.snapshot).then(function(){
     db.collection(AUDIT_COLL).doc(l._id).update({restored:true,restoredBy:CU.name||'',restoredAtStr:new Date().toISOString()}).catch(function(){});
     sdAuditLog('restore',l.collection,l.docId,'استرجاع: '+(l.summary||''));
