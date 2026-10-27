@@ -4845,6 +4845,10 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         </div><!-- end be-mode-recipes -->
 
         <div id="be-mode-detailed" style="display:none">
+        <div id="bed-imp-bar" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn bsm bo" id="bed-imp-btn" style="display:none" onclick="bedImportOpen()" title="استيراد بنود تكاليف شهرية من ملف Excel/CSV إلى حقول هذه الحاسبة">📥 استيراد بنود من ملف</button>
+          <button class="btn bsm bo" id="bed-undo-btn" style="display:none" onclick="bedImportUndo()" title="يعيد قيم الحقول التي لمسها آخر استيراد إن لم تُعدَّل الحاسبة بعده">↩️ تراجع عن آخر استيراد</button>
+        </div>
         <div style="font-size:11px;color:var(--tl);margin-bottom:10px;background:var(--b);padding:8px 11px;border-radius:7px;border-right:3px solid var(--g)">💡 هذه الحاسبة مستقلة عن الوصفات: أدخل بنود التكاليف الثابتة تفصيلياً (موظفون + تشغيل الفرع) ومتوسطات الفئات، وتُحفظ منفصلة عن الحاسبة المرتبطة بالوصفات.</div>
         <div class="card" style="margin-bottom:12px">
           <div class="ct">🔗 ربط الحاسبة ببطاقات التكلفة ومبيعات الأصناف</div>
@@ -5691,7 +5695,8 @@ var AUDIT_COLL_NAMES={
   hr_payroll:'مسيرات الرواتب',
   inv_moves:'حركات المخزون',
   inv_requests:'طلبات الشراء',
-  inv_production:'طلبات الإنتاج'
+  inv_production:'طلبات الإنتاج',
+  cost_settings:'إعدادات التكاليف ونقطة التعادل'
 };
 var AUDIT_ACTION_NAMES={
   'delete':{label:'حذف',icon:'🗑️',bg:'#FFEBEE',color:'#B71C1C'},
@@ -22024,11 +22029,23 @@ function bedCalc(){
   sH('bed-scenarios-body',srows);
 }
 
-function bedSave(){
+// مسار الحفظ المشترك للحاسبة التفصيلية: الزر اليدوي «حفظ الحساب» واستيراد البنود من ملف (57-breakeven-import.js) يمرّان عليه.
+// rev = رمز نسخة يتغيّر مع كل حفظ (يعتمد عليه «التراجع عن آخر استيراد» لمعرفة هل عُدّلت الوثيقة بعده)؛ merge:true يُبقي importLog.
+var _bedRev=null,_bedImportLog=[];
+function bedBuildData(extra){
   var g=function(id){var e=document.getElementById(id);return parseFloat(e?e.value:0)||0;};
-  var data = {savedBy:(typeof CU!=='undefined'&&CU)?CU.name:'',savedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  var data = {savedBy:(typeof CU!=='undefined'&&CU)?CU.name:'',savedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    rev:Date.now().toString(36)+Math.random().toString(36).slice(2,8)};
   BE_ALL_FIELDS.forEach(function(id){data[id]=g(id);});
-  db.collection('cost_settings').doc('breakeven_detailed').set(data).then(function(){
+  if(extra)Object.keys(extra).forEach(function(k){data[k]=extra[k];});
+  return data;
+}
+function bedPersist(extra){
+  var data=bedBuildData(extra);
+  return db.collection('cost_settings').doc('breakeven_detailed').set(data,{merge:true}).then(function(){_bedRev=data.rev;if(data.importLog)_bedImportLog=data.importLog;return data;});
+}
+function bedSave(){
+  bedPersist().then(function(){
     alert('✅ تم حفظ حسابات نقطة التعادل');
   }).catch(function(e){alert('خطأ: '+e.message);});
 }
@@ -22041,7 +22058,8 @@ function bedLoad(){
 
   // Try to load from Firestore first
   try{
-    db.collection('cost_settings').doc('breakeven_detailed').get().then(function(doc){
+    window._bedLoadP=db.collection('cost_settings').doc('breakeven_detailed').get().then(function(doc){
+      _bedRev=doc.exists?(doc.data().rev||''):'';_bedImportLog=(doc.exists&&Array.isArray(doc.data().importLog))?doc.data().importLog:[];
       if(doc.exists){
         var d = doc.data();
         BE_ALL_FIELDS.forEach(function(id){
@@ -27738,7 +27756,15 @@ function accVatMan(k,f,val){
 }
 function accVatAutoTax(){var b=parseFloat(document.getElementById('acc-vp-base').value)||0;document.getElementById('acc-vp-vat').value=b?accR(b*accVatRate()):'';document.getElementById('acc-vp-total').value='';}
 function accVatFromTotal(){var t=parseFloat(document.getElementById('acc-vp-total').value)||0;if(!t)return;var r=accVatRate(),b=accR(t/(1+r));document.getElementById('acc-vp-base').value=b;document.getElementById('acc-vp-vat').value=accR(t-b);}
+// الحفظ في طابور: المعاملات المتتالية قد تُنفَّذ بترتيب مختلف فتكتب حالةً أقدم فوق أحدث (فقدان تعديل)،
+// فنُنفّذ واحدة بعد واحدة، وتُبنى البيانات لحظة التنفيذ من آخر حالة في الذاكرة
+var _vatSaveQ=Promise.resolve();
 function accVatSave(){
+  var run=function(){return accVatSaveNow();};
+  _vatSaveQ=_vatSaveQ.then(run,run);
+  return _vatSaveQ;
+}
+function accVatSaveNow(){
   if(!accVatCanEdit())return Promise.resolve();
   var D=VAT.doc,data={from:VAT.f,to:VAT.t,purchases:(D.purchases||[]).map(function(p){return {id:p.id,date:p.date||'',supplier:p.supplier||'',vatNo:p.vatNo||'',invNo:p.invNo||'',base:accR(p.base),vat:accR(p.vat)};}),
     includeSystem:!!D.includeSystem,salesSource:D.salesSource,purchMode:D.purchMode||'detail',mSales:{base:accR(D.mSales&&D.mSales.base),vat:accR(D.mSales&&D.mSales.vat)},mPurch:{base:accR(D.mPurch&&D.mPurch.base),vat:accR(D.mPurch&&D.mPurch.vat)},corrections:accR(D.corrections),carried:accR(D.carried),status:D.status||'draft',updatedBy:CU.name||'',updatedAt:new Date().toISOString()};
@@ -30216,6 +30242,559 @@ function summary(R){
 
 // للاختبارات
 II._parseRows=parseRows;II._parseBook=parseBook;II._validate=validate;II._nh=nh;II._numOf=numOf;
+})();
+
+</script>
+<script>/* module: 57-breakeven-import.js */
+/* =====================================================================
+   استيراد بنود نقطة التعادل من ملف Excel/CSV إلى «الحاسبة التفصيلية» (حقول التكاليف الثابتة الشهرية bed-emp-* / bed-op-*)
+   • الزر «📥 استيراد بنود من ملف» في رأس تبويب الحاسبة التفصيلية ← نافذة: ملف ← معاينة كاملة ← تأكيد ← ملخص. لا كتابة قبل التأكيد.
+   • قراءة الملف بقارئ مستورد المبيعات نفسه (salesImport.readBook). كل خلية نص غير موثوق: تُهرَّب عند العرض (esc) ولا تدخل سلاسل onclick.
+   • كل صف: المبلغ ÷ عدد الأشهر المفهوم من «التوزيع في نقطة التعادل» (12 شهراً، «شهري ثابت» = 1 …) = مبلغ شهري، يُجمع في حقل واحد من
+     حقول الحاسبة (اقتراح تلقائي بالكلمات المفتاحية + اختيار المستخدم لكل صف + «تجاهل»). إضافة إلى القيمة الحالية (الافتراضي) أو استبدالها.
+   • الحفظ عبر مسار الحاسبة نفسه (bedPersist في app.html الذي يستعمله زر «حفظ الحساب») + سجل العمليات sdAuditLog + importLog داخل الوثيقة
+     (آخر 20 استيراداً) + «تراجع عن آخر استيراد» (رمز النسخة rev) + منع التكرار بتجزئة محتوى الملف.
+   • الصلاحية: مدير الفرع، أو صاحب صلاحية «تعديل الوصفات والتكاليف» (نفس ccGuard) — لا مالك مشاهدة فقط ولا مشرف زيارات.
+   الاختبارات: tests/e2e/breakeven-import.mjs — التفاصيل: docs/BREAKEVEN-IMPORT.md
+   ===================================================================== */
+(function(){
+'use strict';
+var BI=window.bedImport={state:null};
+var MAX_ROWS=500,MAX_BYTES=5*1024*1024,MAX_LOG=20,MAX_ITEMS_LOGGED=40;
+var IGNORE='__ignore';
+
+function $(id){return document.getElementById(id);}
+function r2(n){return Math.round((+n||0)*100)/100;}
+function money(n){return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+/* ---------- الصلاحيات ---------- */
+BI.canImport=function(){
+  return !!CU&&CU.role!=='visit_supervisor'&&!(typeof isRO==='function'&&isRO())&&typeof ccGuard==='function'&&ccGuard();
+};
+BI.syncButtons=function(){
+  var ok=BI.canImport();
+  ['bed-imp-btn','bed-undo-btn'].forEach(function(id){var b=$(id);if(b)b.style.display=ok?'':'none';});
+};
+(function wrap(){
+  ['go','beMode','startSession'].forEach(function(n){
+    var o=window[n];if(typeof o!=='function')return;
+    window[n]=function(){var r=o.apply(this,arguments);try{BI.syncButtons();}catch(e){}return r;};
+  });
+})();
+
+/* ---------- تطبيع النصوص والأرقام ---------- */
+var AR='٠١٢٣٤٥٦٧٨٩',FA='۰۱۲۳۴۵۶۷۸۹';
+function latin(s){return String(s==null?'':s).replace(/[٠-٩]/g,function(d){return AR.indexOf(d);}).replace(/[۰-۹]/g,function(d){return FA.indexOf(d);}).replace(/٫/g,'.').replace(/٬/g,',');}
+function cell(v){return String(v==null?'':v).replace(/[‎‏‪-‮⁦-⁩﻿ ]/g,' ').replace(/\s+/g,' ').trim();}
+function fold(s){return String(s).toLowerCase().replace(/[ً-ٰٟـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');}
+function nh(s){return fold(cell(s)).replace(/\([^)]*\)|（[^）]*）/g,'').replace(/[^\p{L}\p{N}]+/gu,'');}   // عنوان عمود بلا مسافات/رموز/أقواس
+function nName(s){return fold(latin(cell(s))).replace(/\s+/g,' ');}
+
+/* ---------- حقول الحاسبة (المفاتيح من BE_EMP_FIELDS/BE_OP_FIELDS والتسميات من الصفحة نفسها) ---------- */
+var GROUPS={emp:'👥 تكلفة الموظفين الشهرية',op:'🏢 تكاليف تشغيل الفرع الشهرية'};
+function fields(){
+  var out=[];
+  [['emp',BE_EMP_FIELDS],['op',BE_OP_FIELDS]].forEach(function(g){
+    g[1].forEach(function(id){
+      var el=$(id),fr=el&&el.closest?el.closest('.fr'):null,lb=fr?fr.querySelector('label'):null;
+      out.push({key:id,group:g[0],label:cell(lb?lb.textContent:id).replace(/\s*\(ر\.س\)\s*$/,'')});
+    });
+  });
+  return out;
+}
+BI.fields=fields;
+function fieldByKey(k){return fields().filter(function(f){return f.key===k;})[0]||null;}
+function fieldFromText(t){      // اسم الحقل من الملف: المفتاح، أو التسمية كاملة، أو بدون ما بين الأقواس
+  var n=nh(t),raw=cell(t);if(!n)return null;
+  var all=fields(),hit=null;
+  all.forEach(function(f){
+    if(hit)return;
+    if(raw===f.key||nh(f.label)===n||nh(f.label.replace(/\([^)]*\)/g,''))===n)hit=f;
+  });
+  return hit;
+}
+
+/* ---------- المدة (عدد الأشهر) من نص «التوزيع في نقطة التعادل» ---------- */
+function parseMonths(raw){
+  var s=cell(latin(raw));
+  if(!s)return {months:null,blank:true};
+  var t=fold(s.replace(/\([^)]*\)|（[^）]*）|\[[^\]]*\]/g,' ')).replace(/\s+/g,' ').trim();   // الأقواس ملاحظات لا تُقرأ
+  var m,n;
+  var ok=function(x,kind){x=+x;return (isFinite(x)&&x>0&&x<=1200)?{months:x,kind:kind}:{months:null,invalid:true};};
+  if(/^\d+(\.\d+)?$/.test(t))return ok(t,'number');                                              // رقم وحده = أشهر
+  if((m=t.match(/(\d+(?:\.\d+)?)\s*(?:اشهر|شهور|شهرا|شهر|months?|mos?)(?![ء-ي])/)))return ok(m[1],'months');
+  if((m=t.match(/(\d+(?:\.\d+)?)\s*(?:سنه|سنين|سنوات|عاما|عام|اعوام|years?|yrs?)(?![ء-ي])/)))return ok(m[1]*12,'years');
+  if(/(^|\s)(سنتين|عامين)(\s|$)/.test(t))return ok(24,'years');
+  if(/(^|\s)شهرين(\s|$)/.test(t))return ok(2,'months');
+  if(/^شهر( واحد)?$/.test(t))return ok(1,'months');
+  if(/ربع سنوي|quarterly/.test(t))return ok(3,'period');
+  if(/نصف سنوي|semi/.test(t))return ok(6,'period');
+  if(/(^|\s)شهري(ا|ه)?(\s|$)|monthly|كل شهر/.test(t))return ok(1,'monthly');                      // «شهري/شهري ثابت»: المبلغ شهري أصلاً
+  if(/(^|\s)(سنوي(ا|ه)?|سنه|عام)(\s|$)|yearly|annual/.test(t))return ok(12,'yearly');
+  return {months:null,unknown:true};
+}
+BI.parseMonths=parseMonths;
+
+/* ---------- المبلغ ---------- */
+function parseAmount(v){
+  var t=latin(cell(v)).replace(/﷼|ر\.?\s?س|SAR/gi,'').replace(/\s/g,'');
+  if(!t)return null;
+  if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t))t=t.replace(/,/g,'');
+  else if(/^-?\d+,\d{1,2}$/.test(t))t=t.replace(',','.');
+  if(!/^-?\d+(\.\d+)?$/.test(t))return NaN;
+  return parseFloat(t);
+}
+
+/* ---------- اقتراح الحقل بالكلمات المفتاحية (يُقابَل نص التصنيف+البند أولاً ثم المجموعة؛ الترتيب مهم: الأخصّ أولاً) ---------- */
+var RULES=[
+  [['رخصة عمل','تصريح عمل','رسوم مكتب العمل'],'bed-emp-worklic'],
+  [['اقامة','جوازات'],'bed-emp-iqama'],
+  [['تامين صحي','تامين طبي'],'bed-emp-health'],
+  [['تامينات اجتماعية','تامين اجتماعي','التامينات','gosi','مهنية'],'bed-emp-gosi'],
+  [['ساعات اضافية','اضافي','overtime'],'bed-emp-overtime'],
+  [['شهادة صحية','شهادات صحية','بطاقة صحية','بطاقات صحية'],'bed-emp-cert'],
+  [['سكن','اسكان'],'bed-emp-housing'],
+  [['مستحقات اجازة','اجازة سنوية','رصيد اجازة'],'bed-emp-leave'],
+  [['تذكرة','تذاكر','مكافاة','مكافأة','منحة','بونص','نهاية خدمة','نهاية الخدمة','حافز','حوافز','تاشيرة','تأشيرة','خروج وعودة','خروج و عودة'],'bed-emp-other'],
+  [['راتب','رواتب','salary'],'bed-emp-salary'],
+  [['ايجار','rent'],'bed-op-rent'],
+  [['رخصة بلدية','رخصة البلدية'],'bed-op-municipal'],
+  [['سجل تجاري','السجل التجاري'],'bed-op-cr'],
+  [['انترنت','internet'],'bed-op-internet'],
+  [['كهرباء'],'bed-op-elec'],
+  [['مياه'],'bed-op-water'],
+  [['دفاع مدني'],'bed-op-civil'],
+  [['قوى','مدد','رسوم حكومية'],'bed-op-gov'],
+  [['نظافة','نفايات'],'bed-op-clean'],
+  [['غاز'],'bed-op-gas'],
+  [['كاشير','برنامج محاسبي','نظام محاسبي','نقاط البيع','رواء','فودكس'],'bed-op-pos'],
+  [['تسويق','اعلان','دعاية','ترويج'],'bed-op-marketing'],
+  [['تحسين','تجديد','دهان','ترميم','ديكور','بلاط','استهلاك','اهلاك','صيانة','تركيب'],'bed-op-maintain'],
+  [['اشتراك','جهاز','اجهزة','رسيفر','تجهيزات','برمجيات'],'bed-op-other']
+].map(function(r){return [r[0].map(function(k){return fold(k);}),r[1]];});
+var GROUP_RULES=[
+  [['موظف'],'bed-emp-other'],[['راتب','رواتب'],'bed-emp-salary'],[['تحسين','صيانة'],'bed-op-maintain'],[['اجهزة','تجهيزات'],'bed-op-other']
+].map(function(r){return [r[0].map(function(k){return fold(k);}),r[1]];});
+function suggest(group,item,cls){
+  var hit=function(rules,hay){
+    for(var i=0;i<rules.length;i++)for(var j=0;j<rules[i][0].length;j++)if(hay.indexOf(rules[i][0][j])>=0)return rules[i][1];
+    return '';
+  };
+  return hit(RULES,fold(cell(cls)+' '+cell(item)))||hit(GROUP_RULES,fold(cell(group)))||hit(RULES,fold(cell(group)));
+}
+BI.suggest=suggest;
+
+/* ---------- قراءة الورقة ---------- */
+var HDR={
+  group:['المجموعة','مجموعة','القسم','group'],
+  item:['البند','بند','البيان','الوصف','item','description'],
+  amount:['المبلغ','القيمة','amount','value'],
+  cls:['التصنيف','الفئة','النوع','category','class'],
+  dist:['التوزيع في نقطة التعادل','التوزيع','المدة بالأشهر','المدة','عدد الأشهر','مدة التوزيع','months','duration','distribution'],
+  field:['الحقل','حقل نقطة التعادل','الحقل المستهدف','field','target']
+};
+var HDR_NH={};Object.keys(HDR).forEach(function(k){HDR_NH[k]=HDR[k].map(nh);});
+function mapHeader(row){
+  var m={},used={};
+  (row||[]).forEach(function(h,ci){
+    var n=nh(h);if(!n)return;
+    Object.keys(HDR_NH).some(function(f){
+      if(m[f]!==undefined||used[ci])return false;
+      if(HDR_NH[f].indexOf(n)>=0){m[f]=ci;used[ci]=1;return true;}
+      return false;
+    });
+  });
+  return m;
+}
+var TOTALS=['الاجمالي','اجمالي','الاجماليالكلي','المجموع','مجموع','الكلي','total','sum','grandtotal'].map(nh);
+function hashStr(str){          // تجزئة محتوى لمنع التكرار (ليست تشفيرية): cyrb53 بنسختين
+  function c53(s,seed){
+    var h1=0xdeadbeef^seed,h2=0x41c6ce57^seed,i,ch;
+    for(i=0;i<s.length;i++){ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+    h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+    h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+    return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);
+  }
+  return c53(str,0)+c53(str,7);
+}
+function parseSheet(rows){
+  var lim=Math.min(30,rows.length),hi=-1,map=null,i;
+  for(i=0;i<lim;i++){var m=mapHeader(rows[i]);if(m.item!==undefined&&m.amount!==undefined){hi=i;map=m;break;}}
+  if(hi<0)return null;
+  var out={rows:[],notes:[],headerRow:hi+1,map:map,skippedTotals:0,skippedExamples:0};
+  var g=function(r,k){return map[k]===undefined?'':cell(r[map[k]]);};
+  var data=rows.slice(hi+1);
+  for(i=0;i<data.length;i++){
+    var r=data[i]||[];
+    if(!r.some(function(x){return cell(x);}))continue;
+    var item=g(r,'item'),group=g(r,'group'),cls=g(r,'cls'),dist=g(r,'dist'),amt=g(r,'amount'),fld=g(r,'field');
+    var rowNo=hi+2+i;
+    if(/^\(\s*مثال\s*\)/.test(item)){out.skippedExamples++;continue;}
+    if(TOTALS.indexOf(nh(item))>=0){out.skippedTotals++;continue;}
+    if(!item&&!group&&!cls&&!dist&&!fld){out.skippedTotals++;continue;}                                // صف مبلغ بلا بيان = إجمالي مجهول الاسم
+    if(out.rows.length>=MAX_ROWS)return {error:'عدد الصفوف يتجاوز الحد الأقصى ('+MAX_ROWS+' صف).'};
+    out.rows.push({rowNo:rowNo,group:group,item:item,cls:cls,dist:dist,amountRaw:amt,amount:parseAmount(amt),fieldText:fld});
+  }
+  return out;
+}
+function rowsHash(rows){
+  var lines=rows.map(function(r){return [nName(r.group),nName(r.item),isFinite(r.amount)&&r.amount!==null?r2(r.amount):nName(r.amountRaw),nName(r.cls),nName(r.dist)].join('|');}).sort();
+  return hashStr(lines.length+'\n'+lines.join('\n'));
+}
+function parseBook(sheets){
+  var found=[],ignored=[];
+  (sheets||[]).forEach(function(sh){
+    var P=parseSheet(sh.rows||[]);
+    if(P&&P.error){found.push({name:sh.name,P:P});return;}
+    if(P)found.push({name:sh.name,P:P});else ignored.push(sh.name);
+  });
+  if(!found.length)return {error:'لم أجد ورقة فيها عمودا «البند» و«المبلغ». المطلوب: البند | المبلغ | (اختياري) المجموعة · التصنيف · التوزيع في نقطة التعادل (أو المدة بالأشهر) · الحقل. حمّل «نموذج الملف» لمثال جاهز.'};
+  var pick=found[0],P=pick.P;
+  if(P.error)return {error:P.error};
+  var notes=[];
+  if(found.length>1)notes.push('وُجدت أكثر من ورقة بأعمدة صالحة؛ قُرئت الأولى «'+pick.name+'» وتُجوهلت: '+found.slice(1).map(function(f){return '«'+f.name+'»';}).join('، '));
+  if(ignored.filter(function(x){return x;}).length)notes.push('أوراق لا تحوي بنود تكاليف تُجوهلت: '+ignored.filter(function(x){return x;}).map(function(x){return '«'+x+'»';}).join('، '));
+  if(P.skippedTotals)notes.push('تُخطّي '+P.skippedTotals+' صف إجمالي');
+  if(P.skippedExamples)notes.push('تُخطّي '+P.skippedExamples+' صف مثال');
+  if(!P.rows.length)return {error:'لا توجد بنود في الورقة «'+pick.name+'» (الصفوف إما أمثلة أو إجماليات).'};
+  var hasDist=P.map.dist!==undefined;
+  P.rows.forEach(function(r){
+    var pm=hasDist?parseMonths(r.dist):{months:null,blank:true};
+    r.months=pm.months;r.monthsSrc='file';r.monthsInfo=pm;
+    var f=r.fieldText?fieldFromText(r.fieldText):null;
+    if(f){r.field=f.key;r.fieldSrc='file';}
+    else{r.field=suggest(r.group,r.item,r.cls);r.fieldSrc=r.field?'auto':'';if(r.fieldText)r.unknownField=true;}
+  });
+  return {rows:P.rows,sheet:pick.name,notes:notes,hash:rowsHash(P.rows),hasDist:hasDist,hasFieldCol:P.map.field!==undefined};
+}
+BI._parseBook=parseBook;
+
+/* ---------- تقييم صف (يُعاد بعد كل تعديل من المستخدم) ---------- */
+function evalRow(r){
+  var errs=[];
+  r.monthly=null;r.exact=null;
+  if(r.field===IGNORE){r.status='ignored';r.errors=[];return r;}
+  if(r.amount===null||!isFinite(r.amount))errs.push(r.amount===null?'المبلغ فارغ':'المبلغ ليس رقماً: «'+r.amountRaw+'»');
+  else if(!(r.amount>0))errs.push('المبلغ يجب أن يكون أكبر من صفر');
+  if(!(r.months>0))errs.push(r.monthsInfo&&r.monthsInfo.invalid?'المدة خارج المعقول — أدخل عدد الأشهر':(r.dist?'لم أفهم «التوزيع» — أدخل عدد الأشهر':'لا توجد مدة — أدخل عدد الأشهر'));
+  if(!errs.length){r.exact=r.amount/r.months;r.monthly=r2(r.exact);}      // يُحسب المبلغ الشهري حتى لو بقي الحقل بلا اختيار
+  if(!r.field)errs.push(r.unknownField?'الحقل «'+r.fieldText+'» غير معروف — اختر الحقل':'اختر الحقل المستهدف أو «تجاهل هذا البند»');
+  r.errors=errs;r.status=errs.length?'error':'ok';
+  return r;
+}
+BI._evalRow=evalRow;
+
+/* ---------- أثر الاستيراد على الحقول والمجاميع ---------- */
+function curValues(){
+  var cur={};
+  BE_EMP_FIELDS.concat(BE_OP_FIELDS).forEach(function(id){var e=$(id);cur[id]=parseFloat(e?e.value:0)||0;});
+  return cur;
+}
+function plan(rows,mode,cur){
+  var touched={},order=[];
+  rows.forEach(function(r){
+    if(r.status!=='ok')return;
+    var t=touched[r.field]||(touched[r.field]={key:r.field,sum:0,n:0});
+    if(!touched[r.field].counted){touched[r.field].counted=true;order.push(r.field);}
+    t.sum=r2(t.sum+r.monthly);t.n++;
+  });
+  var after={};Object.keys(cur).forEach(function(k){after[k]=cur[k];});
+  var deltas=order.map(function(k){
+    var t=touched[k],before=cur[k]||0,a=mode==='replace'?r2(t.sum):r2(before+t.sum);
+    after[k]=a;return {key:k,before:r2(before),sum:t.sum,after:a,n:t.n};
+  });
+  var tot=function(vals){
+    var e=BE_EMP_FIELDS.reduce(function(s,k){return s+(vals[k]||0);},0),o=BE_OP_FIELDS.reduce(function(s,k){return s+(vals[k]||0);},0);
+    return {emp:r2(e),op:r2(o),all:r2(e+o)};
+  };
+  return {deltas:deltas,before:tot(cur),after:tot(after),afterVals:after};
+}
+BI._plan=plan;
+
+/* ---------- نافذة الواجهة ---------- */
+var MODAL='bed-imp-modal';
+function closeIt(){var m=$(MODAL);if(m)m.remove();BI.state=null;}
+window.bedImportClose=closeIt;
+function shell(title,inner){
+  var m=$(MODAL);
+  if(!m){
+    m=document.createElement('div');m.id=MODAL;
+    m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML='<div style="background:#fff;border-radius:12px;max-width:1150px;width:100%;max-height:92vh;overflow:auto;display:flex;flex-direction:column">'
+      +'<div style="padding:12px 18px;border-bottom:2px solid var(--bd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2"><b id="bed-imp-title"></b><button class="btn bsm bo" id="bed-imp-x" type="button">✕</button></div>'
+      +'<div id="bed-imp-body" style="padding:14px 18px"></div></div>';
+    document.body.appendChild(m);
+    $('bed-imp-x').addEventListener('click',function(){if(BI.state&&BI.state.committing){alert('الحفظ جارٍ — انتظر اكتماله');return;}closeIt();});
+  }
+  $('bed-imp-title').textContent=title;
+  $('bed-imp-body').innerHTML=inner;
+}
+function loadedP(){
+  if(!window._bedLoaded){window._bedLoaded=true;try{bedLoad();}catch(e){}}
+  return Promise.resolve(window._bedLoadP).catch(function(){});
+}
+function readDoc(){return db.collection('cost_settings').doc('breakeven_detailed').get().then(function(doc){return doc.exists?doc.data():{};});}
+function newRev(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+
+window.bedImportOpen=function(){
+  if(!BI.canImport()){alert('ليس لديك صلاحية استيراد بنود نقطة التعادل');return false;}
+  BI.state={committing:false};
+  shell('📥 استيراد بنود نقطة التعادل من ملف',
+    '<div style="font-size:12px;line-height:2;color:var(--tm)">ارفع ملف Excel (xlsx) أو CSV فيه بنود تكاليف تُوزَّع على أشهر وتُضاف إلى <b>التكاليف الثابتة الشهرية</b> للحاسبة التفصيلية. '
+    +'الأعمدة: <b>البند · المبلغ</b> (مطلوبان) + المجموعة · التصنيف · <b>التوزيع في نقطة التعادل</b> («12 شهراً»، «60 شهراً»، «شهري ثابت») أو <b>المدة بالأشهر</b> · الحقل (اختياري، اسم حقل الحاسبة بالضبط). '
+    +'تُعرض معاينة كاملة بالحقل المقترح لكل بند ويمكنك تغييره، ولا يُحفظ شيء قبل «تأكيد الاستيراد».</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0"><input type="file" id="bed-imp-file" accept=".xlsx,.csv,.txt" style="max-width:340px">'
+    +'<button class="btn bp" type="button" onclick="bedImportPreview()">🔍 قراءة الملف ومعاينة</button>'
+    +'<button class="btn bo" type="button" onclick="bedImportTemplate()">⬇️ تحميل نموذج الملف</button></div>'
+    +'<div style="font-size:11px;color:var(--tl)">الحد الأقصى '+MAX_ROWS+' صف و5 ميغابايت. xls الثنائي القديم غير مدعوم (احفظه xlsx أو csv). كل خلية تُعامل كنص غير موثوق.</div>'
+    +'<div id="bed-imp-out" style="margin-top:12px"></div>');
+  return true;
+};
+
+/* نموذج الملف: CSV بـBOM */
+BI.templateRows=function(){
+  var f=function(k){var x=fieldByKey(k);return x?x.label:k;};
+  return [
+    ['البند','المبلغ','المدة بالأشهر','الحقل'],
+    ['(مثال) تذاكر سفر سنوية لموظف','2400','12',f('bed-emp-other')],
+    ['(مثال) تجديد دهانات المحل','1350','36',f('bed-op-maintain')],
+    ['(مثال) راتب إداري شهري ثابت','5000','1',f('bed-emp-salary')]
+  ];
+};
+function csvText(rows){
+  return '﻿'+rows.map(function(r){return r.map(function(c){var s=String(c);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',');}).join('\r\n')+'\r\n';
+}
+BI.csvText=csvText;
+window.bedImportTemplate=function(){
+  var blob=new Blob([csvText(BI.templateRows())],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='breakeven-import-template.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1500);
+};
+
+window.bedImportPreview=function(){
+  if(!BI.canImport()){alert('ليس لديك صلاحية استيراد بنود نقطة التعادل');return;}
+  var S=BI.state;if(!S||S.committing)return;
+  var f=($('bed-imp-file')||{}).files,out=$('bed-imp-out');
+  if(!f||!f.length){alert('اختر الملف أولاً');return;}
+  var file=f[0];
+  if(file.size>MAX_BYTES){out.innerHTML='<div class="sdb-r" style="font-size:12px">حجم الملف أكبر من 5 ميغابايت.</div>';return;}
+  if(!window.salesImport||typeof salesImport.readBook!=='function'){out.innerHTML='<div class="sdb-r">قارئ الملفات غير متاح.</div>';return;}
+  out.innerHTML='⏳ جارٍ قراءة الملف…';S.P=null;
+  Promise.all([salesImport.readBook(file),loadedP()]).then(function(rr){
+    var P=parseBook(rr[0].sheets);
+    if(P.error)throw new Error(P.error);
+    return readDoc().then(function(doc){
+      P.rows.forEach(evalRow);
+      S.file=file.name;S.P=P;S.doc=doc;S.docRev=doc.rev||'';S.mode='add';S.again=false;
+      S.log=Array.isArray(doc.importLog)?doc.importLog:[];
+      S.dup=S.log.filter(function(e){return e&&e.hash===P.hash&&!e.undone;})[0]||null;
+      S.stale=(_bedRev==null)||(S.docRev!==(_bedRev||''));
+      S.dirty=BE_EMP_FIELDS.concat(BE_OP_FIELDS).filter(function(k){var v=parseFloat(doc[k])||0,e=$(k);return Math.abs((parseFloat(e?e.value:0)||0)-v)>0.0001;}).length;
+      render();
+    });
+  }).catch(function(e){out.innerHTML='<div class="sdb-r" style="font-size:12px;white-space:pre-line">خطأ: '+esc(e.message)+'</div>';});
+};
+
+function optionsHtml(sel){
+  var h='<option value=""'+(sel?'':' selected')+'>— اختر الحقل —</option>';
+  ['emp','op'].forEach(function(g){
+    h+='<optgroup label="'+esc(GROUPS[g])+'">'+fields().filter(function(f){return f.group===g;}).map(function(f){
+      return '<option value="'+esc(f.key)+'"'+(sel===f.key?' selected':'')+'>'+esc(f.label)+'</option>';}).join('')+'</optgroup>';
+  });
+  return h+'<option value="'+IGNORE+'"'+(sel===IGNORE?' selected':'')+'>تجاهل هذا البند</option>';
+}
+function render(){
+  var S=BI.state,P=S.P,out=$('bed-imp-out');if(!out)return;
+  var h='<div style="padding:10px 14px;border:1px solid var(--br);border-radius:8px;background:#fff;font-size:12px;line-height:2">'
+    +'📄 '+esc(S.file)+(P.sheet?' — الورقة «'+esc(P.sheet)+'»':'')+' — '+P.rows.length+' بند'
+    +P.notes.map(function(w){return '<br><span style="color:#1A4A6B">ℹ️ '+esc(w)+'</span>';}).join('')
+    +(S.stale?'<br><span style="color:#B71C1C;font-weight:700">⛔ الحاسبة المفتوحة ليست آخر نسخة محفوظة (عُدّلت من مكان آخر) — اضغط «🔄 تحميل آخر حفظ» ثم أعد المحاولة.</span>':'')
+    +(S.dirty?'<br><span style="color:#E65100">⚠️ في الحاسبة '+S.dirty+' حقل فيه قيمة غير محفوظة؛ سيُحفظ معها كما يفعل زر «حفظ الحساب».</span>':'')
+    +'</div>';
+  if(S.dup)h+='<div style="margin:10px 0;padding:8px 12px;border:1px solid #E53935;border-radius:8px;background:#FFEBEE;font-size:12px">⚠️ <b>هذا الملف (بالمحتوى نفسه) استُورد سابقاً</b> بتاريخ '+esc(String(S.dup.at||'').slice(0,16).replace('T',' '))+' بواسطة '+esc(S.dup.user||'—')+' — إعادة استيراده ستضيف القيم مرة ثانية.'
+    +'<label style="display:flex;gap:6px;align-items:center;font-weight:700;margin-top:4px"><input type="checkbox" id="bed-imp-again" style="width:auto"> استيراد مرة أخرى (أعي أن القيم ستُضاف مجدداً)</label></div>';
+  h+='<div style="margin:10px 0;padding:8px 12px;border:1px solid var(--br);border-radius:8px;background:#FAFAFA;font-size:12px"><b>طريقة التطبيق:</b> '
+    +'<label style="margin-inline-start:10px"><input type="radio" name="bed-imp-mode" value="add" checked style="width:auto"> إضافة إلى القيمة الحالية</label>'
+    +'<label style="margin-inline-start:14px"><input type="radio" name="bed-imp-mode" value="replace" style="width:auto"> استبدال القيمة الحالية (بمجموع بنود الملف لذلك الحقل)</label></div>';
+  h+='<div style="max-height:46vh;overflow:auto;border:1px solid var(--br);border-radius:8px"><table class="dt" style="width:100%;font-size:11.5px"><thead style="position:sticky;top:0"><tr><th>#</th><th>المجموعة</th><th>البند</th><th>المبلغ</th><th>التصنيف</th><th>التوزيع (من الملف)</th><th>المدة بالأشهر</th><th>المبلغ الشهري</th><th>الحقل المستهدف</th><th>الحالة</th></tr></thead><tbody>'
+    +P.rows.map(function(r,i){
+      return '<tr data-i="'+i+'"><td>'+r.rowNo+'</td><td>'+esc(r.group||'—')+'</td><td style="max-width:260px">'+esc(r.item)+'</td><td dir="ltr">'+(isFinite(r.amount)&&r.amount!==null?money(r.amount):esc(r.amountRaw))+'</td><td>'+esc(r.cls||'—')+'</td><td style="max-width:150px">'+esc(r.dist||'—')+'</td>'
+        +'<td><input type="text" inputmode="decimal" class="bed-imp-months" data-i="'+i+'" value="'+esc(r.months>0?String(r.months):'')+'" style="width:64px;text-align:center" dir="ltr"></td>'
+        +'<td dir="ltr" id="bed-imp-m-'+i+'"></td>'
+        +'<td><select class="bed-imp-field" data-i="'+i+'" style="max-width:230px">'+optionsHtml(r.field)+'</select></td><td id="bed-imp-s-'+i+'" style="font-size:11px;max-width:230px"></td></tr>';
+    }).join('')+'</tbody></table></div>';
+  h+='<div id="bed-imp-impact" style="margin-top:12px"></div>';
+  h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp" type="button" id="bed-imp-go" onclick="bedImportCommit()" disabled>✅ تأكيد الاستيراد</button><button class="btn bo" type="button" onclick="bedImportClose()">إلغاء</button></div><div id="bed-imp-prog" style="margin-top:10px"></div>';
+  out.innerHTML=h;
+  [].forEach.call(out.querySelectorAll('.bed-imp-months'),function(el){
+    el.addEventListener('input',function(){var r=P.rows[+el.getAttribute('data-i')];var pm=parseMonths(el.value);r.months=pm.months;r.monthsInfo=pm;r.monthsSrc='user';refresh();});
+  });
+  [].forEach.call(out.querySelectorAll('.bed-imp-field'),function(el){
+    el.addEventListener('change',function(){var r=P.rows[+el.getAttribute('data-i')];r.field=el.value;r.fieldSrc='user';r.unknownField=false;refresh();});
+  });
+  [].forEach.call(out.querySelectorAll('input[name="bed-imp-mode"]'),function(el){el.addEventListener('change',function(){if(el.checked){S.mode=el.value;refresh();}});});
+  var ag=$('bed-imp-again');if(ag)ag.addEventListener('change',function(){S.again=ag.checked;refresh();});
+  refresh();
+}
+function stBadge(r){
+  if(r.status==='ok')return '<span class="bdg bg-s">جاهز</span>';
+  if(r.status==='ignored')return '<span class="bdg" style="background:#E3F2FD;color:#1A4A6B">متجاهَل</span>';
+  return '<span class="bdg bg-w" style="background:#FFCDD2;color:#B71C1C">خطأ</span>';
+}
+function refresh(){
+  var S=BI.state;if(!S||!S.P)return;
+  var P=S.P,cur=curValues();
+  P.rows.forEach(function(r,i){
+    evalRow(r);
+    var m=$('bed-imp-m-'+i),s=$('bed-imp-s-'+i);
+    if(m)m.innerHTML=r.monthly!=null?('<b>'+money(r.monthly)+'</b>'+(Math.abs(r.exact-r.monthly)>1e-9?'<div style="font-size:10px;color:var(--tl)">'+esc(String(+r.exact.toFixed(6)))+'</div>':'')):'—';
+    if(s)s.innerHTML=stBadge(r)+(r.errors.length?'<div style="color:#B71C1C">'+r.errors.map(esc).join('<br>')+'</div>':'')
+      +(r.status==='ok'&&r.fieldSrc==='auto'?'<div style="color:var(--tl)">حقل مقترح تلقائياً</div>':'');
+  });
+  var pl=plan(P.rows,S.mode,cur);S.plan=pl;
+  var ok=P.rows.filter(function(r){return r.status==='ok';}).length,er=P.rows.filter(function(r){return r.status==='error';}).length,ig=P.rows.filter(function(r){return r.status==='ignored';}).length;
+  var lab=function(k){var f=fieldByKey(k);return f?f.label:k;},grp=function(k){return k.indexOf('-emp-')>0?'موظفين':'تشغيل';};
+  var box=$('bed-imp-impact');
+  if(box){
+    var tr=function(l,a,b){return '<tr><td style="font-weight:700">'+l+'</td><td dir="ltr">'+money(a)+'</td><td dir="ltr">'+(b>a?'▲':(b<a?'▼':'='))+'</td><td dir="ltr" style="font-weight:700">'+money(b)+'</td></tr>';};
+    box.innerHTML='<div style="font-size:12px;margin-bottom:6px"><span class="bdg bg-s">جاهزة: '+ok+'</span> <span class="bdg" style="background:#E3F2FD;color:#1A4A6B">متجاهَلة: '+ig+'</span> <span class="bdg bg-w" style="background:#FFCDD2;color:#B71C1C">تحتاج إدخالاً: '+er+'</span>'
+      +(er?' — <b style="color:#B71C1C">أكمل الحقل/المدة أو اختر «تجاهل هذا البند» لكل بند به خطأ ليُفعَّل التأكيد</b>':'')+'</div>'
+      +(pl.deltas.length?'<div style="font-weight:700;margin:6px 0">الحقول التي ستتغير (قبل ← بعد):</div><table class="dt" style="font-size:12px"><thead><tr><th>الحقل</th><th>المجموعة</th><th>قبل</th><th>المضاف من الملف</th><th>بعد</th></tr></thead><tbody>'
+        +pl.deltas.map(function(d){return '<tr><td>'+esc(lab(d.key))+'</td><td>'+grp(d.key)+'</td><td dir="ltr">'+money(d.before)+'</td><td dir="ltr">+'+money(d.sum)+' ('+d.n+' بند)</td><td dir="ltr" style="font-weight:700">'+money(d.after)+'</td></tr>';}).join('')+'</tbody></table>'
+        +'<div style="font-weight:700;margin:10px 0 4px">المجاميع الشهرية (ر.س):</div><table class="dt" style="font-size:12px;max-width:520px"><thead><tr><th>الإجمالي</th><th>قبل</th><th></th><th>بعد</th></tr></thead><tbody>'
+        +tr('تكلفة الموظفين',pl.before.emp,pl.after.emp)+tr('تكاليف تشغيل الفرع',pl.before.op,pl.after.op)+tr('إجمالي التكاليف الثابتة',pl.before.all,pl.after.all)+'</tbody></table>':'<div style="font-size:12px;color:var(--tl)">لا بنود جاهزة بعد.</div>');
+  }
+  var go=$('bed-imp-go');
+  if(go){
+    var needAgain=!!S.dup&&!S.again;
+    go.disabled=!(ok>0&&er===0&&!S.stale&&!needAgain&&!S.committing);
+    go.textContent='✅ تأكيد استيراد '+ok+' بند'+(S.mode==='replace'?' (استبدال)':' (إضافة)');
+  }
+}
+
+/* ---------- الحفظ ---------- */
+window.bedImportCommit=function(){
+  var S=BI.state;
+  if(!S||!S.P||S.committing)return;
+  if(!BI.canImport()){alert('ليس لديك صلاحية استيراد بنود نقطة التعادل');return;}
+  refresh();
+  var P=S.P,rows=P.rows;
+  if(rows.some(function(r){return r.status==='error';})||!rows.some(function(r){return r.status==='ok';}))return;
+  if(S.dup&&!S.again){alert('هذا الملف استُورد سابقاً — فعّل «استيراد مرة أخرى» إن كنت تقصد ذلك');return;}
+  var pl0=S.plan;
+  if(!confirm('سيتم حفظ '+pl0.deltas.length+' حقل في الحاسبة التفصيلية ('+(S.mode==='replace'?'استبدال':'إضافة')+') ويتغيّر إجمالي التكاليف الثابتة من '+money(pl0.before.all)+' إلى '+money(pl0.after.all)+' ر.س. يمكن التراجع عن آخر استيراد من زر «تراجع». المتابعة؟'))return;
+  S.committing=true;
+  var go=$('bed-imp-go');if(go)go.disabled=true;
+  var mode=S.mode,file=String(S.file||''),hash=P.hash,again=S.again;
+  var prog=$('bed-imp-prog');if(prog)prog.innerHTML='⏳ جارٍ الحفظ…';
+  var domBefore=null;
+  loadedP().then(function(){return readDoc();}).then(function(d){
+    if((d.rev||'')!==(_bedRev||''))throw new Error('عُدّلت الحاسبة بعد المعاينة (من مكان آخر). اضغط «تحميل آخر حفظ» ثم أعد الاستيراد.');
+    var log=Array.isArray(d.importLog)?d.importLog:[];
+    if(!again&&log.some(function(e){return e&&e.hash===hash&&!e.undone;}))throw new Error('هذا الملف استُورد للتو — لم يُحفظ شيء.');
+    var cur=curValues(),pl=plan(rows,mode,cur);
+    var rev=newRev();
+    var entry={at:new Date().toISOString(),user:(CU&&CU.name)||'',userId:(CU&&CU._id)||'',file:file.slice(0,120),hash:hash,mode:mode,
+      revBefore:d.rev||'',revAfter:rev,rows:pl.deltas.reduce(function(s,x){return s+x.n;},0),
+      totals:{before:pl.before.all,after:pl.after.all},deltas:{},
+      items:rows.filter(function(r){return r.status==='ok';}).slice(0,MAX_ITEMS_LOGGED).map(function(r){return {i:String(r.item).slice(0,60),a:r.amount,m:r.months,v:r.monthly,f:r.field};})};
+    pl.deltas.forEach(function(x){entry.deltas[x.key]={before:x.before,after:x.after,n:x.n};});
+    var extra={rev:rev,importLog:log.concat([entry]).slice(-MAX_LOG)};
+    domBefore={};pl.deltas.forEach(function(x){var e=$(x.key);domBefore[x.key]=e?e.value:'';if(e)e.value=x.after;});
+    return bedPersist(extra).then(function(){return {pl:pl,entry:entry};});
+  }).then(function(r){
+    var lab=function(k){var f=fieldByKey(k);return f?f.label:k;};
+    var snapshot={},changes=[];
+    r.pl.deltas.forEach(function(x){snapshot[lab(x.key)]=x.before;changes.push({p:lab(x.key),f:x.before,t:x.after});});
+    try{sdAuditLog('edit','cost_settings','breakeven_detailed','استيراد بنود نقطة التعادل من ملف «'+file+'» ('+(mode==='replace'?'استبدال':'إضافة')+') — '+r.entry.rows+' بند في '+r.pl.deltas.length+' حقل — إجمالي التكاليف الثابتة '+money(r.pl.before.all)+' ← '+money(r.pl.after.all),snapshot,changes);}catch(e){}
+    try{bedCalc();}catch(e){}
+    S.committing=false;S.P=null;
+    BI.syncButtons();
+    summary(r.pl,r.entry,mode);
+  }).catch(function(e){
+    S.committing=false;
+    if(domBefore)Object.keys(domBefore).forEach(function(k){var el=$(k);if(el)el.value=domBefore[k];});
+    try{bedCalc();}catch(x){}
+    var p=$('bed-imp-prog');if(p)p.innerHTML='<div class="sdb-r" style="font-size:12px">تعذّر الحفظ: '+esc(e.message)+(/permission/i.test(e.message)?' — ليست لديك صلاحية الكتابة.':'')+'</div>';
+    refresh();
+  });
+};
+function summary(pl,entry,mode){
+  var lab=function(k){var f=fieldByKey(k);return f?f.label:k;};
+  var h='<div class="sdb-g" style="font-size:14px;font-weight:700;margin-bottom:8px">✅ اكتمل الاستيراد وحُفظت الحاسبة</div>'
+    +'<div style="font-size:13px;line-height:2"><span class="bdg bg-s">بنود: '+entry.rows+'</span> <span class="bdg" style="background:#E3F2FD;color:#1A4A6B">حقول: '+pl.deltas.length+'</span> — '+(mode==='replace'?'استبدال':'إضافة')+'<br>'
+    +'إجمالي التكاليف الثابتة الشهرية: <b dir="ltr">'+money(pl.before.all)+'</b> ← <b dir="ltr">'+money(pl.after.all)+'</b> ر.س (موظفون '+money(pl.after.emp)+' · تشغيل '+money(pl.after.op)+')</div>'
+    +'<table class="dt" style="font-size:12px;margin-top:8px"><thead><tr><th>الحقل</th><th>قبل</th><th>بعد</th></tr></thead><tbody>'
+    +pl.deltas.map(function(d){return '<tr><td>'+esc(lab(d.key))+'</td><td dir="ltr">'+money(d.before)+'</td><td dir="ltr" style="font-weight:700">'+money(d.after)+'</td></tr>';}).join('')+'</tbody></table>'
+    +'<div style="font-size:11px;color:var(--tl);margin-top:8px">سُجّلت العملية في سجل العمليات وفي «importLog» داخل وثيقة الحاسبة (آخر '+MAX_LOG+' استيراد). للتراجع: «↩️ تراجع عن آخر استيراد» ما لم تُعدَّل الحاسبة بعده.</div>'
+    +'<div style="margin-top:12px"><button class="btn bp" type="button" onclick="bedImportClose()">إغلاق</button></div>';
+  var b=$('bed-imp-body');if(b)b.innerHTML=h;
+}
+
+/* ---------- التراجع عن آخر استيراد ---------- */
+function lastEntry(log){for(var i=log.length-1;i>=0;i--)if(log[i]&&!log[i].undone)return log[i];return null;}
+function undoTable(entry,cur){
+  var lab=function(k){var f=fieldByKey(k);return f?f.label:k;};
+  return '<table class="dt" style="font-size:12px;margin-top:8px"><thead><tr><th>الحقل</th><th>قبل الاستيراد</th><th>بعد الاستيراد</th><th>الحالي</th></tr></thead><tbody>'
+    +Object.keys(entry.deltas||{}).map(function(k){var d=entry.deltas[k];return '<tr><td>'+esc(lab(k))+'</td><td dir="ltr" style="font-weight:700">'+money(d.before)+'</td><td dir="ltr">'+money(d.after)+'</td><td dir="ltr">'+money(cur[k])+'</td></tr>';}).join('')+'</tbody></table>';
+}
+window.bedImportUndo=function(){
+  if(!BI.canImport()){alert('ليس لديك صلاحية التراجع عن استيراد بنود نقطة التعادل');return;}
+  BI.state={committing:false,undo:true};
+  shell('↩️ التراجع عن آخر استيراد','<div id="bed-undo-out">⏳ جارٍ فحص الحاسبة…</div>');
+  loadedP().then(function(){return readDoc();}).then(function(d){
+    var log=Array.isArray(d.importLog)?d.importLog:[],e=lastEntry(log),out=$('bed-undo-out');if(!out)return;
+    var cur=curValues(),bye='<div style="margin-top:12px"><button class="btn bo" type="button" onclick="bedImportClose()">إغلاق</button></div>';
+    if(!e){out.innerHTML='<div style="font-size:13px">لا يوجد استيراد للتراجع عنه.</div>'+bye;return;}
+    var head='<div style="font-size:12px;line-height:2">آخر استيراد: <b>'+esc(String(e.at||'').slice(0,16).replace('T',' '))+'</b> — ملف «'+esc(e.file||'')+'» — بواسطة '+esc(e.user||'—')+' — '+esc(e.rows)+' بند ('+(e.mode==='replace'?'استبدال':'إضافة')+')</div>';
+    if((d.rev||'')!==(e.revAfter||'')){
+      out.innerHTML=head+'<div class="sdb-r" style="font-size:13px;margin:10px 0"><b>لا يمكن التراجع تلقائياً:</b> عُدّلت الحاسبة (حفظ يدوي أو استيراد آخر) بعد هذا الاستيراد، والتراجع كان سيمحو تلك التعديلات. أعد القيم التالية يدوياً إن لزم (القيمة «قبل الاستيراد»):</div>'+undoTable(e,cur)+bye;return;
+    }
+    if((_bedRev||'')!==(d.rev||'')){
+      out.innerHTML=head+'<div class="sdb-r" style="font-size:13px;margin:10px 0">الحاسبة المفتوحة ليست آخر نسخة محفوظة — اضغط «🔄 تحميل آخر حفظ» ثم أعد المحاولة.</div>'+bye;return;
+    }
+    BI.state.entry=e;
+    out.innerHTML=head+'<div style="font-size:13px;margin:10px 0">ستُعاد الحقول التالية إلى قيمتها قبل الاستيراد (بقية الحقول لا تتغير):</div>'+undoTable(e,cur)
+      +'<div style="margin-top:12px;display:flex;gap:8px"><button class="btn bp" type="button" id="bed-undo-go" onclick="bedImportUndoConfirm()">↩️ تأكيد التراجع</button><button class="btn bo" type="button" onclick="bedImportClose()">إلغاء</button></div><div id="bed-imp-prog" style="margin-top:10px"></div>';
+  }).catch(function(e){var out=$('bed-undo-out');if(out)out.innerHTML='<div class="sdb-r">تعذّر قراءة الحاسبة: '+esc(e.message)+'</div>';});
+};
+window.bedImportUndoConfirm=function(){
+  var S=BI.state;if(!S||!S.undo||!S.entry||S.committing)return;
+  if(!BI.canImport()){alert('ليس لديك صلاحية التراجع');return;}
+  var target=S.entry;S.committing=true;
+  var go=$('bed-undo-go');if(go)go.disabled=true;
+  var domBefore={};
+  readDoc().then(function(d){
+    var log=Array.isArray(d.importLog)?d.importLog:[];
+    if((d.rev||'')!==(target.revAfter||'')||(_bedRev||'')!==(d.rev||''))throw new Error('عُدّلت الحاسبة قبل لحظات — أعد المحاولة.');
+    var idx=log.indexOf(log.filter(function(e){return e&&e.revAfter===target.revAfter&&!e.undone;})[0]);
+    if(idx<0)throw new Error('سجل الاستيراد لم يعد موجوداً.');
+    var cur=curValues(),snap={},changes=[],lab=function(k){var f=fieldByKey(k);return f?f.label:k;};
+    Object.keys(target.deltas||{}).forEach(function(k){
+      var e=$(k);if(!e)return;domBefore[k]=e.value;
+      snap[lab(k)]=cur[k];changes.push({p:lab(k),f:cur[k],t:target.deltas[k].before});
+      e.value=target.deltas[k].before;
+    });
+    var newLog=log.map(function(e,i){return i===idx?Object.assign({},e,{undone:true,undoneAt:new Date().toISOString(),undoneBy:(CU&&CU.name)||''}):e;});
+    // الحالة عادت إلى ما قبل الاستيراد تماماً، فيعود رمز النسخة إلى revBefore (يُتيح التراجع عن الاستيراد الأسبق إن لم تتغير الوثيقة)
+    return bedPersist({rev:target.revBefore||'',importLog:newLog}).then(function(){return {snap:snap,changes:changes};});
+  }).then(function(r){
+    try{sdAuditLog('edit','cost_settings','breakeven_detailed','تراجع عن استيراد بنود نقطة التعادل من ملف «'+String(target.file||'')+'» — '+r.changes.length+' حقل',r.snap,r.changes);}catch(e){}
+    try{bedCalc();}catch(e){}
+    S.committing=false;BI.syncButtons();
+    var b=$('bed-imp-body');if(b)b.innerHTML='<div class="sdb-g" style="font-size:14px;font-weight:700;margin-bottom:8px">✅ تم التراجع وحُفظت الحاسبة</div><div style="font-size:12px">أُعيد '+r.changes.length+' حقل إلى قيمته قبل الاستيراد.</div><div style="margin-top:12px"><button class="btn bp" type="button" onclick="bedImportClose()">إغلاق</button></div>';
+  }).catch(function(e){
+    S.committing=false;
+    Object.keys(domBefore).forEach(function(k){var el=$(k);if(el)el.value=domBefore[k];});
+    try{bedCalc();}catch(x){}
+    var p=$('bed-imp-prog');if(p)p.innerHTML='<div class="sdb-r" style="font-size:12px">تعذّر التراجع: '+esc(e.message)+'</div>';
+    if(go)go.disabled=false;
+  });
+};
+
+// للاختبارات
+BI._parseBook=parseBook;BI._hash=hashStr;BI._rowsHash=rowsHash;BI._fieldFromText=fieldFromText;BI._parseAmount=parseAmount;
 })();
 
 </script>
