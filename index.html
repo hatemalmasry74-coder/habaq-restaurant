@@ -66,6 +66,89 @@ html[dir=ltr] .ni.active{border-left-color:var(--r);border-right:none}
 .lg2-bub.b2{width:80px;height:80px;top:22%;left:22%;animation-delay:2.5s}
 .lg2-bub.b3{width:220px;height:220px;bottom:-70px;right:-60px;background:rgba(201,168,76,.16);animation-delay:1.2s}
 @keyframes lg2Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+/* حركة واضحة لكن غير مزعجة لصفحة الدخول (CSS فقط، تتوقف عند «تقليل الحركة») */
+#screen-login{background:linear-gradient(120deg,#EFE7D8 0%,#E3D6BF 25%,#F6E3AE 50%,#E3D6BF 75%,#EFE7D8 100%);background-size:320% 320%;animation:lg2Bg 14s ease-in-out infinite}
+@keyframes lg2Bg{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.lg2-shell{animation:lg2In .9s cubic-bezier(.2,.7,.2,1) both}
+@keyframes lg2In{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:none}}
+.lg2-btop>*{animation:lg2Up .8s ease both}.lg2-btop>*:nth-child(2){animation-delay:.2s}.lg2-btop>*:nth-child(3){animation-delay:.35s}
+.lg2-form>*{animation:lg2Up .8s ease both;animation-delay:.25s}.lg2-form>*:nth-child(n+3){animation-delay:.4s}
+@keyframes lg2Up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.lg2-brand{background-size:200% 200%;animation:lg2Panel 12s ease-in-out infinite}
+@keyframes lg2Panel{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+.lg2-btop .lg2-bmark{position:relative;width:176px;height:176px;justify-content:center}
+.lg2-bmark .lg2-blogo-img{animation:lg2Bob 4.5s ease-in-out infinite,lg2Pulse 3s ease-in-out infinite}
+@keyframes lg2Bob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.04)}}
+@keyframes lg2Pulse{0%,100%{box-shadow:0 10px 30px rgba(139,47,43,.30),0 0 0 0 rgba(201,168,76,.55)}50%{box-shadow:0 14px 34px rgba(139,47,43,.34),0 0 0 16px rgba(201,168,76,0)}}
+.lg2-bmark::before,.lg2-bmark::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.lg2-bmark::before{border:3px dashed rgba(160,120,46,.9);animation:lg2Spin 18s linear infinite}
+.lg2-bmark::after{inset:9px;border:3px solid transparent;border-top-color:rgba(160,120,46,.95);border-left-color:rgba(160,120,46,.45);animation:lg2Spin 6s linear infinite reverse}
+@keyframes lg2Spin{to{transform:rotate(360deg)}}
+.lg2-brand::before{width:520px;height:520px;background:radial-gradient(circle,rgba(201,168,76,.42),transparent 62%);animation:lg2Glow 9s ease-in-out infinite}
+@keyframes lg2Glow{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(180px,140px) scale(1.15)}}
+.lg2-bub{animation:lg2Float2 7s ease-in-out infinite}
+.lg2-bub.b1{background:rgba(168,60,56,.11);animation-duration:8s}.lg2-bub.b2{background:rgba(168,60,56,.12);animation-duration:6s}.lg2-bub.b3{background:rgba(201,168,76,.28);animation-duration:10s}
+@keyframes lg2Float2{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(18px,-34px) scale(1.08)}66%{transform:translate(-14px,-16px) scale(.94)}}
+#screen-login .lbtn-main{background-size:220% 100%;animation:lg2Btn 6s ease-in-out infinite}
+@keyframes lg2Btn{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@media(max-width:840px){.lg2-btop .lg2-bmark{width:116px;height:116px}.lg2-bmark::after{inset:6px}}
+/* أيقونات أطعمة البراند العائمة (SVG مضمّنة، تختلف حسب البراند) */
+.lg2-ico{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);pointer-events:none;transform-origin:50% 60%;filter:drop-shadow(0 8px 10px rgba(60,40,20,.22));animation:lg2Ico var(--t) ease-in-out var(--d) infinite}
+.lg2-ico svg{width:100%;height:100%;display:block}
+.lg2-fx .lg2-ico{opacity:.95}
+.lg2-bfx{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.lg2-bfx .lg2-ico{opacity:.55}
+@keyframes lg2Ico{0%,100%{transform:translate(0,0) rotate(calc(var(--r)*-1))}25%{transform:translate(10px,-22px) rotate(0deg) scale(1.05)}50%{transform:translate(-8px,-34px) rotate(var(--r)) scale(1.08)}75%{transform:translate(12px,-14px) rotate(0deg) scale(1.03)}}
+@media(max-width:840px){.lg2-fx .lg2-ico{--s:54px!important}.lg2-bfx .lg2-ico{display:none}}
+.lg2-scene{position:absolute;left:2%;top:2%;width:230px;height:230px;z-index:0;pointer-events:none;filter:drop-shadow(0 8px 10px rgba(60,40,20,.20))}
+.lg2-scene svg{width:100%;height:100%;display:block;overflow:visible}
+/* صورة المنتجات ثابتة في مكان المشهد (طفو خفيف وبخار) */
+.lg2-scene.has-ph>svg:first-child{display:none}
+.lg2-scene.has-ph{width:260px;height:260px;left:0;top:1%}
+.lg2-scene .lg2-ph{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;animation:lg2PhFloat 7s ease-in-out infinite;filter:drop-shadow(0 10px 14px rgba(60,40,20,.28))}
+@keyframes lg2PhFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-9px) rotate(1deg)}}
+.lg2-phsteam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lg2-phsteam path{fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;opacity:0;animation:lg2Steam2 3s ease-in-out infinite}
+.lg2-phsteam .s2{animation-delay:1s}.lg2-phsteam .s3{animation-delay:2s}
+@keyframes lg2Steam2{0%{transform:translateY(5px);opacity:0}40%{opacity:.85}100%{transform:translateY(-12px);opacity:0}}
+@media(max-width:840px){.lg2-scene.has-ph{width:170px;height:170px}}
+@media (prefers-reduced-motion:reduce){.lg2-scene .lg2-ph,.lg2-phsteam path{animation:none!important}.lg2-phsteam{display:none}}
+@media(max-width:840px){.lg2-scene{width:150px;height:150px;left:0;top:6px}}
+/* خلفية حية على الصفحة كلها */
+#screen-login{overflow:hidden}
+.lg2-fx{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.lg2-fx i{position:absolute;border-radius:50%;display:block;will-change:transform}
+.lg2-fx .f1{width:340px;height:340px;top:-90px;left:-80px;background:radial-gradient(circle,rgba(168,60,56,.13),transparent 68%);animation:lg2Drift1 15s ease-in-out infinite}
+.lg2-fx .f2{width:420px;height:420px;bottom:-140px;left:12%;background:radial-gradient(circle,rgba(201,168,76,.34),transparent 66%);animation:lg2Drift2 18s ease-in-out infinite}
+.lg2-fx .f3{width:300px;height:300px;top:8%;right:-70px;background:radial-gradient(circle,rgba(201,168,76,.28),transparent 66%);animation:lg2Drift3 13s ease-in-out infinite}
+.lg2-fx .f4{width:120px;height:120px;top:58%;left:5%;background:rgba(168,60,56,.12);animation:lg2Float2 8s ease-in-out infinite}
+.lg2-fx .f5{width:80px;height:80px;top:14%;left:36%;background:rgba(201,168,76,.26);animation:lg2Float2 6.5s ease-in-out infinite}
+.lg2-fx .f6{width:170px;height:170px;bottom:6%;right:5%;background:rgba(168,60,56,.10);animation:lg2Float2 10s ease-in-out infinite}
+@keyframes lg2Drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(160px,120px) scale(1.2)}}
+@keyframes lg2Drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-140px,-90px) scale(1.15)}}
+@keyframes lg2Drift3{0%,100%{transform:translate(0,0)}50%{transform:translate(-120px,150px)}}
+.lg2-shell{position:relative;z-index:1}
+/* حدّ ضوئي يدور حول البطاقة كلها */
+@property --lg2a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.lg2-shell::after{content:'';position:absolute;inset:0;border-radius:24px;padding:3px;pointer-events:none;z-index:5;
+  background:conic-gradient(from var(--lg2a),transparent 0deg,transparent 215deg,rgba(201,168,76,.15) 255deg,#E2C25F 320deg,#fff6cf 345deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:lg2Ang 7s linear infinite}
+@keyframes lg2Ang{to{--lg2a:360deg}}
+/* حركة في جهة نموذج الدخول */
+.lg2-fmark{position:relative;animation:lg2Pulse 3.2s ease-in-out infinite}
+.lg2-fmark::before{content:'';position:absolute;inset:-7px;border-radius:50%;border:2px dashed rgba(160,120,46,.85);animation:lg2Spin 16s linear infinite;pointer-events:none}
+.lg2-fmark::after{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;border-top-color:rgba(160,120,46,.9);animation:lg2Spin 5s linear infinite reverse;pointer-events:none}
+.lg2-ft{position:relative;width:fit-content}
+.lg2-ft::after{content:'';position:absolute;right:0;bottom:-5px;height:3px;width:100%;border-radius:3px;background:linear-gradient(90deg,transparent,#C9A84C,#A83C38,#C9A84C,transparent);background-size:220% 100%;animation:lg2Line 3.2s linear infinite}
+@keyframes lg2Line{from{background-position:220% 0}to{background-position:-220% 0}}
+.lg2-form input{transition:border-color .25s,box-shadow .25s,transform .25s}
+.lg2-form input:focus{transform:translateY(-1px);animation:lg2Focus 1.8s ease-in-out infinite}
+@keyframes lg2Focus{0%,100%{box-shadow:0 0 0 3px rgba(168,60,56,.12)}50%{box-shadow:0 0 0 6px rgba(201,168,76,.28)}}
+#screen-login .lbtn-main{position:relative;overflow:hidden}
+#screen-login .lbtn-main::after{content:'';position:absolute;top:0;bottom:0;width:60px;left:-90px;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-20deg);animation:lg2Shine 4.5s ease-in-out infinite}
+@keyframes lg2Shine{0%,55%{left:-90px}100%{left:120%}}
+@media (prefers-reduced-motion:reduce){#screen-login,.lg2-shell,.lg2-btop>*,.lg2-form>*,.lg2-brand,.lg2-bmark .lg2-blogo-img,.lg2-bmark::before,.lg2-bmark::after,.lg2-brand::before,.lg2-bub,.lbtn-main,.lg2-ico,.lg2-fx i,.lg2-shell::after,.lg2-fmark,.lg2-fmark::before,.lg2-fmark::after,.lg2-ft::after,#screen-login .lbtn-main::after,.lg2-form input:focus{animation:none!important}}
 .lg2-btop{position:relative;z-index:1;text-align:right}
 .lg2-bmark{display:flex;align-items:center;gap:16px;justify-content:flex-start;margin-bottom:14px}
 .lg2-blogo-img{width:132px;height:132px;border-radius:50%;box-shadow:0 10px 30px rgba(139,47,43,.30);border:3px solid #fff}
@@ -449,11 +532,30 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
 
 <!-- ===== LOGIN ===== -->
 <div id="screen-login">
+  <div class="lg2-fx" aria-hidden="true"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i><div class="lg2-ico" style="--x:3%;--y:10%;--s:84px;--r:14deg;--d:0s;--t:11s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M40 6q-6 8 0 14M52 4q-6 9 0 17M64 6q-6 8 0 14" stroke="#B9A98F" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/><path d="M26 28H74Q72 44 66 52Q62 60 66 80H34Q38 60 34 52Q28 44 26 28Z" fill="#FBEFD5" stroke="#8C6B3C" stroke-width="2.6" stroke-linejoin="round"/><path d="M29 34H71Q70 46 65 53Q62 60 65 78H35Q38 60 35 53Q30 46 29 34Z" fill="#C4551B"/><path d="M33 38H67" stroke="#E78A3F" stroke-width="3" opacity=".7"/><ellipse cx="50" cy="86" rx="30" ry="7" fill="#E9D7B0" stroke="#8C6B3C" stroke-width="2.4"/><ellipse cx="50" cy="83" rx="19" ry="4" fill="#F7EBCB"/></svg></div><div class="lg2-ico" style="--x:88%;--y:6%;--s:92px;--r:-12deg;--d:1.5s;--t:13s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M6 60Q10 32 50 26Q90 32 94 60Q88 84 50 84Q12 84 6 60Z" fill="#E8A94A" stroke="#B9731F" stroke-width="3"/><path d="M12 58Q50 30 88 58" stroke="#B9731F" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M12 60Q50 42 88 60Q50 78 12 60Z" fill="#5E9B3C"/><circle cx="36" cy="58" r="4" fill="#C8392B"/><circle cx="52" cy="60" r="4" fill="#F4D77A"/><circle cx="66" cy="57" r="3.6" fill="#C8392B"/><path d="M20 38l4 2M80 38l-4 2M50 30v4" stroke="#FFF1B8" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg></div><div class="lg2-ico" style="--x:2%;--y:62%;--s:96px;--r:-16deg;--d:3s;--t:12s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M36 20q14-12 28 0" stroke="#8C6B3C" stroke-width="3" fill="none"/><circle cx="50" cy="13" r="5" fill="#C98A3A"/><path d="M24 34H76Q86 36 86 56Q86 78 66 84H34Q14 78 14 56Q14 36 24 34Z" fill="#B3322B" stroke="#7F2019" stroke-width="2.6"/><path d="M24 44H76" stroke="#E2B04A" stroke-width="3.4"/><path d="M80 44Q98 40 96 24Q94 18 88 22" stroke="#7F2019" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M20 52Q4 52 4 38" stroke="#7F2019" stroke-width="5.5" fill="none" stroke-linecap="round"/><path d="M26 28H74V34H26Z" fill="#C98A3A"/><rect x="30" y="84" width="40" height="6" rx="3" fill="#7F2019"/></svg></div><div class="lg2-ico" style="--x:91%;--y:58%;--s:88px;--r:12deg;--d:0.8s;--t:10s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M8 66C8 40 28 22 50 22C72 22 92 40 92 66C86 70 80 66 78 60C70 50 60 48 50 48C40 48 30 50 22 60C20 66 14 70 8 66Z" fill="#E8A94A" stroke="#B9731F" stroke-width="3" stroke-linejoin="round"/><path d="M36 26C32 38 32 46 36 50M50 22V48M64 26C68 38 68 46 64 50" stroke="#B9731F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M26 36q4-6 12-8" stroke="#FFE2A0" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div><div class="lg2-ico" style="--x:12%;--y:86%;--s:78px;--r:10deg;--d:2.2s;--t:14s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M32 22C58 10 90 28 84 62C80 86 52 96 34 84C18 72 14 36 32 22Z" fill="#7A3E17" stroke="#53290D" stroke-width="2.6"/><path d="M38 34C52 28 70 36 72 54" stroke="#B9703B" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/><path d="M34 22c0-8 6-14 14-16" stroke="#3E7A2C" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div><div class="lg2-ico" style="--x:80%;--y:86%;--s:90px;--r:-10deg;--d:3.4s;--t:11.5s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 94C20 78 14 44 50 8C86 44 80 78 50 94Z" fill="#46A25A"/><path d="M50 94V16M50 70L30 56M50 58L72 44M50 44L34 32" stroke="#2D7A40" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div><div class="lg2-ico" style="--x:46%;--y:1%;--s:70px;--r:8deg;--d:1.1s;--t:9.5s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M40 6q-6 8 0 14M52 4q-6 9 0 17M64 6q-6 8 0 14" stroke="#B9A98F" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/><path d="M26 28H74Q72 44 66 52Q62 60 66 80H34Q38 60 34 52Q28 44 26 28Z" fill="#FBEFD5" stroke="#8C6B3C" stroke-width="2.6" stroke-linejoin="round"/><path d="M29 34H71Q70 46 65 53Q62 60 65 78H35Q38 60 35 53Q30 46 29 34Z" fill="#C4551B"/><path d="M33 38H67" stroke="#E78A3F" stroke-width="3" opacity=".7"/><ellipse cx="50" cy="86" rx="30" ry="7" fill="#E9D7B0" stroke="#8C6B3C" stroke-width="2.4"/><ellipse cx="50" cy="83" rx="19" ry="4" fill="#F7EBCB"/></svg></div></div>
   <div class="lg2-shell">
 
     <!-- لوحة البراند -->
     <div class="lg2-brand">
-      <div class="lg2-bub b1"></div><div class="lg2-bub b2"></div><div class="lg2-bub b3"></div>
+      <div class="lg2-bub b1"></div><div class="lg2-bub b2"></div><div class="lg2-bub b3"></div><div class="lg2-bfx" aria-hidden="true"><div class="lg2-scene" aria-hidden="true"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="thc"><path d="M52 120H88Q86 134 82 140Q79 146 82 160H58Q61 146 58 140Q54 134 52 120Z"/></clipPath></defs><style>
+.th-pot{transform-origin:138px 134px;animation:thTilt 8s ease-in-out infinite}
+.th-str{stroke-dasharray:50 50;animation:thPour 8s ease-in-out infinite}
+.th-liq{transform-origin:70px 162px;transform-box:view-box;animation:thFill 8s ease-in-out infinite}
+.th-steam{animation:thSteam 3s ease-in-out infinite}.th-steam2{animation-delay:1s}.th-steam3{animation-delay:2s}
+@keyframes thTilt{0%,8%{transform:rotate(0)}22%,72%{transform:rotate(-22deg)}88%,100%{transform:rotate(0)}}
+@keyframes thPour{0%,20%{stroke-dashoffset:50}30%,70%{stroke-dashoffset:0}80%,100%{stroke-dashoffset:-50}}
+@keyframes thFill{0%,22%{transform:scaleY(0);opacity:1}74%{transform:scaleY(1);opacity:1}92%{transform:scaleY(1);opacity:1}98%{transform:scaleY(1);opacity:0}100%{transform:scaleY(0);opacity:0}}
+@keyframes thSteam{0%{transform:translateY(4px);opacity:0}40%{opacity:.8}100%{transform:translateY(-14px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.th-pot,.th-str,.th-liq,.th-steam{animation:none}.th-liq{transform:none}.th-str{stroke-dashoffset:50}}
+</style>
+<ellipse cx="100" cy="190" rx="70" ry="6" fill="rgba(60,40,20,.16)"/>
+<g class="th-pot"><g transform="translate(88 44)"><path d="M36 20q14-12 28 0" stroke="#8C6B3C" stroke-width="3" fill="none"/><circle cx="50" cy="13" r="5" fill="#C98A3A"/><path d="M24 34H76Q86 36 86 56Q86 78 66 84H34Q14 78 14 56Q14 36 24 34Z" fill="#B3322B" stroke="#7F2019" stroke-width="2.6"/><path d="M24 44H76" stroke="#E2B04A" stroke-width="3.4"/><path d="M80 44Q98 40 96 24Q94 18 88 22" stroke="#7F2019" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M20 52Q4 52 4 38" stroke="#7F2019" stroke-width="5.5" fill="none" stroke-linecap="round"/><path d="M26 28H74V34H26Z" fill="#C98A3A"/><rect x="30" y="84" width="40" height="6" rx="3" fill="#7F2019"/></g></g>
+<path class="th-str" pathLength="50" d="M76 103Q75 126 71 150" stroke="#C4551B" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+<path class="th-steam" d="M60 112q-5-7 0-13" stroke="#B9A98F" stroke-width="3" fill="none" stroke-linecap="round"/><path class="th-steam th-steam2" d="M70 110q-5-8 0-14" stroke="#B9A98F" stroke-width="3" fill="none" stroke-linecap="round"/><path class="th-steam th-steam3" d="M80 112q-5-7 0-13" stroke="#B9A98F" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M52 120H88Q86 134 82 140Q79 146 82 160H58Q61 146 58 140Q54 134 52 120Z" fill="#FFFFFF" fill-opacity=".55"/>
+<g clip-path="url(#thc)"><rect class="th-liq" x="48" y="118" width="44" height="46" fill="#C4551B"/></g>
+<path d="M52 120H88Q86 134 82 140Q79 146 82 160H58Q61 146 58 140Q54 134 52 120Z" fill="none" stroke="#8C6B3C" stroke-width="2.6" stroke-linejoin="round"/>
+<ellipse cx="70" cy="165" rx="26" ry="6" fill="#E9D7B0" stroke="#8C6B3C" stroke-width="2.4"/></svg></div><div class="lg2-ico" style="--x:6%;--y:80%;--s:60px;--r:10deg;--d:2.6s;--t:8.5s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M36 20q14-12 28 0" stroke="#8C6B3C" stroke-width="3" fill="none"/><circle cx="50" cy="13" r="5" fill="#C98A3A"/><path d="M24 34H76Q86 36 86 56Q86 78 66 84H34Q14 78 14 56Q14 36 24 34Z" fill="#B3322B" stroke="#7F2019" stroke-width="2.6"/><path d="M24 44H76" stroke="#E2B04A" stroke-width="3.4"/><path d="M80 44Q98 40 96 24Q94 18 88 22" stroke="#7F2019" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M20 52Q4 52 4 38" stroke="#7F2019" stroke-width="5.5" fill="none" stroke-linecap="round"/><path d="M26 28H74V34H26Z" fill="#C98A3A"/><rect x="30" y="84" width="40" height="6" rx="3" fill="#7F2019"/></svg></div><div class="lg2-ico" style="--x:24%;--y:86%;--s:48px;--r:-12deg;--d:1.2s;--t:10s"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M8 66C8 40 28 22 50 22C72 22 92 40 92 66C86 70 80 66 78 60C70 50 60 48 50 48C40 48 30 50 22 60C20 66 14 70 8 66Z" fill="#E8A94A" stroke="#B9731F" stroke-width="3" stroke-linejoin="round"/><path d="M36 26C32 38 32 46 36 50M50 22V48M64 26C68 38 68 46 64 50" stroke="#B9731F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M26 36q4-6 12-8" stroke="#FFE2A0" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div></div>
       <div class="lg2-btop">
         <div class="lg2-bmark">
           <div class="lg2-blogo-img sdf-logo"></div>
