@@ -5699,29 +5699,35 @@ db.enablePersistence({synchronizeTabs:true}).catch(function(err){console.warn('P
 // من أي جهاز، فتبقى الأرقام محدّثة لحظياً بدون إعادة قراءة المجموعة كاملة.
 var SDCache=(function(){
   var stores={};
-  function ensure(name){
-    if(stores[name])return stores[name];
-    var st={map:{},_resolve:null};
+  // key: اسم المجموعة (كاملة) أو مفتاح استعلام نافذة (RC: استعلام بشروط يبقى مستمعاً حيّاً)؛ q: الاستعلام؛ name: مسار المجموعة
+  function ensure(name,q,key){
+    key=key||name;
+    if(stores[key])return stores[key];
+    var st={map:{},_resolve:null,path:name,key:key};
     st.ready=new Promise(function(res){st._resolve=res;});
-    stores[name]=st;
+    stores[key]=st;
+    q=q||db.collection(name);
     function done(){if(st._timer){clearTimeout(st._timer);st._timer=null;}if(st._resolve){st._resolve();st._resolve=null;}}
     // تُحلّ الجاهزية بعد أول لقطة مؤكَّدة من الخادم (fromCache=false) كي لا تُحسب المجاميع من كاش جزئي؛
     // وإن تأخر الخادم (بلا اتصال) نكمل بما في الكاش بعد 8 ثوانٍ مع تحذير
     st._timer=setTimeout(function(){st._timer=null;console.warn('SDCache('+name+'): no server-confirmed snapshot after 8s — continuing with cached data');done();},8000);
-    db.collection(name).onSnapshot({includeMetadataChanges:true},function(snap){
+    st.unsub=q.onSnapshot({includeMetadataChanges:true},function(snap){
       snap.docChanges().forEach(function(ch){
         if(ch.type==='removed'){delete st.map[ch.doc.id];}
         else{st.map[ch.doc.id]=ch.doc.data();}
       });
-      if(!snap.metadata.fromCache)done();
+      st.live=!snap.metadata.fromCache;   // false عند انقطاع الاتصال: المرآة لا تُستعمل حتى يعود التأكيد من الخادم
+      if(st.dirty&&snap.docChanges().length)flushDirty(st);
+      if(!snap.metadata.fromCache){st.synced=true;done();}
     },function(err){
       console.warn('SDCache('+name+') listener error: '+err.message+' — fallback get()');
-      db.collection(name).get().then(function(snap){
+      st.live=false;
+      q.get().then(function(snap){
         st.map={};
         snap.forEach(function(doc){st.map[doc.id]=doc.data();});
-        done();
+        st.synced=true;st.live=true;done();
       }).catch(function(e2){
-        console.error('SDCache('+name+') fallback failed: '+e2.message);
+        console.warn('SDCache('+name+') fallback failed: '+e2.message);   // تحذير لا خطأ: غياب الصلاحية على مجموعة حالة متوقعة (RC يرجع للقراءة العادية فيصل الخطأ الحقيقي لمن يستدعيها)
         done();
       });
     });
@@ -5770,7 +5776,28 @@ var SDCache=(function(){
       return fakeSnap(arr);
     });
   }
-  return {snap:snap,snapWhere:snapWhere,snapOrdered:snapOrdered};
+  function flushDirty(st){st.dirty=0;if(st.dt){clearTimeout(st.dt);st.dt=null;}var w=st.dw||[];st.dw=[];w.forEach(function(r){r();});}
+  // مرآة حيّة للقراءة المحلية (RC في 01-readcache.js): تُعاد الخريطة فقط إن كانت المجموعة محمّلة كاملة ومؤكَّدة من الخادم
+  // وتعكس كتابات هذا التطبيق (st.dirty: ننتظر وصول اللقطة المحلية)؛ غير ذلك null فتُقرأ من الخادم كالمعتاد
+  // peek: الخريطة إن كانت جاهزة، أو وعد بها إن كتب هذا التطبيق على المجموعة للتو (ننتظر وصول اللقطة المحلية ≤1.5ث)، أو null
+  function peek(key){
+    var st=stores[key];if(!st||!st.synced||st.live===false)return null;
+    if(!st.dirty)return st.map;
+    return new Promise(function(res){(st.dw=st.dw||[]).push(function(){res(st.live!==false?st.map:null);});if(!st.dt)st.dt=setTimeout(function(){flushDirty(st);},1500);});
+  }
+  function dirty(path){Object.keys(stores).forEach(function(k){var st=stores[k];if(st.path===path&&st.synced)st.dirty=Date.now();});}
+  // مستمع نافذة (استعلام بشروط): نُبقي آخر 3 نوافذ لكل مجموعة ونغلق الأقدم
+  function touchQ(key,path,q){
+    if(!stores[key]){
+      var olds=Object.keys(stores).filter(function(k){return stores[k].path===path&&k!==path;});
+      while(olds.length>=3){var k0=olds.shift(),o=stores[k0];if(o._timer)clearTimeout(o._timer);if(o.unsub)try{o.unsub();}catch(e){}delete stores[k0];}
+    }
+    return ensure(path,q,key).ready;
+  }
+  function touch(name){return ensure(name).ready;}      // يفتح المستمع إن لم يكن مفتوحاً ويعيد وعد الجاهزية (بلا نسخ)
+  // عند الخروج: إغلاق كل المستمعات وتفريغ المخازن كي لا تظهر بيانات مستخدم سابق لمستخدم يدخل بعده في الصفحة نفسها
+  function reset(){Object.keys(stores).forEach(function(n){var st=stores[n];if(st._timer)clearTimeout(st._timer);if(st.unsub)try{st.unsub();}catch(e){}});stores={};}
+  return {snap:snap,snapWhere:snapWhere,snapOrdered:snapOrdered,peek:peek,dirty:dirty,touch:touch,touchQ:touchQ,reset:reset};
 })();
 
 // ===========================================================
@@ -6008,7 +6035,7 @@ function loadAuditLog(){
   var tbody=document.getElementById('al-tbody');
   if(tbody)tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--tl)">جارٍ تحميل السجل...</td></tr>';
   // dateStr نص ISO يُكتب من الجهاز دائماً — ترتيب مضمون بدون فهرس مركّب
-  db.collection(AUDIT_COLL).orderBy('dateStr','desc').limit(500).get().then(function(snap){
+  RC.get(db.collection(AUDIT_COLL).orderBy('dateStr','desc').limit(500)).then(function(snap){
     _auditCache=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_auditCache.push(d);});
     sdFillAuditFilters();
@@ -6213,7 +6240,7 @@ var DEFAULT_CASHIER_NAMES = ["الكاشير","مها","حاتم","عبدالل�
 function loadCashierNames(){
   // جلب الكاشيرين من users (role: cashier) + الأسماء الإضافية من cashier_names + الأسماء الافتراضية
   var fromUsers = USERS_CACHE.filter(function(u){return u.role==='cashier';}).map(function(u){return u.name;});
-  return db.collection('cashier_names').get().then(function(snap){
+  return RC.get(db.collection('cashier_names')).then(function(snap){
     var fromCollection = [];
     snap.forEach(function(doc){
       var d=doc.data();
@@ -6378,7 +6405,7 @@ function ensureAdminExists(){
 }
 
 function fetchUsers(){
-  return db.collection('users').orderBy('createdAt','asc').get().then(function(snap){
+  return RC.get(db.collection('users').orderBy('createdAt','asc')).then(function(snap){
     USERS_CACHE = [];
     snap.forEach(function(doc){
       var d = doc.data();
@@ -6387,7 +6414,7 @@ function fetchUsers(){
     });
     return USERS_CACHE;
   }).catch(function(){
-    return db.collection('users').get().then(function(snap){
+    return RC.get(db.collection('users')).then(function(snap){
       USERS_CACHE = [];
       snap.forEach(function(doc){ var d=doc.data(); d._id=doc.id; USERS_CACHE.push(d); });
       return USERS_CACHE;
@@ -6523,11 +6550,11 @@ function startSession(){
   // مستخدم بصلاحيات مخصصة: تُفتح له أول صفحة متاحة (اللوحة المالية ثم لوحة التحكم ثم أول صفحة مسموحة)
   if(permsMode()){
     var _lp=['fdash','dashboard'].concat(userPerms()).filter(function(k){return hasPage(k);})[0];
-    if(hasPage('dashboard'))loadDashboard();
+    if(hasPage('dashboard')&&_lp==='dashboard')loadDashboard();   // تُحمَّل لوحة التحكم عند فتحها (go) إن لم تكن صفحة الهبوط: توفير قراءات
     if(_lp)setTimeout(function(){go(_lp,navFor(_lp));},0);
     return;
   }
-  if(CU.role==='owner_viewer'){loadDashboard();setTimeout(function(){go('fdash',document.querySelector('.ni[data-perm="fdash"]')||null);},0);return;}
+  if(CU.role==='owner_viewer'){setTimeout(function(){go('fdash',document.querySelector('.ni[data-perm="fdash"]')||null);},0);return;}
   if(CU.role==='visit_supervisor'){setTimeout(function(){go('vreports',navFor('vreports'));},0);return;}
   // Redirect HR to their home page
   if(CU.role==='hr_manager'){
@@ -6557,13 +6584,13 @@ function startSession(){
   }
   // Load dashboard data only for roles that should see it
   var dashRoles=['branch_manager','cashier','store_manager'];
-  if(dashRoles.includes(CU.role)) loadDashboard();
+  if(dashRoles.includes(CU.role)&&CU.role!=='branch_manager') loadDashboard();   // مدير الفرع يهبط على اللوحة المالية؛ لوحة التحكم تُحمَّل عند فتحها
   // مدير الفرع: تُفتح اللوحة المالية أولاً (لوحة التحكم التشغيلية تبقى في القائمة)
   if(CU.role==='branch_manager')setTimeout(function(){go('fdash',document.querySelector('.ni[data-perm="fdash"]')||null);},0);
   // Seed default custody users if needed
   if(CU.role==='branch_manager')setTimeout(seedDefaultCustodyUsers,2000);
   // Check notifications after loading employees
-  setTimeout(function(){if(typeof loadEmployees==='function'&&CU.role==='branch_manager')db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){_employees=[];snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});hrNamesBackfill(_employees);checkNotifications();});},3000);
+  setTimeout(function(){if(typeof loadEmployees==='function'&&CU.role==='branch_manager')RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){_employees=[];snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});hrNamesBackfill(_employees);checkNotifications();});},3000);
 }
 
 function doLogout(){
@@ -6993,7 +7020,7 @@ function violDaily(v){
 function loadEmployees(){
   var tbody=document.getElementById('emp-table-body');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="14" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
-  db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){
+  RC.get(db.collection('hr_employees').orderBy('name','asc'),{fresh:true}).then(function(snap){   // قراءة طازجة: تُبنى عليها مزامنة مرآة الأسماء (كتابة)
     _employees=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});
     if(CU&&(CU.role==='branch_manager'||hasCap('edit:hr')))hrNamesReconcile(_employees).catch(function(e){console.warn('hr names mirror:',e.message);});
@@ -7162,9 +7189,9 @@ function openEmpProfile(empId){
   // جلب التقييمات وسجل الرواتب
   // ملاحظة: الرواتب تُحفظ document واحد/شهر يحتوي rows[] لكل الموظفين
   Promise.all([
-    db.collection('hr_evaluations').where('empId','==',empId).get(),
-    db.collection('hr_payroll').orderBy('createdAt','desc').limit(24).get().catch(function(){return {forEach:function(){},empty:true};}),
-    db.collection('hr_violations').where('empId','==',empId).get().catch(function(){return {forEach:function(){},empty:true};})
+    RC.get(db.collection('hr_evaluations').where('empId','==',empId)),
+    RC.get(db.collection('hr_payroll').orderBy('createdAt','desc').limit(24)).catch(function(){return {forEach:function(){},empty:true};}),
+    RC.get(db.collection('hr_violations').where('empId','==',empId)).catch(function(){return {forEach:function(){},empty:true};})
   ]).then(function(results){
     var evals=[],payrolls=[],violations=[];
     results[0].forEach(function(doc){var d=doc.data();d._id=doc.id;evals.push(d);});
@@ -7524,12 +7551,12 @@ function loadPayrollSheet(){
   var render=function(){renderPayrollTable(month,year);};
   // تحميل رصيد السلف والمخالفات المعتمدة لعرض المقترحات ثم رسم المسير
   var loadViolForPayroll=function(cb){
-    db.collection('hr_violations').orderBy('createdAt','desc').limit(400).get().then(function(snap){
+    RC.get(db.collection('hr_violations').orderBy('createdAt','desc').limit(400)).then(function(snap){
       _violations=[];snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_violations.push(d);});cb();
     }).catch(function(e){console.warn('violations load:',e.message);cb();});
   };
   var run=function(){loadViolForPayroll(function(){loadAdvData(render);});};
-  if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});run();});}else{run();}
+  if(_employees.length===0){RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});run();});}else{run();}
 }
 function renderPayrollTable(month,year){
   var tbody=document.getElementById('payroll-body');
@@ -7765,7 +7792,7 @@ function savePayrollSheet(){
 }
 function loadPayrollHistory(){
   var tbody=document.getElementById('payroll-history-body');if(!tbody)return;
-  db.collection('hr_payroll').orderBy('createdAt','desc').limit(24).get().then(function(snap){
+  RC.get(db.collection('hr_payroll').orderBy('createdAt','desc').limit(24)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tl)">لا توجد مسيرات محفوظة</td></tr>';return;}
     var rows='';
     var mN={'01':'يناير','02':'فبراير','03':'مارس','04':'أبريل','05':'مايو','06':'يونيو','07':'يوليو','08':'أغسطس','09':'سبتمبر','10':'أكتوبر','11':'نوفمبر','12':'ديسمبر'};
@@ -7832,7 +7859,7 @@ function editPayroll(docId){
       var pg=document.getElementById('pg-hr-payroll');if(pg)pg.scrollIntoView({behavior:'smooth',block:'start'});
     };
     if(_employees.length===0){
-      db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){
+      RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){
         snap.forEach(function(dc){var e=dc.data();e._id=dc.id;_employees.push(e);});
         proceed();
       }).catch(function(e){alert('خطأ في تحميل الموظفين: '+e.message);});
@@ -8316,7 +8343,7 @@ function saveEvalCriteria(){
 }
 function loadEvalHistory(){
   var tbody=document.getElementById('eval-history-body');if(!tbody)return;
-  db.collection('hr_evaluations').orderBy('createdAt','desc').limit(50).get().then(function(snap){
+  RC.get(db.collection('hr_evaluations').orderBy('createdAt','desc').limit(50)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--tl)">لا توجد تقييمات بعد</td></tr>';return;}
     var rows='';
     snap.forEach(function(doc){
@@ -8385,7 +8412,7 @@ function deleteEvaluation(docId,empName){
 // ===== طباعة شاملة لجميع التقييمات =====
 function printAllEvaluations(){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
-  db.collection('hr_evaluations').orderBy('createdAt','desc').get().then(function(snap){
+  RC.get(db.collection('hr_evaluations').orderBy('createdAt','desc')).then(function(snap){
     if(snap.empty){alert('لا توجد تقييمات للطباعة');return;}
     var evals=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;evals.push(d);});
@@ -8728,7 +8755,7 @@ function registerViolation(){
   }).catch(function(e){alert('خطأ: '+e.message);});
 }
 function loadViolHistory(){
-  db.collection('hr_violations').orderBy('createdAt','desc').limit(400).get().then(function(snap){
+  RC.get(db.collection('hr_violations').orderBy('createdAt','desc').limit(400)).then(function(snap){
     _violations=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_violations.push(d);});
     renderViolQueue();renderViolHistory();
@@ -9147,7 +9174,7 @@ function viewViolationNotice(docId){
 }
 function printAllViolations(){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
-  db.collection('hr_violations').orderBy('createdAt','desc').get().then(function(snap){
+  RC.get(db.collection('hr_violations').orderBy('createdAt','desc')).then(function(snap){
     if(snap.empty){alert('لا توجد مخالفات للطباعة');return;}
     var vs=[];snap.forEach(function(doc){var d=doc.data();d._id=doc.id;vs.push(d);});
     var total=vs.length,pend=0,dec=0,totalDed=0;var emps={};
@@ -9269,7 +9296,7 @@ function getEmpSuggestedInstallment(empId){
 
 // تحميل حركات السلف من Firestore
 function loadAdvData(cb){
-  db.collection('hr_advances').orderBy('createdAt','desc').get().then(function(snap){
+  RC.get(db.collection('hr_advances').orderBy('createdAt','desc')).then(function(snap){
     _advances=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_advances.push(d);});
     _advLoaded=true;
@@ -9292,7 +9319,7 @@ function initAdvancesPage(){
     loadAdvLedger();
   };
   if(_employees.length===0){
-    db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){
+    RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){
       snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});run();
     }).catch(function(){run();});
   }else{run();}
@@ -9639,8 +9666,8 @@ function go(pid,el){
     }
   },80);}
   if(pid==='hr-employees'){setTimeout(function(){if(_employees.length===0)loadEmployees();},80);}
-  if(pid==='hr-payroll'){setTimeout(function(){if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});});}loadPayrollHistory();},80);}
-  if(pid==='hr-eval'){setTimeout(function(){if(_employees.length===0){db.collection('hr_employees').orderBy('name','asc').get().then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});refreshEvalEmpSelect();});}else{refreshEvalEmpSelect();}loadEvalCriteria(function(){renderEvalCriteria();});initEvalCriteriaMgr();loadEvalHistory();},80);}
+  if(pid==='hr-payroll'){setTimeout(function(){if(_employees.length===0){RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});});}loadPayrollHistory();},80);}
+  if(pid==='hr-eval'){setTimeout(function(){if(_employees.length===0){RC.get(db.collection('hr_employees').orderBy('name','asc')).then(function(snap){snap.forEach(function(doc){var d=doc.data();d._id=doc.id;_employees.push(d);});refreshEvalEmpSelect();});}else{refreshEvalEmpSelect();}loadEvalCriteria(function(){renderEvalCriteria();});initEvalCriteriaMgr();loadEvalHistory();},80);}
   if(pid==='monthlyreports'){setTimeout(function(){var m=document.getElementById('mr-month'),y=document.getElementById('mr-year'),now=new Date();if(m&&!m._init){m._init=true;m.value=String(now.getMonth()+1).padStart(2,'0');}if(y&&!y.value)y.value=now.getFullYear();loadMonthlyReports();},80);}
   if(pid==='hr-advances'){setTimeout(function(){initAdvancesPage();},80);}
   if(pid==='hr-violations'){setTimeout(function(){initViolPage();},80);}
@@ -9667,7 +9694,7 @@ function go(pid,el){
   if(pid==='users') renderUsers();
   if(pid==='auditlog'){loadAuditLog();}
   if(pid==='custody'){initCustodyPage();loadCustody();setTimeout(initCustodyFilter,500);setTimeout(function(){makeCashierSelector('ec-cashier');},150);}
-  if(pid==='dashboard'){loadDashboard();}
+  if(pid==='dashboard'){loadDashboard(true);}
   if(pid==='reports'){loadCashierReports();if(typeof checkMissingRevenueDays==='function')checkMissingRevenueDays();}
   if(pid==='salesreport'){if(typeof srInit==='function')srInit();}
   if(pid==='custodyreport'){if(typeof crInit==='function')crInit();}
@@ -10185,6 +10212,7 @@ var _custodyUsers = []; // cached list
 // Default built-in users (always present as fallback)
 var DEFAULT_CUSTODY_USERS = ["أحمد","حسام","ركيب"];
 
+// قائمة صغيرة (≈6 وثائق) تُدار منها الصلاحيات: تبقى قراءة طازجة دائماً بلا كاش
 function loadCustodyUsers(callback){
   db.collection('custody_users').orderBy('createdAt','asc').get().then(function(snap){
     _custodyUsers = [];
@@ -11251,7 +11279,7 @@ function opfLoadLog(){
   var q=db.collection('operational_forms');
   if(from)q=q.where('date','>=',from);
   if(to)q=q.where('date','<=',to);
-  q.get().then(function(snap){
+  RC.get(q).then(function(snap){
     var rows=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;if(!type||d.formId===type)rows.push(d);});
     rows.sort(function(a,b){
@@ -11618,7 +11646,7 @@ function loadPLReport(){
     });
 
     // Load custody data for same month
-    Promise.all([SDCache.snap('custody_ledger'),db.collection('expenses').where('date','>=',monthPrefix+'-01').where('date','<=',monthPrefix+'-31').get().catch(function(){return null;})]).then(function(rr){
+    Promise.all([SDCache.snap('custody_ledger'),RC.get(db.collection('expenses').where('date','>=',monthPrefix+'-01').where('date','<=',monthPrefix+'-31')).catch(function(){return null;})]).then(function(rr){
       var cuSnap=rr[0],scrExp=0,scrN=0;
       if(rr[1])rr[1].forEach(function(x){scrExp+=Number(x.data().amount)||0;scrN++;});
       var cuInv=0,cuExp=0,cuCash=0;
@@ -12575,7 +12603,7 @@ function loadHubBadges(){
   }
 
   // Badge: shift today
-  db.collection('daily_reports').where('date','==',new Date().toISOString().split('T')[0]).limit(1).get().then(function(snap){
+  RC.get(db.collection('daily_reports').where('date','==',new Date().toISOString().split('T')[0]).limit(1)).then(function(snap){
     var el=document.getElementById('hb-shift');
     if(el){
       if(snap.empty){el.textContent='لم تُكمل بعد';el.style.background='#FFEBEE';el.style.color='#B71C1C';}
@@ -12584,7 +12612,7 @@ function loadHubBadges(){
   }).catch(function(){});
 
   // Badge: cashier — today reports count
-  db.collection('cashier_reports').where('date','==',new Date().toISOString().split('T')[0]).get().then(function(snap){
+  RC.get(db.collection('cashier_reports').where('date','==',new Date().toISOString().split('T')[0])).then(function(snap){
     var el=document.getElementById('hb-cashier');
     if(el){
       if(snap.empty){el.textContent='لا يوجد تقفيل';el.style.background='#FFF8E1';el.style.color='#E65100';}
@@ -12602,7 +12630,7 @@ function loadHubBadges(){
   },2500);
 
   // Badge: purchase — pending count
-  db.collection('inv_requests').where('status','==','pending').get().then(function(snap){
+  RC.get(db.collection('inv_requests').where('status','==','pending')).then(function(snap){
     var el=document.getElementById('hb-purchase');
     if(el){
       if(snap.empty){el.textContent='لا طلبات معلقة';el.style.background='#E8F5E9';el.style.color='#1B5E20';}
@@ -12611,7 +12639,7 @@ function loadHubBadges(){
   }).catch(function(){});
 
   // Badge: violations — total count
-  db.collection('hr_violations').get().then(function(snap){
+  RC.get(db.collection('hr_violations')).then(function(snap){
     var el=document.getElementById('hb-viol');
     if(el){
       if(snap.empty){el.textContent='لا مخالفات';el.style.background='#E8F5E9';el.style.color='#1B5E20';}
@@ -12620,7 +12648,7 @@ function loadHubBadges(){
   }).catch(function(){});
 
   // Badge: advances — count + outstanding balance
-  db.collection('hr_advances').get().then(function(snap){
+  RC.get(db.collection('hr_advances')).then(function(snap){
     var byEmp={},grants=0;
     snap.forEach(function(doc){var a=doc.data();
       if(!byEmp[a.empId])byEmp[a.empId]=0;
@@ -13359,7 +13387,7 @@ function loadRevenueLedger(){
   _rrLedgerData=[];
   var tbody=document.getElementById('rr-ledger-body');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--tl)">جارٍ التحميل...</td></tr>';
-  db.collection('revenue_receipts').orderBy('createdAt','desc').limit(60).get().then(function(snap){
+  RC.get(db.collection('revenue_receipts').orderBy('createdAt','desc').limit(60)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tl)">لا توجد سجلات بعد</td></tr>';return;}
     var rows='';
     snap.forEach(function(doc){
@@ -14197,7 +14225,7 @@ function loadCashierReports(){
   var query=db.collection('cashier_reports').orderBy('date','desc');
   if(fromDate)query=query.where('date','>=',fromDate);
   if(toDate)query=query.where('date','<=',toDate);
-  query.limit(100).get().then(function(snap){
+  RC.get(query.limit(100)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--tl)">لا توجد تقافيل محفوظة</td></tr>';return}
     var rows='',totalSales=0,totalSpanSum=0,totalCashSum=0,count=0,totalShortage=0,totalSurplus=0;
     var canEditCR=opsCanEdit();
@@ -14246,7 +14274,7 @@ function loadCashierReports(){
 // ===== كشف وحذف التقفيلات المكررة =====
 function findDuplicateCashierReports(){
   if(!opsCan('delete:ops')){alert('ليس لديك صلاحية لهذا الإجراء');return;}
-  db.collection('cashier_reports').orderBy('date','desc').limit(500).get().then(function(snap){
+  RC.get(db.collection('cashier_reports').orderBy('date','desc').limit(500)).then(function(snap){
     if(snap.empty){alert('لا توجد تقفيلات للفحص');return;}
     var all=[];
     snap.forEach(function(doc){var d=doc.data();d._id=doc.id;all.push(d);});
@@ -14560,7 +14588,7 @@ function loadCCLog(){
   var query=db.collection('cashier_reports').orderBy('date','desc');
   if(from)query=query.where('date','>=',from);
   if(to)query=query.where('date','<=',to);
-  query.limit(60).get().then(function(snap){
+  RC.get(query.limit(60)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--tl)">لا توجد تقفيلات محفوظة</td></tr>';var c0=document.getElementById('cclog-count');if(c0)c0.textContent='';return;}
     var rows='';
     snap.forEach(function(doc){
@@ -14781,7 +14809,7 @@ function loadMonthlyReports(){
   var tbody=document.getElementById('mr-body');
   if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--tl)">جارٍ التحميل...</td></tr>';
-  db.collection('monthly_reports').orderBy('period','desc').limit(120).get().then(function(snap){
+  RC.get(db.collection('monthly_reports').orderBy('period','desc').limit(120)).then(function(snap){
     if(snap.empty){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--tl)">لا توجد تقارير مرفوعة بعد — ارفع أول تقرير من الأعلى</td></tr>';return;}
     var monthNames={'01':'يناير','02':'فبراير','03':'مارس','04':'أبريل','05':'مايو','06':'يونيو','07':'يوليو','08':'أغسطس','09':'سبتمبر','10':'أكتوبر','11':'نوفمبر','12':'ديسمبر'};
     var rows='';
@@ -15300,8 +15328,10 @@ function applyCustomDashFilter(){
   loadDashboard();
 }
 
-function loadDashboard(){
+function loadDashboard(force){
   if(!CU)return;
+  // إعادة التحميل بعد الحفظ تتم فقط إن كانت اللوحة معروضة؛ وتُحمَّل عند فتحها (go) — لا قراءات لصفحة مخفية
+  if(!force){var _pd=document.getElementById('pg-dashboard');if(_pd&&!_pd.classList.contains('active'))return;}
   // HR manager should not load financial dashboard data
   if(CU.role==='hr_manager'){filterDashboard();return;}
   loadHubBadges();
@@ -15315,7 +15345,7 @@ function loadDashboard(){
   else query=query.limit(365);
 
   // Load cashier reports for charts and KPIs
-  query.get().then(function(snap){
+  RC.get(query).then(function(snap){
     var reports=[];
     snap.forEach(function(doc){reports.push(doc.data());});
 
@@ -15586,7 +15616,7 @@ function loadOpeningClosingStatus(){
   var today=new Date().toISOString().split('T')[0];
   // ملاحظة: استخدام where + orderBy على حقلين مختلفين يحتاج composite index في Firestore
   // لتفادي ذلك، نستخدم where فقط ونفرز يدوياً في JavaScript
-  db.collection('daily_reports').where('date','==',today).get().then(function(snap){
+  RC.get(db.collection('daily_reports').where('date','==',today)).then(function(snap){
     // نجمع كل المستندات في مصفوفة ثم نفرز يدوياً
     var docs=[];
     snap.forEach(function(doc){
@@ -17042,9 +17072,9 @@ function rrLoadClosures(){
   var cutoff=new Date(Date.now()-45*86400000).toISOString().split('T')[0];
   if(RR_START&&cutoff<RR_START)cutoff=RR_START;
   Promise.all([
-    db.collection('cashier_reports').where('date','>=',cutoff).orderBy('date','desc').limit(60).get(),
-    db.collection('custody_ledger').where('date','>=',cutoff).get(),
-    db.collection('revenue_receipts').where('date','>=',cutoff).get()
+    RC.get(db.collection('cashier_reports').where('date','>=',cutoff).orderBy('date','desc').limit(60)),
+    RC.get(db.collection('custody_ledger').where('date','>=',cutoff)),
+    RC.get(db.collection('revenue_receipts').where('date','>=',cutoff))
   ]).then(function(res){
     var linked={};
     res[1].forEach(function(doc){var d=doc.data();if(d.linkedCashierReport&&d.type==='receive'&&d.source!=='cashier_closing_invoices')linked[d.linkedCashierReport]=true;});
@@ -17273,8 +17303,9 @@ function psLoadAll(){
     SDCache.snap('purchases_payments').then(function(snap){
       PS_PAYMENTS=[];snap.forEach(function(d){var x=d.data();x._id=d.id;PS_PAYMENTS.push(x);});
     }),
-    psLoadIngs() // المواد الخام لربط أصناف الفاتورة (لا تُفشل التحميل)
-  ]).then(function(){
+    psLoadIngs(true) // المواد الخام لربط أصناف الفاتورة (لا تُفشل التحميل)
+  ]).then(function(r){
+    if(r[3]===true)PS_INGS_LOADED=true;   // الراية تُرفع بعد وصول بقية بيانات الصفحة (الموردون/الفواتير/الدفعات) كما كان الترتيب عند القراءة من الخادم
     psRefreshAll();
     if(!PSL_STATE['psi'])pslInit('psi',[],'ex');else pslRender('psi');
   }).catch(function(e){
@@ -17960,15 +17991,17 @@ function psiView(id){
 var PS_INGS=[], PS_INGS_LOADED=false, PS_INGS_ERR='';
 var PSL_STATE={};   // cid -> {rows:[...]}
 
-function psLoadIngs(){
-  return db.collection('cost_ingredients').get().then(function(snap){
+function psLoadIngs(defer){
+  return RC.get(db.collection('cost_ingredients')).then(function(snap){
     PS_INGS=[];snap.forEach(function(d){var x=d.data();x._id=d.id;PS_INGS.push(x);});
     PS_INGS.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
-    PS_INGS_LOADED=true;PS_INGS_ERR='';
+    if(!defer)PS_INGS_LOADED=true;PS_INGS_ERR='';
     pslBuildDatalist();
+    return true;
   }).catch(function(e){
     PS_INGS_LOADED=false;PS_INGS_ERR=e.message||'';
     console.warn('تعذر تحميل المواد الخام لفواتير الشراء:',e.message);
+    return false;
   });
 }
 function pslBuildDatalist(){
@@ -20819,8 +20852,8 @@ function ccInit(){
   if(!ccViewOK())return;
   if(_ccLoaded){ccRenderIngs();ccRenderRecs();return;}
   Promise.all([
-    db.collection('cost_ingredients').get(),
-    db.collection('cost_recipes').get()
+    RC.get(db.collection('cost_ingredients')),
+    RC.get(db.collection('cost_recipes'))
   ]).then(function(res){
     _ccIngs=[];res[0].forEach(function(d){var x=d.data();x._id=d.id;_ccIngs.push(x);});
     _ccRecs=[];res[1].forEach(function(d){var x=d.data();x._id=d.id;_ccRecs.push(ccAdaptRec(x));});
@@ -21378,7 +21411,7 @@ function prOpen(){
     document.getElementById('pr-modal').classList.add('show');
   };
   if(_ccLoaded){go();return;}
-  Promise.all([db.collection('cost_ingredients').get(),db.collection('cost_recipes').get()]).then(function(res){
+  Promise.all([RC.get(db.collection('cost_ingredients')),RC.get(db.collection('cost_recipes'))]).then(function(res){
     _ccIngs=[];res[0].forEach(function(d){var x=d.data();x._id=d.id;_ccIngs.push(x);});
     _ccRecs=[];res[1].forEach(function(d){var x=d.data();x._id=d.id;_ccRecs.push(x);});
     _ccIngs.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
@@ -24156,19 +24189,36 @@ function accInit(){
   if(BACC.postAdvances&&!document.querySelector('.acc-a-src[value="advance"]')){var lb=document.querySelector('.acc-a-src[value="custody"]');if(lb&&lb.parentNode)lb.parentNode.insertAdjacentHTML('afterend','<label><input type="checkbox" class="acc-a-src" value="advance" checked style="width:auto"> 🤝 سلف الموظفين</label>');}
   accLoad().then(function(){return accAfterLoad();}).then(function(){accSyncAuto();});
 }
+// الإعدادات + شجرة الحسابات (مشتركة بين التحميل الكامل والخفيف)
+function accApplyBase(settingsDoc,accountsSnap){
+  var st=settingsDoc&&settingsDoc.exists?settingsDoc.data():null;
+  var def=accDefaultSettings();
+  ACC.settings=Object.assign({},def,st||{});ACC.settings.map=Object.assign({},def.map,(st&&st.map)||{});
+  ACC.accounts={};ACC.list=[];
+  accountsSnap.forEach(function(doc){var a=accNormAccount(doc.id,doc.data());ACC.accounts[doc.id]=a;ACC.list.push(a);});
+  ACC.list.sort(function(a,b){return a.code<b.code?-1:1;});
+}
+// تحميل خفيف للترحيل التلقائي: الإعدادات والحسابات + قيود اليومية من تاريخ from فقط (بدل دفتر اليومية كله)
+// لا يلمس ACC.entries ولا ACC.loaded (صفحة المحاسبة تحمّل الدفتر كاملاً عند فتحها). يعيد قيود النافذة.
+function accLoadLite(from){
+  return Promise.all([
+    RC.getDoc(db.collection('acc_settings').doc('main')).catch(function(){return null;}),
+    RC.get(db.collection('acc_accounts')),
+    RC.get(db.collection('acc_journal').where('date','>=',from))
+  ]).then(function(res){
+    accApplyBase(res[0],res[1]);
+    var ents=[];res[2].forEach(function(doc){var e=doc.data();e._id=doc.id;ents.push(e);});
+    return ents;
+  });
+}
 function accLoad(){
   accStatus('⏳ جارٍ تحميل البيانات المحاسبية...');
   return Promise.all([
-    db.collection('acc_settings').doc('main').get().catch(function(){return null;}),
-    db.collection('acc_accounts').get(),
-    db.collection('acc_journal').get()
+    RC.getDoc(db.collection('acc_settings').doc('main')).catch(function(){return null;}),
+    RC.get(db.collection('acc_accounts')),
+    RC.get(db.collection('acc_journal'))
   ]).then(function(res){
-    var st=res[0]&&res[0].exists?res[0].data():null;
-    var def=accDefaultSettings();
-    ACC.settings=Object.assign({},def,st||{});ACC.settings.map=Object.assign({},def.map,(st&&st.map)||{});
-    ACC.accounts={};ACC.list=[];
-    res[1].forEach(function(doc){var a=accNormAccount(doc.id,doc.data());ACC.accounts[doc.id]=a;ACC.list.push(a);});
-    ACC.list.sort(function(a,b){return a.code<b.code?-1:1;});
+    accApplyBase(res[0],res[1]);
     ACC.entries=[];
     res[2].forEach(function(doc){var e=doc.data();e._id=doc.id;ACC.entries.push(e);});
     ACC.entries.sort(function(a,b){return (a.date||'')<(b.date||'')?-1:(a.date||'')>(b.date||'')?1:((a.no||0)-(b.no||0));});
@@ -24218,7 +24268,7 @@ function accAfterLoad(){
   return accUpgrade();
 }
 function accUpgrade(){
-  return db.collection('acc_accounts').get().then(function(s){
+  return RC.get(db.collection('acc_accounts')).then(function(s){
     var need={};s.forEach(function(d){var x=d.data();if(x.parent==null||x.nature==null)need[d.id]=1;});
     var b2=db.batch(),m=0;
     ACC_DEFAULT.forEach(function(r){if(!ACC.accounts[r[0]]){var a=accNormAccount(r[0],{name:r[1]});b2.set(db.collection('acc_accounts').doc(r[0]),{code:r[0],name:r[1],parent:a.parent,isGroup:a.isGroup,type:a.type,nature:a.nature,inactive:false,createdBy:CU.name||'',createdAt:firebase.firestore.FieldValue.serverTimestamp()});m++;}});
@@ -24685,17 +24735,18 @@ function accBuildExpenseSettle(id,d){
 function accAutoBuild(from,to,srcs,opts){
   opts=opts||{};
   var inR=function(dt){return dt&&dt>=from&&dt<=to;};
+  var F={fresh:!!opts.strict};   // المعاينة اليدوية تقرأ طازجاً؛ الترحيل التلقائي يستفيد من الكاش/المرآة (RC)
   var need=function(s,fn){if(srcs.indexOf(s)<0)return Promise.resolve(null);var q=fn();return opts.strict?q:q.catch(function(){return null;});};
   return Promise.all([
-    need('cashier',function(){return db.collection('cashier_reports').where('date','>=',from).where('date','<=',to).get();}),
-    (srcs.indexOf('purchase')>=0||srcs.indexOf('payment')>=0)?db.collection('purchases_suppliers').get().catch(function(){return null;}):Promise.resolve(null),
-    need('purchase',function(){return opts.restrict?db.collection('purchases_invoices').where('date','>=',from).get():db.collection('purchases_invoices').get();}),
-    need('payment',function(){return opts.restrict?db.collection('purchases_payments').where('date','>=',from).get():db.collection('purchases_payments').get();}),
-    need('payroll',function(){return db.collection('hr_payroll').get();}),
-    need('custody',function(){return db.collection('custody_ledger').where('date','>=',from).where('date','<=',to).get();}),
-    need('expense',function(){return db.collection('expenses').where('date','>=',from).where('date','<=',to).get();}),
-    need('expense',function(){return db.collection('expenses').where('paidDate','>=',from).where('paidDate','<=',to).get();}),
-    need('advance',function(){return db.collection('hr_advances').where('date','>=',from).where('date','<=',to).get();})
+    need('cashier',function(){return RC.get(db.collection('cashier_reports').where('date','>=',from).where('date','<=',to),F);}),
+    (srcs.indexOf('purchase')>=0||srcs.indexOf('payment')>=0)?RC.get(db.collection('purchases_suppliers'),F).catch(function(){return null;}):Promise.resolve(null),
+    need('purchase',function(){return opts.restrict?RC.get(db.collection('purchases_invoices').where('date','>=',from),F):RC.get(db.collection('purchases_invoices'),F);}),
+    need('payment',function(){return opts.restrict?RC.get(db.collection('purchases_payments').where('date','>=',from),F):RC.get(db.collection('purchases_payments'),F);}),
+    need('payroll',function(){return RC.get(db.collection('hr_payroll'),F);}),
+    need('custody',function(){return RC.get(db.collection('custody_ledger').where('date','>=',from).where('date','<=',to),F);}),
+    need('expense',function(){return RC.get(db.collection('expenses').where('date','>=',from).where('date','<=',to),F);}),
+    need('expense',function(){return RC.get(db.collection('expenses').where('paidDate','>=',from).where('paidDate','<=',to),F);}),
+    need('advance',function(){return RC.get(db.collection('hr_advances').where('date','>=',from).where('date','<=',to),F);})
   ]).then(function(r){
     var sup={};if(r[1])r[1].forEach(function(doc){sup[doc.id]=doc.data().name||'';});
     var plan=[];
@@ -24708,7 +24759,7 @@ function accAutoBuild(from,to,srcs,opts){
     if(r[6])r[6].forEach(function(doc){var e=accBuildExpense(doc.id,doc.data());if(e)plan.push(e);});
     if(r[7])r[7].forEach(function(doc){var e=accBuildExpenseSettle(doc.id,doc.data());if(e)plan.push(e);});
     if(r[8])r[8].forEach(function(doc){var d=doc.data();if(!inR(d.date))return;var e=accBuildAdvance(doc.id,d);if(e)plan.push(e);});
-    var byId={};ACC.entries.forEach(function(e){byId[e._id]=e;});
+    var byId={};(opts.entries||ACC.entries).forEach(function(e){byId[e._id]=e;});
     var sig=function(date,lines){return date+'@'+lines.map(function(l){return l.acc+'|'+accR(l.debit)+'|'+accR(l.credit);}).sort().join(';');};
     plan.forEach(function(p){
       var ex=byId[p.id];
@@ -24797,22 +24848,29 @@ function accSyncAuto(){
   if(!CU||!accCanWrite())return Promise.resolve(0);
   if(ACC_SYNC.running){ACC_SYNC.again=true;return Promise.resolve(0);}
   ACC_SYNC.running=true;var posted=0,updated=0,reversed=0;
-  var fresh=(ACC.loaded&&ACC.loadedAt&&Date.now()-ACC.loadedAt<180000)?Promise.resolve():accLoad();
-  return fresh.then(function(){
-    if(!ACC.loaded||!ACC.list.length||(ACC.settings&&ACC.settings.autoPost===false))return null;
-    var anyAuto=ACC.entries.some(function(e){return e.auto;});
+  // الترحيل لا يحتاج دفتر اليومية كله: يكفي نافذة آخر ACC_SYNC.days يوماً (البراند ذو syncFirstRun='year' يبقى على التحميل الكامل).
+  // وقبل كتابة أي قيد «جديد» يُتحقق بقراءة وثيقته (معرّف ثابت) كي لا يُستبدل قيد موجود خارج النافذة.
+  var lite=(BACC.syncFirstRun!=='year');
+  var fresh=(ACC.loaded&&ACC.loadedAt&&Date.now()-ACC.loadedAt<180000)?Promise.resolve(ACC.entries):(lite?accLoadLite(accAddDays(accToday(),-ACC_SYNC.days)):accLoad().then(function(){return ACC.entries;}));
+  return fresh.then(function(ents){
+    if(!ACC.list.length||(ACC.settings&&ACC.settings.autoPost===false))return null;
+    var anyAuto=ents.some(function(e){return e.auto;});
     var from=(BACC.syncFirstRun==='year'&&!anyAuto)?accYearStart():accAddDays(accToday(),-ACC_SYNC.days);   // أول تشغيل (إن فُعّل للبراند): من بداية السنة
-    return accAutoBuild(from,'9999-12-31',ACC_ALL_SRCS,{restrict:true}).then(function(plan){
+    return accAutoBuild(from,'9999-12-31',ACC_ALL_SRCS,{restrict:true,entries:ents}).then(function(plan){
       var news=plan.filter(function(p){return p.status==='new';});
       var stale=accCanFix()?plan.filter(function(p){return p.status==='stale'&&!accCheckLock(p.date);}):[];
       var chain=Promise.resolve();
       ACC_SYNC.quiet=Date.now()+60000;
+      if(news.length&&lite&&!(ACC.loaded&&ents===ACC.entries))chain=chain.then(function(){
+        return Promise.all(news.map(function(p){return db.collection('acc_journal').doc(p.id).get();})).then(function(ds){news=news.filter(function(p,i){return !ds[i].exists;});});
+      });
       if(news.length)chain=chain.then(function(){
+        if(!news.length)return;
         var clean=news.map(function(p){return {id:p.id,date:p.date,desc:p.desc,ref:p.ref,lines:p.lines,source:p.source,auto:true};});
         return accPostEntries(clean).then(function(n){posted=n.length;});
       });
       stale.forEach(function(p){chain=chain.then(function(){
-        var ex=ACC.entries.find(function(x){return x._id===p.id;})||{};
+        var ex=ents.find(function(x){return x._id===p.id;})||{};
         if(accCheckLock(ex.date||p.date))return;
         var total=accR(p.lines.reduce(function(s,l){return s+l.debit;},0));
         return db.collection('acc_journal').doc(p.id).update({date:p.date,desc:p.desc,ref:p.ref||'',lines:p.lines,total:total,editedBy:'auto',editedByName:'مزامنة تلقائية',editedAt:new Date().toISOString(),editCount:(ex.editCount||0)+1}).then(function(){updated++;}).catch(function(e){console.warn('auto update',p.id,e.message);});
@@ -24820,7 +24878,7 @@ function accSyncAuto(){
       // مستند مصدر حُذف (أي نوع: تقفيل، فاتورة، دفعة، مسير، سلفة، عهدة، مصروف): نعكس قيده الآلي — ما عدا ما عُدِّل يدوياً
       if(accCanFix()){
         var inPlan={};plan.forEach(function(p){inPlan[p.id]=1;});
-        var cand=ACC.entries.filter(function(e){return e.auto&&!e.reversed&&!e.reversalOf&&e.source&&ACC_SRC_COLL[e.source.type]&&e.date>=from&&!inPlan[e._id]&&!(e.editedBy&&e.editedBy!=='auto');});
+        var cand=ents.filter(function(e){return e.auto&&!e.reversed&&!e.reversalOf&&e.source&&ACC_SRC_COLL[e.source.type]&&e.date>=from&&!inPlan[e._id]&&!(e.editedBy&&e.editedBy!=='auto');});
         cand.slice(0,40).forEach(function(e){chain=chain.then(function(){
           var sid=String(e.source.id||'').replace(/_s$/,'');if(!sid)return;
           var coll=ACC_SRC_COLL[e.source.type];
@@ -24838,7 +24896,7 @@ function accSyncAuto(){
   }).then(function(){
     if(posted||updated||reversed){
       ACC_SYNC.quiet=Date.now()+8000;
-      return accLoad().then(function(){
+      return (ACC.loaded?accLoad():Promise.resolve()).then(function(){
         var jb=document.getElementById('acc-j-body');if(jb&&jb.offsetParent)accRenderJournal();
         accToast('📒 ترحيل تلقائي: '+(posted?posted+' قيد جديد':'')+(updated?(posted?' — ':'')+updated+' محدَّث':'')+(reversed?((posted||updated)?' — ':'')+reversed+' معكوس':''));
       });
@@ -25090,9 +25148,11 @@ function invMoveCmp(a,b){
   var ia=String(a._id||a.id||''),ib=String(b._id||b.id||'');
   return ia<ib?-1:(ia>ib?1:0);
 }
-function invLoad(){
+// fresh=true: قراءة طازجة من الخادم (قبل أي حساب سيُكتب؛ X.fresh) — وإلا تُخدَم من كاش القراءات حتى 3 دقائق (ويُسقطه أي حفظ من هذا التطبيق)
+function invLoad(fresh){
   invStatus('⏳ جارٍ تحميل المخزون...');
-  return Promise.all([db.collection('cost_ingredients').get(),db.collection('inv_items_meta').get().catch(function(){return null;}),db.collection('inv_moves').get()]).then(function(r){
+  var F={fresh:!!fresh};
+  return Promise.all([RC.get(db.collection('cost_ingredients'),F),RC.get(db.collection('inv_items_meta'),F).catch(function(){return null;}),RC.get(db.collection('inv_moves'),F)]).then(function(r){
     INV.items={};INV.list=[];INV.meta={};INV.moves=[];
     r[0].forEach(function(d){var x=d.data();x._id=d.id;INV.items[d.id]=x;INV.list.push(x);});
     INV.list.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
@@ -25246,7 +25306,9 @@ function invWriteMoves(moves){
 function invLoadRecv(){
   var f=document.getElementById('inv-r-from').value,t=document.getElementById('inv-r-to').value,box=document.getElementById('inv-r-body');
   box.innerHTML='<div style="padding:12px;color:var(--tl)">⏳ جارٍ التحميل...</div>';
-  Promise.all([db.collection('purchases_invoices').get(),db.collection('purchases_suppliers').get()]).then(function(r){
+  // الفترة المعروضة فقط (نطاق على حقل date وحده — بلا فهرس مركّب)؛ المرشّح في الذاكرة أدناه يبقى كما هو
+  var rq=db.collection('purchases_invoices');if(f)rq=rq.where('date','>=',f);if(t)rq=rq.where('date','<=',t);
+  Promise.all([RC.get(rq),RC.get(db.collection('purchases_suppliers'))]).then(function(r){
     var sup={};r[1].forEach(function(d){sup[d.id]=d.data().name||'';});
     var got=invxRecvGot();
     var rows=[];
@@ -25426,7 +25488,7 @@ function pr2Save(){
   var d={date:accToday(),needDate:document.getElementById('pr2-need').value,priority:document.getElementById('pr2-pri').value,notes:document.getElementById('pr2-notes').value.trim(),lines:lines,status:'pending',createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   db.collection('inv_requests').add(d).then(function(){alert('✅ تم إرسال طلب الشراء');document.getElementById('pr2-lines').innerHTML='';pr2AddLine();document.getElementById('pr2-notes').value='';pr2Load();}).catch(function(e){alert('خطأ: '+e.message);});
 }
-function pr2Load(){return db.collection('inv_requests').get().then(function(s){INV.requests=[];s.forEach(function(d){var x=d.data();x._id=d.id;INV.requests.push(x);});INV.requests.sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});pr2Render();}).catch(function(e){document.getElementById('pr2-body').innerHTML='<div style="color:#B71C1C;padding:10px">خطأ: '+invE(e.message)+'</div>';});}
+function pr2Load(){return RC.get(db.collection('inv_requests')).then(function(s){INV.requests=[];s.forEach(function(d){var x=d.data();x._id=d.id;INV.requests.push(x);});INV.requests.sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});pr2Render();}).catch(function(e){document.getElementById('pr2-body').innerHTML='<div style="color:#B71C1C;padding:10px">خطأ: '+invE(e.message)+'</div>';});}
 function invStBadge(st){var s=INV_REQ_ST[st]||[st,'#555','#eee'];return '<span class="bdg" style="background:'+s[2]+';color:'+s[1]+'">'+s[0]+'</span>';}
 function pr2Render(){
   var f=document.getElementById('pr2-flt').value,pri={normal:'عادية',urgent:'⚡ مستعجل',emergency:'🚨 طارئ'};
@@ -25454,7 +25516,7 @@ function pr2Del(id){if(!invCanDelete())return;if(!confirm('حذف الطلب؟')
 function po2Init(){
   var d=document.getElementById('po2-date');if(d&&!d.value)d.value=accToday();
   document.getElementById('po2-form').style.display=invCanOp()?'':'none';
-  Promise.all([INV.loaded?Promise.resolve():invLoad(),INV.recipes?Promise.resolve():db.collection('cost_recipes').get().then(function(s){INV.recipes={};s.forEach(function(x){var r=x.data();r._id=x.id;INV.recipes[x.id]=r;});}).catch(function(){INV.recipes={};})])
+  Promise.all([INV.loaded?Promise.resolve():invLoad(),INV.recipes?Promise.resolve():RC.get(db.collection('cost_recipes')).then(function(s){INV.recipes={};s.forEach(function(x){var r=x.data();r._id=x.id;INV.recipes[x.id]=r;});}).catch(function(){INV.recipes={};})])
   .then(function(){
     var sel=document.getElementById('po2-rec'),ks=Object.keys(INV.recipes).sort(function(a,b){return (INV.recipes[a].name||'').localeCompare(INV.recipes[b].name||'','ar');});
     sel.innerHTML='<option value="">— اختر الوصفة —</option>'+ks.map(function(k){var r=INV.recipes[k];return '<option value="'+k+'">'+invE(r.name)+(r.semi?' (نصف مصنّع)':'')+' — ينتج '+invQ(r.yield||1)+' '+invE(r.yunit||'')+'</option>';}).join('');
@@ -25484,7 +25546,7 @@ function po2Save(){
   var d={date:document.getElementById('po2-date').value||accToday(),recipeId:id,recipeName:r.name,batches:b,output:Math.round((+r.yield||1)*b*1000)/1000,outputUnit:r.yunit||'',chef:document.getElementById('po2-chef').value.trim(),notes:document.getElementById('po2-notes').value.trim(),items:items,status:'pending',createdBy:CU._id,createdByName:CU.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   db.collection('inv_production').add(d).then(function(){alert('✅ تم إرسال طلب الإنتاج');document.getElementById('po2-notes').value='';po2Load();}).catch(function(e){alert('خطأ: '+e.message);});
 }
-function po2Load(){return db.collection('inv_production').get().then(function(s){INV.prod=[];s.forEach(function(d){var x=d.data();x._id=d.id;INV.prod.push(x);});INV.prod.sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});po2Render();}).catch(function(e){document.getElementById('po2-body').innerHTML='<div style="color:#B71C1C;padding:10px">خطأ: '+invE(e.message)+'</div>';});}
+function po2Load(){return RC.get(db.collection('inv_production')).then(function(s){INV.prod=[];s.forEach(function(d){var x=d.data();x._id=d.id;INV.prod.push(x);});INV.prod.sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});po2Render();}).catch(function(e){document.getElementById('po2-body').innerHTML='<div style="color:#B71C1C;padding:10px">خطأ: '+invE(e.message)+'</div>';});}
 function po2Render(){
   var f=document.getElementById('po2-flt').value,appr=invCanApprove(),op=invCanOp(),del=invCanDelete();
   var list=INV.prod.filter(function(r){return !f||(f==='open'?['pending','approved'].indexOf(r.status)>=0:r.status===f);});
@@ -25578,8 +25640,8 @@ function sdbLoad(){
   SDB.loading=Promise.all([
     SDCache.snap('cashier_reports'),
     SDCache.snap('purchases_invoices').catch(function(){return null;}),
-    db.collection('hr_payroll').get().catch(function(){return null;}),
-    db.collection('expenses').get().catch(function(){return null;})
+    RC.get(db.collection('hr_payroll')).catch(function(){return null;}),
+    RC.get(db.collection('expenses')).catch(function(){return null;})
   ]).then(function(r){
     var by={};
     r[0].forEach(function(doc){
@@ -26092,12 +26154,13 @@ function sfpGroup(g,el){SFI_UI.group=g;sfpInit();}
 /* ---------------- التحميل ---------------- */
 function sfiLoad(){
   if(SFI.loading)return SFI.loading;
+  var F={fresh:!!SFI.freshNext};SFI.freshNext=false;      // salesCompute (ترحيل استهلاك المبيعات) يطلب قراءة طازجة؛ صفحة التنبؤ تستفيد من الكاش
   SFI.loading=Promise.all([
     SDCache.snap('fc_daily'),
-    db.collection('fc_meta').get(),
-    db.collection('fc_snapshots').get().catch(function(){return null;}),
+    RC.get(db.collection('fc_meta'),F),
+    RC.get(db.collection('fc_snapshots'),F).catch(function(){return null;}),
     INV.loaded?Promise.resolve():invLoad(),
-    INV.recipes?Promise.resolve():db.collection('cost_recipes').get().then(function(s){INV.recipes={};s.forEach(function(x){var r=x.data();r._id=x.id;INV.recipes[x.id]=r;});}).catch(function(){INV.recipes={};})
+    INV.recipes?Promise.resolve():RC.get(db.collection('cost_recipes'),F).then(function(s){INV.recipes={};s.forEach(function(x){var r=x.data();r._id=x.id;INV.recipes[x.id]=r;});}).catch(function(){INV.recipes={};})
   ]).then(function(r){
     SFI.days={};r[0].forEach(function(doc){var x=doc.data();if(x)SFI.days[x.date||doc.id]=x.items||{};});
     SFI.names={};SFI.cfg={};
@@ -26412,12 +26475,12 @@ function expFillCats(keep){
 }
 function expInit(){
   expFillAcc('exp-nt-acc',EXP_MISC);expFillAcc('exp-acc');
-  if(!ACC.list.length&&!EXP.chart){EXP.chart=[];db.collection('acc_accounts').get().then(function(sn){sn.forEach(function(x){var a=x.data();a.code=x.id;EXP.chart.push(a);});EXP.chart.sort(function(p,q){return p.code<q.code?-1:1;});expFillAcc('exp-nt-acc',EXP_MISC);expFillAcc('exp-acc');expCatChange();}).catch(function(){EXP.chart=null;});}
+  if(!ACC.list.length&&!EXP.chart){EXP.chart=[];RC.get(db.collection('acc_accounts')).then(function(sn){sn.forEach(function(x){var a=x.data();a.code=x.id;EXP.chart.push(a);});EXP.chart.sort(function(p,q){return p.code<q.code?-1:1;});expFillAcc('exp-nt-acc',EXP_MISC);expFillAcc('exp-acc');expCatChange();}).catch(function(){EXP.chart=null;});}
   [document.querySelector('#exp-pay option[value="cash"]'),document.querySelector('#exp-s-via option[value="cash"]')].forEach(function(o){if(o){o.disabled=!expCanCustody();o.hidden=!expCanCustody();}});
   expFillCats();expCatChange();
   var d=document.getElementById('exp-date');if(d&&!d.value)d.value=expToday();
   var m=document.getElementById('exp-month');if(m&&!m.value)m.value=expToday().slice(0,7);
-  db.collection('expense_types').get().then(function(sn){EXP.types=[];sn.forEach(function(x){var t=x.data();t._id=x.id;EXP.types.push(t);});expFillCats();}).catch(function(){});
+  RC.get(db.collection('expense_types')).then(function(sn){EXP.types=[];sn.forEach(function(x){var t=x.data();t._id=x.id;EXP.types.push(t);});expFillCats();}).catch(function(){});
   expFillCust('exp-cust');expFillCust('exp-s-cust');
   expTogglePay();expLoad();
 }
@@ -26444,8 +26507,8 @@ function expTogglePay(){
 }
 function expLoad(){
   var m=document.getElementById('exp-month').value||expToday().slice(0,7);
-  var q1=db.collection('expenses').where('date','>=',m+'-01').where('date','<=',m+'-31').get();
-  var q2=db.collection('expenses').where('status','==','unpaid').get();
+  var q1=RC.get(db.collection('expenses').where('date','>=',m+'-01').where('date','<=',m+'-31'));
+  var q2=RC.get(db.collection('expenses').where('status','==','unpaid'));
   Promise.all([q1,q2]).then(function(r){
     EXP.rows=[];r[0].forEach(function(s){var d=s.data();d._id=s.id;EXP.rows.push(d);});
     EXP.unpaid=[];r[1].forEach(function(s){var d=s.data();d._id=s.id;EXP.unpaid.push(d);});
@@ -27007,6 +27070,353 @@ function mntReportCsv(){
   var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='maintenance-report-'+MNT.repMeta.from+'-'+MNT.repMeta.to+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
 }
+</script>
+<script>/* module: 00-readcount.js */
+/* =====================================================================
+   عدّاد قراءات Firestore (أداة قياس فقط) — الوحدة المفوترة هي «قراءة وثيقة»
+   لا يعمل إلا إذا ضُبط window.__READ_COUNT قبل التحميل أو أُضيف ?rc=1 لعنوان الصفحة؛
+   وإلا فلا يُعدَّل أي شيء (صفر تكلفة). الاستخدام: docs/READS.md
+     window.__rc()        => {total, byCollection:{اسم:عدد}, calls}
+     window.__rc.reset()  => يصفّر العدّاد (للقياس لكل صفحة)
+   ما يُعدّ: Query.get / DocumentReference.get (عدد الوثائق المُرجَعة، والوثيقة المفردة = 1)،
+   وlisteners: كل وثيقة تصل من الخادم (التغييرات docChanges في اللقطات المؤكَّدة غير الكاشية).
+   لا يُعدّ ما يُقرأ من الكاش المحلي (source:'cache') ولا ما يخدمه كاش القراءات في الذاكرة.
+   ===================================================================== */
+(function(){
+'use strict';
+var on=false;
+try{on=!!window.__READ_COUNT||/[?&]rc=1(&|$)/.test(location.search);}catch(e){}
+if(!on)return;
+window.__READ_COUNT=true;
+var S={total:0,byCollection:{},calls:0};
+window.__rc=function(){return JSON.parse(JSON.stringify(S));};
+window.__rc.reset=function(){S.total=0;S.byCollection={};S.calls=0;};
+function add(coll,n,origin){
+  if(!(n>0))return;S.total+=n;S.byCollection[coll]=(S.byCollection[coll]||0)+n;
+  if(window.__READ_TRACE)try{window.__READ_TRACE.push({coll:coll,n:n,at:Date.now(),stack:origin||String(new Error().stack).split('\n').slice(3,9).join(' | ')});}catch(e){}   // اختياري للتحليل: window.__READ_TRACE=[]
+}
+function collOfQuery(q){
+  try{if(typeof q.path==='string')return q.path;}catch(e){}
+  try{return q._delegate._query.path.canonicalString();}catch(e){}
+  return '?';
+}
+function collOfDoc(d){try{return d.ref.parent.path;}catch(e){return '?';}}
+var FS=firebase.firestore;
+var Q=FS.Query.prototype,D=FS.DocumentReference.prototype;
+function isCache(o){return !!(o&&o.source==='cache');}
+var qGet=Q.get;
+Q.get=function(o){
+  var self=this;
+  return qGet.apply(this,arguments).then(function(snap){
+    if(!isCache(o)){
+      S.calls++;
+      var c=collOfQuery(self);
+      add(c,snap.size);
+      if(snap.size===0)add(c,1);   // Firestore يفوتر استعلاماً فارغاً بقراءة واحدة على الأقل
+    }
+    return snap;
+  });
+};
+var dGet=D.get;
+D.get=function(o){
+  var self=this;
+  return dGet.apply(this,arguments).then(function(s){
+    if(!isCache(o)){S.calls++;add(self.parent.path,1);}
+    return s;
+  });
+};
+function wrapListen(proto){
+  var orig=proto.onSnapshot;
+  proto.onSnapshot=function(){
+    var args=Array.prototype.slice.call(arguments),self=this,isDoc=(proto===D),coll=isDoc?self.parent.path:collOfQuery(self),org=window.__READ_TRACE?('LISTEN '+String(new Error().stack).split('\n').slice(2,8).join(' | ')):null;
+    var fi=-1;for(var i=0;i<args.length;i++){if(typeof args[i]==='function'){fi=i;break;}if(args[i]&&typeof args[i]==='object'&&typeof args[i].next==='function'){fi=-2;break;}}
+    // مستمع سبق فتحه لنفس المجموعة قبل أقل من 30 دقيقة (تخزين IndexedDB + resume token) لا يُفوتَر إلا على التغييرات؛
+    // وإلا فأول لقطة مؤكَّدة من الخادم = كامل النتيجة (حتى لو كان بعضها في الكاش المحلي من get سابق)
+    var first=true,lk='__rc_l:'+coll+(self.__rc?JSON.stringify([self.__rc.w,self.__rc.o,self.__rc.l]):''),resumed=false;
+    try{resumed=Date.now()-(+localStorage.getItem(lk)||0)<30*60*1000;}catch(e){}
+    function track(snap){
+      try{
+        if(snap.metadata&&snap.metadata.fromCache)return;
+        if(snap.metadata&&snap.metadata.hasPendingWrites&&!first)return;
+        try{localStorage.setItem(lk,String(Date.now()));}catch(e){}
+        if(isDoc){if(first){first=false;add(coll,1,org);}else if(!snap.metadata.hasPendingWrites)add(coll,1,org);return;}
+        if(first&&!resumed){first=false;add(coll,snap.size,org);return;}
+        first=false;
+        snap.docChanges().forEach(function(ch){if(!ch.doc.metadata.hasPendingWrites)add(coll,1,org);});
+      }catch(e){}
+    }
+    if(fi>=0){var f=args[fi];args[fi]=function(s){track(s);return f.apply(this,arguments);};}
+    else if(fi===-2){var ob=args[i],nx=ob.next;args[i]=Object.assign({},ob,{next:function(s){track(s);return nx.apply(ob,arguments);}});}
+    return orig.apply(this,args);
+  };
+}
+wrapListen(Q);wrapListen(D);
+// Transaction.get
+try{
+  var T=FS.Transaction.prototype,tGet=T.get;
+  T.get=function(ref){return tGet.apply(this,arguments).then(function(s){S.calls++;add(ref.parent.path,1);return s;});};
+}catch(e){}
+})();
+
+</script>
+<script>/* module: 01-readcache.js */
+/* =====================================================================
+   كاش القراءات (RC) — يقلّل عدد الوثائق المقروءة (الوحدة المفوترة في Firestore، حدّ Spark = 50 ألف يومياً)
+   بلا تغيير في النتائج:
+     1) RC.get(query)   : نتيجة الاستعلام تُحفظ في الذاكرة لمدة TTL (افتراضي 3 دقائق، 5 للبيانات شبه الثابتة)،
+                          وطلبان متطابقان متزامنان يتشاركان قراءة واحدة.
+     2) مرآة حيّة       : إن كانت المجموعة محمّلة كاملة وحيّة في SDCache (مستمع onSnapshot) أو في كاش كامل غير منتهٍ،
+                          تُجاب استعلامات where/orderBy/limit عليها محلياً بصفر قراءة (نفس دلالات Firestore
+                          لعمليات ==, in, >, >=, <, <= وorderBy وlimit؛ أي بناء غير معروف يُرسَل للخادم كالمعتاد).
+     3) إبطال           : أي كتابة من هذا التطبيق (set/update/delete/add/batch/transaction) على مجموعة تُسقط كاشها
+                          فوراً (قبل الكتابة وبعد اكتمالها)، وتُبلَّغ بقية تبويبات المتصفح (BroadcastChannel)؛
+                          فمن يحفظ يرى بياناته مباشرة. ما يُكتب من مستخدم آخر يظهر خلال TTL كحدّ أقصى.
+     4) أزرار «تحديث/🔄» تمسح الكاش كله قبل تنفيذ معالجها؛ وتسجيل الدخول/الخروج يمسحه (لا تسرّب بين المستخدمين).
+   التفاصيل والـTTL: docs/READS.md
+   ===================================================================== */
+(function(){
+'use strict';
+var FS=firebase.firestore,Q=FS.Query.prototype,D=FS.DocumentReference.prototype;
+var TTL_DEFAULT=3*60*1000,TTL_STATIC=5*60*1000;
+// بيانات شبه ثابتة: 5 دقائق. غيرها 3 دقائق.
+var STATIC={cost_ingredients:1,cost_recipes:1,inv_items_meta:1,cashier_names:1,custody_users:1,purchases_suppliers:1,acc_accounts:1,expense_types:1,hr_employees:1,hr_eval_settings:1,fc_meta:1,cost_settings:1,acc_settings:1,app_config:1};
+var RC=window.RC={ttl:{},stats:{hit:0,miss:0,local:0,shared:0,inv:0},off:false};
+var cache={},gen=0,GEN={};          // key -> {p,path,t,map,done}   | GEN[path] = عدّاد الإبطال (لإسقاط نتائج طلبات قديمة)
+function ttlFor(path,o){
+  if(o&&o.ttl!=null)return o.ttl;
+  var base=path.split('/')[0];
+  return RC.ttl[base]!=null?RC.ttl[base]:(STATIC[base]?TTL_STATIC:TTL_DEFAULT);
+}
+
+/* ---------- وسم الاستعلامات (بنية where/orderBy/limit) ---------- */
+function prim(v){var t=typeof v;return v===null||t==='string'||t==='number'||t==='boolean';}
+function sigOf(q){
+  if(!q)return null;
+  if(q.__rc)return q.__rc;
+  if(typeof q.path==='string')return {p:q.path,w:[],o:[],l:null,ok:true};   // CollectionReference
+  return null;
+}
+function derive(q,fn){
+  var s=sigOf(q);if(!s)return null;
+  var n={p:s.p,w:s.w.slice(),o:s.o.slice(),l:s.l,ok:s.ok};
+  fn(n);return n;
+}
+var qWhere=Q.where,qOrder=Q.orderBy,qLimit=Q.limit;
+Q.where=function(f,op,v){
+  var r=qWhere.apply(this,arguments),s=derive(this,function(n){
+    var okv=prim(v)&&v!==null||(op==='in'&&Array.isArray(v)&&v.every(prim));
+    if(typeof f!=='string'||f==='__name__'||['==','>=','<=','>','<','in'].indexOf(op)<0||!okv)n.ok=false;else n.w.push([f,op,v]);
+  });
+  if(r&&s)r.__rc=s;return r;
+};
+Q.orderBy=function(f,dir){
+  var r=qOrder.apply(this,arguments),s=derive(this,function(n){if(typeof f!=='string'||f==='__name__')n.ok=false;else n.o.push([f,dir==='desc'?'desc':'asc']);});
+  if(r&&s)r.__rc=s;return r;
+};
+Q.limit=function(k){
+  var r=qLimit.apply(this,arguments),s=derive(this,function(n){if(typeof k!=='number')n.ok=false;else n.l=k;});
+  if(r&&s)r.__rc=s;return r;
+};
+['startAt','startAfter','endAt','endBefore','limitToLast'].forEach(function(m){
+  var o=Q[m];if(typeof o!=='function')return;
+  Q[m]=function(){var r=o.apply(this,arguments),s=derive(this,function(n){n.ok=false;});if(r&&s)r.__rc=s;return r;};
+});
+function keyOf(s){return s.p+'?'+JSON.stringify([s.w,s.o,s.l]);}
+
+/* ---------- تقييم محلي (مرآة) ---------- */
+function getPath(d,f){
+  if(f.indexOf('.')<0)return d[f];
+  var c=d,ps=f.split('.');for(var i=0;i<ps.length&&c!=null;i++)c=c[ps[i]];return c;
+}
+function norm(v){   // Timestamp -> ms
+  if(v&&typeof v==='object'){if(typeof v.toMillis==='function')return v.toMillis();if(typeof v.seconds==='number')return v.seconds*1000+Math.floor((v.nanoseconds||0)/1e6);}
+  return v;
+}
+function rank(v){return v===null?0:typeof v==='boolean'?1:typeof v==='number'?2:typeof v==='string'?3:4;}
+function cmpv(a,b){a=norm(a);b=norm(b);var ra=rank(a),rb=rank(b);if(ra!==rb)return ra<rb?-1:1;return a<b?-1:a>b?1:0;}
+function match(v,op,x){
+  if(v===undefined||v===null)return false;
+  if(op==='in')return x.indexOf(v)>=0;
+  if(typeof v!==typeof x)return false;
+  switch(op){case '==':return v===x;case '>=':return v>=x;case '<=':return v<=x;case '>':return v>x;case '<':return v<x;}
+  return false;
+}
+function copy(v){   // نسخة عميقة للكائنات العادية والمصفوفات فقط (Timestamp وغيرها تُمرَّر كما هي)
+  if(Array.isArray(v))return v.map(copy);
+  if(v&&typeof v==='object'){
+    var pr=Object.getPrototypeOf(v);
+    if(pr===Object.prototype||pr===null){var o={};for(var k in v)o[k]=copy(v[k]);return o;}
+  }
+  return v;
+}
+function evalLocal(s,map){
+  var ids=Object.keys(map),rows=[];
+  for(var i=0;i<ids.length;i++){
+    var d=map[ids[i]],ok=true;
+    for(var j=0;j<s.w.length&&ok;j++)ok=match(getPath(d,s.w[j][0]),s.w[j][1],s.w[j][2]);
+    if(ok)rows.push({id:ids[i],d:d});
+  }
+  var ord=s.o.slice();
+  if(!ord.length){for(var k=0;k<s.w.length;k++){if(s.w[k][1]!=='=='&&s.w[k][1]!=='in'){ord=[[s.w[k][0],'asc']];break;}}}
+  ord.forEach(function(x){rows=rows.filter(function(r){return getPath(r.d,x[0])!==undefined;});});   // orderBy يستبعد من لا يحمل الحقل
+  var last=ord.length?ord[ord.length-1][1]:'asc';
+  rows.sort(function(a,b){
+    for(var i=0;i<ord.length;i++){var c=cmpv(getPath(a.d,ord[i][0]),getPath(b.d,ord[i][0]));if(c)return ord[i][1]==='desc'?-c:c;}
+    var c2=a.id<b.id?-1:a.id>b.id?1:0;return last==='desc'?-c2:c2;
+  });
+  if(s.l!=null)rows=rows.slice(0,s.l);
+  return fake(s.p,rows);
+}
+function fake(path,rows){
+  var meta={fromCache:false,hasPendingWrites:false};
+  var docs=rows.map(function(r){
+    return {id:r.id,exists:true,metadata:meta,
+      get ref(){return db.doc(path+'/'+r.id);},
+      data:function(){return copy(r.d);},
+      get:function(f){return copy(getPath(r.d,f));}};
+  });
+  return {docs:docs,size:docs.length,empty:!docs.length,metadata:meta,
+    forEach:function(cb,th){docs.forEach(function(d){cb.call(th,d);});},
+    docChanges:function(){return docs.map(function(d,i){return {type:'added',doc:d,oldIndex:-1,newIndex:i};});}};
+}
+
+/* ---------- القراءة ---------- */
+var qGet=Q.get,dGet=D.get;
+function fullMap(path){      // كاش كامل غير منتهٍ لنفس المجموعة (استعلام بلا شروط)
+  var e=cache[path+'?[[],[],null]'];
+  if(e&&e.map&&e.done&&Date.now()-e.t<ttlFor(path))return e.map;
+  return null;
+}
+// مجموعات تُقرأ كاملة عادةً وتتغير قليلاً: عند أول قراءة كاملة لها تُفتح كمرآة حيّة (SDCache = مستمع onSnapshot)
+// فتصير القراءة مرة واحدة للجلسة، وتصل بعدها التغييرات فقط، وتُجاب منها كل استعلامات الشروط محلياً.
+// (مع تخزين IndexedDB المفعّل: إعادة فتح التطبيق خلال 30 دقيقة تقرأ التغييرات فقط، بخلاف get() التي تقرأ كل شيء من جديد)
+var LIVE={purchases_suppliers:1,cost_ingredients:1,cost_recipes:1,expenses:1,hr_payroll:1,inv_moves:1,inv_items_meta:1,acc_accounts:1,acc_journal:1,hr_employees:1,hr_violations:1,hr_advances:1,inv_requests:1,inv_production:1};
+function hasSD(){return typeof SDCache!=='undefined'&&SDCache.peek&&SDCache.touch;}
+// تنظيف الإدخالات المنتهية (يوفّر الذاكرة: الكاش الكامل يحتفظ بنسخة من وثائق المجموعة)
+function sweep(){
+  var now=Date.now();
+  Object.keys(cache).forEach(function(k){var e=cache[k];if(e.done&&now-e.t>2*TTL_STATIC)delete cache[k];});
+}
+function viaCache(q,s,o){
+  var key=keyOf(s),ttl=ttlFor(s.p,o),e=cache[key];
+  if(!o.fresh&&e&&(!e.done||Date.now()-e.t<ttl)){if(e.done)RC.stats.hit++;else RC.stats.shared++;return e.p;}
+  RC.stats.miss++;
+  sweep();
+  var g=GEN[s.p]||0,en={p:null,path:s.p,t:Date.now(),done:false,map:null};
+  en.p=qGet.call(q).then(function(snap){
+    if((GEN[s.p]||0)!==g){if(cache[key]===en)delete cache[key];return snap;}      // كُتب على المجموعة أثناء الطلب: لا نحفظ نتيجة قد تكون قديمة
+    en.done=true;en.t=Date.now();
+    if(!s.w.length&&!s.o.length&&s.l==null){var mp={};snap.forEach(function(d){mp[d.id]=d.data();});en.map=mp;}
+    return snap;
+  },function(err){if(cache[key]===en)delete cache[key];throw err;});
+  cache[key]=en;
+  return en.p;
+}
+// استعلامات النافذة الزمنية للترحيل المحاسبي (من تاريخ كذا): تبقى مستمعاً حيّاً، فإعادة فتح التطبيق خلال 30 دقيقة تقرأ التغييرات فقط
+var WIN={acc_journal:1,custody_ledger:1,purchases_payments:1};
+function viaLive(q,s,o){
+  if(WIN[s.p]&&s.w.length&&s.w.length<=2&&s.l==null&&!s.o.length){
+    var wk='w:'+keyOf(s);
+    return SDCache.touchQ(wk,s.p,q).then(function(){
+      var m=SDCache.peek(wk);
+      if(m&&typeof m.then==='function')return m.then(function(mm){return mm?(RC.stats.local++,evalLocal(s,mm)):qGet.call(q);});
+      if(m){RC.stats.local++;return evalLocal(s,m);}
+      return qGet.call(q);
+    });
+  }
+  if(!LIVE[s.p]||s.w.length||s.l!=null)return viaCache(q,s,o);
+  // أول قراءة كاملة لمجموعة من LIVE: افتح المرآة الحيّة بدل get() ثم أجِب منها
+  return SDCache.touch(s.p).then(function(){
+    var m=SDCache.peek(s.p);
+    if(m&&typeof m.then==='function')return m.then(function(mm){return mm?(RC.stats.local++,evalLocal(s,mm)):qGet.call(q);});
+    if(m){RC.stats.local++;return evalLocal(s,m);}
+    return qGet.call(q);                                // لم تُؤكَّد من الخادم (خطأ صلاحيات/بلا اتصال): السلوك القديم
+  });
+}
+RC.get=function(q,o){
+  o=o||{};
+  var s=sigOf(q);
+  if(RC.off||!s||!s.ok)return qGet.call(q);
+  if(o.fresh)return viaCache(q,s,o);                    // fresh: قراءة فعلية من الخادم (قبل أي كتابة تعتمد عليها) تُحدّث الكاش بنتيجتها
+  var m=hasSD()?(SDCache.peek('w:'+keyOf(s))||SDCache.peek(s.p)):null;                 // مرآة حيّة مؤكَّدة من الخادم
+  if(m&&typeof m.then==='function')return m.then(function(mm){if(mm){RC.stats.local++;return evalLocal(s,mm);}return viaCache(q,s,o);});
+  if(m){RC.stats.local++;return Promise.resolve(evalLocal(s,m));}
+  var fm=fullMap(s.p);if(fm){RC.stats.local++;return Promise.resolve(evalLocal(s,fm));}
+  return hasSD()?viaLive(q,s,o):viaCache(q,s,o);
+};
+RC.getDoc=function(ref,o){
+  o=o||{};
+  if(RC.off||!ref||typeof ref.path!=='string')return dGet.call(ref);
+  var key='doc:'+ref.path,ttl=ttlFor(ref.parent.path,o),e=cache[key];
+  if(!o.fresh&&e&&(!e.done||Date.now()-e.t<ttl)){RC.stats[e.done?'hit':'shared']++;return e.p;}
+  RC.stats.miss++;
+  var pp=ref.parent.path,g=GEN[pp]||0,en={p:null,path:pp,t:Date.now(),done:false};
+  en.p=dGet.call(ref).then(function(s){if((GEN[pp]||0)!==g){delete cache[key];return s;}en.done=true;en.t=Date.now();return s;},function(err){if(cache[key]===en)delete cache[key];throw err;});
+  cache[key]=en;return en.p;
+};
+
+/* ---------- الإبطال ---------- */
+var bc=null;try{if(typeof BroadcastChannel==='function')bc=new BroadcastChannel('brands-rc-'+(window.BRAND_ID||''));}catch(e){}
+function invLocal(path,markMirror){
+  GEN[path]=(GEN[path]||0)+1;RC.stats.inv++;
+  Object.keys(cache).forEach(function(k){if(cache[k].path===path)delete cache[k];});
+  // المرآة الحيّة: وسمها «بانتظار اللقطة المحلية» عند استدعاء الكتابة فقط (لا عند اكتمالها ولا لإبطال وارد من تبويب آخر)
+  if(markMirror)try{if(typeof SDCache!=='undefined'&&SDCache.dirty)SDCache.dirty(path);}catch(e){}
+}
+// late=true: استدعاء عند اكتمال الكتابة (يُسقط الكاش فقط)، quiet=true: إبطال وارد من تبويب آخر
+RC.inv=function(path,quiet,late){if(!path)return;invLocal(path,!quiet&&!late);if(!quiet&&bc)try{bc.postMessage({inv:path});}catch(e){}};
+RC.clear=function(){cache={};Object.keys(GEN).forEach(function(k){GEN[k]++;});RC.stats.inv++;};
+if(bc)bc.onmessage=function(ev){try{if(ev.data&&ev.data.inv)RC.inv(ev.data.inv,true);else if(ev.data&&ev.data.clear)RC.clear();}catch(e){}};
+
+// كل كتابة من التطبيق تُبطل كاش مجموعتها: عند الاستدعاء (متزامن) وعند الاكتمال
+function wrapDocWrite(name){
+  var o=D[name];if(typeof o!=='function')return;
+  D[name]=function(){
+    var p=this.parent&&this.parent.path;RC.inv(p);
+    var r=o.apply(this,arguments);
+    if(r&&r.then)r.then(function(){RC.inv(p,false,true);},function(){RC.inv(p,false,true);});
+    return r;
+  };
+}
+['set','update','delete'].forEach(wrapDocWrite);
+(function(){
+  var C=FS.CollectionReference.prototype,oa=C.add;
+  if(typeof oa!=='function')return;
+  C.add=function(){var p=this.path;RC.inv(p);var r=oa.apply(this,arguments);if(r&&r.then)r.then(function(){RC.inv(p,false,true);},function(){RC.inv(p,false,true);});return r;};
+})();
+(function(){
+  var W=Object.getPrototypeOf(db.batch());
+  ['set','update','delete'].forEach(function(n){
+    var o=W[n];if(typeof o!=='function')return;
+    W[n]=function(ref){try{var p=ref.parent.path;(this.__rcp||(this.__rcp={}))[p]=1;RC.inv(p,false,true);}catch(e){}return o.apply(this,arguments);};
+  });
+  var oc=W.commit;
+  W.commit=function(){
+    var self=this,ps=Object.keys(this.__rcp||{});ps.forEach(function(p){RC.inv(p);});
+    var r=oc.apply(this,arguments);
+    var fin=function(){(self.__rcp?Object.keys(self.__rcp):ps).forEach(function(p){RC.inv(p,false,true);});};
+    if(r&&r.then)r.then(fin,fin);return r;
+  };
+  var dp=Object.getPrototypeOf(db),ot=dp.runTransaction;
+  if(typeof ot==='function')dp.runTransaction=function(){
+    var r=ot.apply(this,arguments),fin=function(){RC.clear();if(bc)try{bc.postMessage({clear:1});}catch(e){}};
+    if(r&&r.then)r.then(fin,fin);return r;
+  };
+})();
+
+/* ---------- أزرار التحديث + الدخول/الخروج ---------- */
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('button,[onclick]'):null;
+  if(!b)return;
+  var t=(b.textContent||'').trim();
+  if(/تحديث/.test(t)||/^🔄(\s*تحميل.*)?$/.test(t)||/^🔄\s*تحميل/.test(t))RC.clear();
+},true);
+var _ss=window.startSession;
+if(typeof _ss==='function')window.startSession=function(){RC.clear();return _ss.apply(this,arguments);};
+var _lo=window.doLogout;
+if(typeof _lo==='function')window.doLogout=function(){RC.clear();try{SDCache.reset();}catch(e){}return _lo.apply(this,arguments);};
+})();
+
 </script>
 <script>/* module: 10-sales-import.js */
 /* =====================================================================
@@ -28005,7 +28415,7 @@ function ccAdaptRec(r){
 }
 function ccEnsureLoaded(){
   if(_ccLoaded)return Promise.resolve();
-  return Promise.all([db.collection('cost_ingredients').get(),db.collection('cost_recipes').get()]).then(function(res){
+  return Promise.all([RC.get(db.collection('cost_ingredients')),RC.get(db.collection('cost_recipes'))]).then(function(res){
     _ccIngs=[];res[0].forEach(function(d){var x=d.data();x._id=d.id;_ccIngs.push(x);});
     _ccRecs=[];res[1].forEach(function(d){var x=d.data();x._id=d.id;_ccRecs.push(ccAdaptRec(x));});
     _ccIngs.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
@@ -28418,7 +28828,7 @@ X.index=function(){
 };
 X.loadExtra=function(){
   return Promise.all([
-    db.collection('inv_counts').get().catch(function(){return null;}),
+    db.collection('inv_counts').get().catch(function(){return null;}),       // الجرد: مستند تعاوني (مسودة تُحفظ ويعتمدها غيرها) فلا كاش
     db.collection('inv_count_drafts').get().catch(function(){return null;})
   ]).then(function(r){
     INV.counts=[];INV.drafts=[];X.countsErr=!r[0];     // فشل قراءة الجرود ← الحراس تمنع التصحيح (لا نفترض غياب جرد لاحق)
@@ -28434,7 +28844,7 @@ window.invLoad=function(){
   return _load.apply(this,arguments).then(function(r){return X.loadExtra().then(function(){return r;});});
 };
 /* تحميل طازج ثم تنفيذ: يضمن أن الخطة تُحسب على آخر حالة للدفتر */
-X.fresh=function(){return invLoad();};
+X.fresh=function(){return invLoad(true);};
 
 /* ---------- الحركة النشطة / المجموعات ---------- */
 X.isActive=function(m){return !m.reverses&&!X.rev[m._id];};
@@ -29261,7 +29671,7 @@ X.salesStatus=function(){
 
 /* ---------- الحساب من fc_daily ---------- */
 X.salesCompute=function(month){
-  SFI.loaded=false;SFI.loading=null;SFI.model=null;SFI.bt=null;INV.recipes=null;      // إعادة قراءة المبيعات والوصفات (الوصفات من الخادم لا من نسخة الجلسة)
+  SFI.loaded=false;SFI.loading=null;SFI.model=null;SFI.bt=null;INV.recipes=null;SFI.freshNext=true;      // إعادة قراءة المبيعات والوصفات (الوصفات من الخادم لا من نسخة الجلسة)
   return sfiLoad().then(function(){
     var dates=Object.keys(SFI.days).filter(function(d){return d.slice(0,7)===month;}).sort();
     var qty={},acc={},unmatched=[],matchedQ=0,totalQ=0;
@@ -29627,7 +30037,7 @@ X.saveNewItem=function(){
   db.collection('cost_ingredients').add(d).then(function(ref){
     newId=ref.id;
     if(!(isFinite(open)&&open>0))return;
-    return invLoad().then(function(){
+    return invLoad(true).then(function(){
       return X.write([{id:'op_'+newId,date:accToday(),type:'opening',dir:'in',itemId:newId,itemName:name,unit:unit,qty:X.r3(open),unitCost:X.r4(pack>0?price/pack:0),party:'',ref:'',note:'رصيد افتتاحي عند إضافة الصنف',source:{type:'manual'}}]);
     }).catch(function(e){msg='\n⚠️ أُضيف الصنف لكن تعذّر تسجيل الرصيد الافتتاحي ('+e.message+') — سجّله من «حركة جديدة»';});
   }).then(function(){psCloseModal();return X.afterItems();}).then(function(){alert('✅ تمت إضافة الصنف «'+name+'»'+msg);})
@@ -30927,7 +31337,7 @@ if(typeof window.ccEnsureLoaded!=='function'){
   window.ccEnsureLoaded=function(){
     if(typeof _ccLoaded!=='undefined'&&_ccLoaded)return Promise.resolve();
     if(ccP)return ccP;
-    ccP=Promise.all([db.collection('cost_ingredients').get(),db.collection('cost_recipes').get()]).then(function(res){
+    ccP=Promise.all([RC.get(db.collection('cost_ingredients')),RC.get(db.collection('cost_recipes'))]).then(function(res){
       _ccIngs=[];res[0].forEach(function(d){var x=d.data();x._id=d.id;_ccIngs.push(x);});
       _ccRecs=[];res[1].forEach(function(d){var x=d.data();x._id=d.id;_ccRecs.push(x);});
       _ccIngs.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');});
@@ -30981,10 +31391,10 @@ FDP.load=function(){
   FDP.loading=sdbLoad().then(function(){
     return Promise.all([
       SDCache.snap('fc_daily').catch(function(){return null;}),
-      db.collection('fc_meta').get().catch(function(){return null;}),
+      RC.get(db.collection('fc_meta')).catch(function(){return null;}),
       ccEnsureLoaded().then(function(){return true;}).catch(function(){return false;}),
       db.collection('cost_settings').doc('breakeven_detailed').get().catch(function(){return 'err';}),
-      db.collection('acc_settings').doc('main').get().catch(function(){return null;}),
+      RC.getDoc(db.collection('acc_settings').doc('main')).catch(function(){return null;}),
       SDCache.snap('cashier_reports').catch(function(){return null;})
     ]);
   }).then(function(r){
