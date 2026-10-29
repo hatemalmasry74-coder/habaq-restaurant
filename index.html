@@ -599,7 +599,8 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
   var MSGS=[
     {n:'أهلاً بك في حباق', r:'سجّل دخولك لبدء يوم العمل'},
     {n:'أحمد القحطاني', r:'المدير العام'},
-    {n:'حاتم عطية', r:'مدير العمليات والشؤون المالية'}
+    {n:'حاتم عطية', r:'مدير العمليات المالية والتشغيلية'},
+    {n:'الشيف علي عسيري', r:'مدير الجودة'}
   ];
   var idx=0, nEl=document.getElementById('lg2-rname'), rEl=document.getElementById('lg2-rrole'), dWrap=document.getElementById('lg2-dots');
   if(!nEl||!rEl||!dWrap) return;
@@ -12148,7 +12149,7 @@ function printSalesReport(){
     '<tbody>'+trs+
     '<tr class="tot"><td colspan="2">الإجمالي</td><td>'+srMoney(tSales)+'</td><td>'+srMoney(tCash)+'</td><td>'+srMoney(tSpan)+'</td><td>'+srMoney(tNinja)+'</td><td>'+srMoney(tGulf)+'</td><td>'+srMoney(tHunger)+'</td><td>'+srMoney(tJo)+'</td><td>'+srMoney(tDeliv)+'</td><td>'+srMoney(tVoid)+'</td><td>'+srMoney(tDisc)+'</td><td>'+srMoney(tUnpaid)+'</td></tr>'+
     '</tbody></table>'+
-    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات والشؤون المالية</span></div>'+
+    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات المالية والتشغيلية</span></div>'+
     '<div>اعتماد<br><span style="font-weight:400;font-size:9px">المدير العام</span></div></div>'+
     '<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:9px 22px;background:#7a1515;color:#fff;border:none;border-radius:8px;font-family:Cairo;font-weight:700;cursor:pointer">🖨️ طباعة / PDF</button></div>'+
     '</body></html>';
@@ -12400,7 +12401,7 @@ function printCashReceipts(){
     '<tr class="tot"><td>الإجمالي</td><td>'+t.count+'</td><td>'+t.unreceived+'</td><td>'+srMoney(t.deficit)+'</td><td>'+srMoney(t.surplus)+'</td><td>'+(t.net>0?'+':'')+srMoney(t.net)+'</td></tr>'+
     '</tbody></table>'+
     '<div class="note">المتوقع استلامه = نقد التقفيل − فواتير مدفوعة من الدرج − المرتجعات. المستلم فعلياً = قيود الاستلام النقدي في العهدة المرتبطة بالتقفيلة. الفرق = المستلم − المتوقع (سالب = عجز، موجب = زيادة). التقفيلات غير المستلمة لا تُحسب عجزاً وتُعرض للمتابعة.</div>'+
-    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات والشؤون المالية</span></div>'+
+    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات المالية والتشغيلية</span></div>'+
     '<div>اعتماد<br><span style="font-weight:400;font-size:9px">المدير العام</span></div></div>'+
     '<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:9px 22px;background:#7a1515;color:#fff;border:none;border-radius:8px;font-family:Cairo;font-weight:700;cursor:pointer">🖨️ طباعة / PDF</button></div>'+
     '</body></html>';
@@ -12526,7 +12527,7 @@ function printCustodyReport(){
     '<tbody>'+trs+
     '<tr class="tot"><td colspan="3">الإجمالي</td><td>'+srMoney(tTotal)+'</td><td colspan="3"></td></tr>'+
     '</tbody></table>'+
-    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات والشؤون المالية</span></div>'+
+    '<div class="sig"><div>إعداد: '+srEsc(by)+'<br><span style="font-weight:400;font-size:9px">مدير العمليات المالية والتشغيلية</span></div>'+
     '<div>اعتماد<br><span style="font-weight:400;font-size:9px">المدير العام</span></div></div>'+
     '<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:9px 22px;background:#7a1515;color:#fff;border:none;border-radius:8px;font-family:Cairo;font-weight:700;cursor:pointer">🖨️ طباعة / PDF</button></div>'+
     '</body></html>';
@@ -21327,7 +21328,7 @@ function ccPrintCard(id){
    +'<div style="font-size:11px;color:#8B6E55">'+(r.semi?'':'السعر الصافي بعد استبعاد ضريبة القيمة المضافة 15%: '+c.net.toFixed(2)+' ﷼ — ')+'التكاليف تشمل نسب الهالك المعتمدة لكل مادة.<\/div>'
    +'<div class="sig">'
    +'<div class="sg">إعداد وتنفيذ الوصفة<br><b>'+(r.chef||'الشيف')+'<\/b><br>شيف حباق<\/div>'
-   +'<div class="sg">مراجعة واعتماد التكلفة<br><b>حاتم عطية<\/b><br>مدير العمليات والشؤون المالية<\/div>'
+   +'<div class="sg">مراجعة واعتماد التكلفة<br><b>حاتم عطية<\/b><br>مدير العمليات المالية والتشغيلية<\/div>'
    +'<div class="sg">الاعتماد النهائي<br><b>أحمد القحطاني<\/b><br>المدير العام<\/div>'
    +'<\/div>'
    +'<div style="text-align:center;font-size:10px;color:#8B6E55;margin-top:26px">تاريخ الإصدار: '+new Date().toLocaleDateString('ar-SA')+' — نَسَق لحلول الأعمال والتشغيل<\/div>'
@@ -21958,7 +21959,7 @@ function bePrint(){
    +'<h2>مزيج المبيعات<\/h2><table><thead><tr><th>الصنف<\/th><th>السعر الصافي<\/th><th>التكلفة المتغيرة<\/th><th>هامش المساهمة<\/th><th>الكمية/شهر<\/th><th>الإيراد<\/th><\/tr><\/thead><tbody>'+mix+'<\/tbody><\/table>'
    +'<div style="font-size:11px;color:#8B6E55;margin-top:10px">المنهجية: نقطة التعادل = التكاليف الثابتة ÷ نسبة هامش المساهمة المرجّح (WACM). الأسعار صافية بعد استبعاد ضريبة القيمة المضافة 15%، والتكاليف المتغيرة من بطاقات التكلفة شاملة نسب الهالك.<\/div>'
    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:40px;text-align:center;font-size:11px">'
-   +'<div style="border-top:1.5px solid #2C1A0E;padding-top:6px">إعداد<br><b>حاتم عطية<\/b><br>مدير العمليات والشؤون المالية<\/div>'
+   +'<div style="border-top:1.5px solid #2C1A0E;padding-top:6px">إعداد<br><b>حاتم عطية<\/b><br>مدير العمليات المالية والتشغيلية<\/div>'
    +'<div style="border-top:1.5px solid #2C1A0E;padding-top:6px">اعتماد<br><b>أحمد القحطاني<\/b><br>المدير العام<\/div>'
    +'<\/div>'
    +'<script>window.onload=function(){window.print();}<\/'+'script><\/body><\/html>');
@@ -22262,7 +22263,7 @@ var I18N = {
 'المستخدم':'User','المستخدمون المسجلون':'Registered Users','الدور الوظيفي':'Role','الأدوار والصلاحيات':'Roles & Permissions','حفظ المستخدم':'Save User','إضافة مستخدم':'Add User','إضافة موظف':'Add Employee','تغيير كلمة المرور':'Change Password','كلمة المرور الجديدة':'New Password','كلمة المرور الحالية':'Current Password','حفظ كلمة المرور الجديدة':'Save New Password',
 'تصدير Excel':'Export Excel','نسخ احتياطي':'Backup','تصدير الكل دفعة واحدة':'Export All at Once','سجل آخر التصديرات':'Recent Exports Log','طباعة PDF':'Print PDF','حفظ وطباعة PDF':'Save & Print PDF','طباعة الكشف':'Print Statement','طباعة شاملة':'Full Print',
 'اختياري':'Optional','يُحسب تلقائياً':'Auto-calculated','جارٍ التحميل...':'Loading...','لا توجد بيانات':'No data','عرض المزيد':'Show More',
-'سجّل دخولك للوصول إلى منصة التشغيل':'Sign in to access the operations platform','أهلاً بك في حباق':'Welcome to Habaq','سجّل دخولك لبدء يوم العمل':'Sign in to start your workday','أحمد القحطاني':'Ahmed Al-Qahtani','حاتم عطية':'Hatem Attia','المدير العام':'General Manager','مدير العمليات والشؤون المالية':'Operations & Financial Affairs Manager','نسق لحلول التشغيل والأعمال':'Nassaq Operations & Business Solutions','منصة تشغيل متكاملة لإدارة العمليات اليومية والإيرادات والمشتريات والموارد البشرية والتقارير المالية — بُنيت خصيصاً لحباق.':'An integrated operations platform for daily operations, revenue, purchasing, HR and financial reporting — built exclusively for Habaq.','مدعوم من نسق لحلول التشغيل والأعمال • Nassaq Operations & Business Solutions':'Powered by Nassaq Operations & Business Solutions'
+'سجّل دخولك للوصول إلى منصة التشغيل':'Sign in to access the operations platform','أهلاً بك في حباق':'Welcome to Habaq','سجّل دخولك لبدء يوم العمل':'Sign in to start your workday','أحمد القحطاني':'Ahmed Al-Qahtani','حاتم عطية':'Hatem Attia','المدير العام':'General Manager','مدير العمليات المالية والتشغيلية':'Financial & Operations Manager','نسق لحلول التشغيل والأعمال':'Nassaq Operations & Business Solutions','منصة تشغيل متكاملة لإدارة العمليات اليومية والإيرادات والمشتريات والموارد البشرية والتقارير المالية — بُنيت خصيصاً لحباق.':'An integrated operations platform for daily operations, revenue, purchasing, HR and financial reporting — built exclusively for Habaq.','مدعوم من نسق لحلول التشغيل والأعمال • Nassaq Operations & Business Solutions':'Powered by Nassaq Operations & Business Solutions'
 };
 
 Object.assign(I18N,{
