@@ -688,6 +688,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <div class="ni" onclick="go('hr-violations',this)" data-perm="hr-violations"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>مخالفات الموظفين</div>
         <div class="ni" onclick="go('hr-schedule-dining',this)" data-perm="hr-schedule-dining"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>🍽️ جدول الصالة</div>
         <div class="ni" onclick="go('hr-schedule-kitchen',this)" data-perm="hr-schedule-kitchen"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>👨‍🍳 جدول المطبخ</div>
+        <div class="ni" onclick="go('doc-expiry',this)" data-perm="doc-expiry"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="12" cy="15" r="3"/><polyline points="12 13.5 12 15 13 15.8"/></svg>الوثائق المنتهية والقريبة<span class="nbdg" id="nbdg-doc-expiry" style="display:none">0</span></div>
         </div>
       </div>
       <div class="sg" data-g="fin"><div class="sgh" onclick="navToggle(this)"><span class="sgi">💼</span><span>المالية والمحاسبة</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
@@ -709,6 +710,7 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <div class="ni" onclick="go('costcards',this)" data-perm="costcards"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>الوصفات وبطاقات التكلفة<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
         <div class="ni" onclick="go('menu',this)" data-perm="menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>المنيو والأسعار</div>
         <div class="ni" onclick="go('breakeven',this)" data-perm="breakeven"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-8"/></svg>نقطة التعادل<span class="nbdg" style="background:#2D6A4F">جديد</span></div>
+        <div class="ni" onclick="go('menu-eng',this)" data-perm="menu-eng"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><circle cx="9" cy="14" r="2"/><circle cx="14" cy="8" r="2"/><circle cx="18" cy="15" r="2"/><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/></svg>هندسة المنيو</div>
         </div>
       </div>
       <div class="sg" data-g="plan90"><div class="sgh" onclick="navToggle(this)"><span class="sgi">🗓️</span><span>خطة الـ90 يوماً</span><svg class="sgc" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
@@ -1621,6 +1623,10 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
             <div class="fg2">
               <div class="fr" style="margin:0"><label>🛂 تاريخ انتهاء جواز السفر</label><input type="date" id="emp-passport-exp"></div>
               <div class="fr" style="margin:0"><label>🏥 تاريخ انتهاء الكارت الصحي</label><input type="date" id="emp-health-exp"></div>
+            </div>
+            <div class="fg2" style="margin-top:8px">
+              <div class="fr" style="margin:0"><label>📄 تاريخ انتهاء عقد العمل (اختياري)</label><input type="date" id="emp-contract-end"></div>
+              <div class="fr" style="margin:0"><label>📋 تاريخ انتهاء رخصة العمل (اختياري)</label><input type="date" id="emp-wp-exp"></div>
             </div>
           </div>
           <div style="background:var(--b);border-radius:8px;padding:10px;margin-bottom:10px">
@@ -4910,6 +4916,18 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
         <div id="dlv-root"></div>
       </div>
 
+      <!-- ===== الوثائق المنتهية والقريبة: الواجهة تُرسم من src/modules/46-doc-expiry-core.js و47-doc-expiry.js ===== -->
+      <div class="page" id="pg-doc-expiry">
+        <div class="ph"><h1>📅 الوثائق المنتهية والقريبة</h1><p>إقامات وجوازات وكروت صحية وعقود ورخص عمل الموظفين ووثائق المنشأة الرسمية، مرتبة بحسب الاستعجال مع الغرامة المحتملة</p></div>
+        <div id="dx-root"></div>
+      </div>
+
+      <!-- ===== هندسة المنيو: الواجهة تُرسم من src/modules/44-menu-eng-core.js و45-menu-eng.js ===== -->
+      <div class="page" id="pg-menu-eng">
+        <div class="ph"><h1>🎯 هندسة المنيو</h1><p>تصنيف الأصناف المباعة إلى نجم وحصان عمل ولغز وكلب بحسب الشعبية وهامش المساهمة (كاسافانا–سميث) مع توصية لكل فئة وسعر مقترح</p></div>
+        <div id="me-root"></div>
+      </div>
+
       <!-- ===== MENU — المنيو والأسعار ===== -->
       <div class="page" id="pg-menu">
         <div class="ph"><h1>🍽️ المنيو والأسعار</h1><p>أصناف المنيو بأسعارها شاملة الضريبة، مربوطة بتكلفة الوصفات وهامش الربح</p></div>
@@ -5564,11 +5582,11 @@ html[dir=ltr] .sg.open>.sgh .sgc{transform:rotate(90deg)}
 <script>
 // ===== PERMISSIONS =====
 var PERMS = {
-  branch_manager: ['plan90','dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','breakeven','menu','monthlyreports','cashreceipts','accounting','inventory','fdash','forecast','expenses','maintenance','muni-guide','gov-fines','delivery-settle'],
+  branch_manager: ['plan90','dashboard','opening','closing','cashier','custody','visit','vreports','purchase','purchase-system','production','users','auditlog','reports','salesreport','custodyreport','opreports','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','forms','finance','backup','revenue-receipt','costcards','breakeven','menu','monthlyreports','cashreceipts','accounting','inventory','fdash','forecast','expenses','maintenance','muni-guide','gov-fines','delivery-settle','menu-eng','doc-expiry'],
   cashier: ['dashboard','opening','closing','cashier','custody','forms','revenue-receipt','maintenance'],
   visit_supervisor: ['visit','vreports','hr-violations','maintenance','muni-guide','gov-fines'],
   store_manager: ['dashboard','inventory','purchase','production','forecast','maintenance'],
-  hr_manager: ['dashboard','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen'],
+  hr_manager: ['dashboard','hr-employees','hr-payroll','hr-eval','hr-advances','hr-violations','hr-schedule-dining','hr-schedule-kitchen','doc-expiry'],
   purchases_rep: ['purchase-system','purchase','expenses'],
   accountant: ['reports','revenue-receipt','custody','cashreceipts','custodyreport','salesreport','purchase-system','finance','monthlyreports','backup','accounting','inventory','fdash','forecast','expenses','delivery-settle'],
   finance_manager: ['plan90','reports','cashier','revenue-receipt','custody','cashreceipts','custodyreport','salesreport','purchase','purchase-system','production','finance','monthlyreports','backup','accounting','inventory','fdash','forecast','expenses','maintenance','delivery-settle']
@@ -5624,7 +5642,7 @@ var PERM_CATALOG=[
    {k:'delete:inventory',t:'إلغاء الجرد المعتمد',cap:1,danger:1}]},
  {id:'hr',icon:'👥',title:'الموارد البشرية',items:[
    {k:'hr-employees',t:'سجل الموظفين'},{k:'hr-payroll',t:'مسير الرواتب (عرض)'},{k:'hr-eval',t:'تقييم الموظفين'},{k:'hr-advances',t:'سلف الموظفين'},
-   {k:'hr-violations',t:'مخالفات الموظفين'},{k:'hr-schedule-dining',t:'جدول الصالة'},{k:'hr-schedule-kitchen',t:'جدول المطبخ'},
+   {k:'hr-violations',t:'مخالفات الموظفين'},{k:'hr-schedule-dining',t:'جدول الصالة'},{k:'hr-schedule-kitchen',t:'جدول المطبخ'},{k:'doc-expiry',t:'الوثائق المنتهية والقريبة (وثائق الموظفين تتطلب معها سجل الموظفين)'},
    {k:'edit:payroll',t:'إنشاء وتعديل مسير الرواتب',cap:1},{k:'delete:payroll',t:'حذف مسير الرواتب',cap:1,danger:1},
    {k:'edit:hr',t:'إضافة وتعديل بيانات الموارد (موظفون وتقييم وسلف ومخالفات وجداول)',cap:1},{k:'delete:hr',t:'حذف بيانات الموارد البشرية',cap:1,danger:1},
    {k:'add:violation',t:'تسجيل مخالفة فقط (دون تعديل الموجود)',cap:1}]},
@@ -5636,7 +5654,7 @@ var PERM_CATALOG=[
    {k:'edit:finance',t:'تعديل البيانات المالية المحفوظة (تقفيل وإيرادات ومشتريات وقيود)',cap:1},{k:'delete:finance',t:'حذف البيانات المالية',cap:1,danger:1},
    {k:'edit:forecast',t:'رفع بيانات التنبؤ (مبيعات الأصناف)',cap:1}]},
  {id:'cost',icon:'💰',title:'التكاليف والتسعير',items:[
-   {k:'costcards',t:'الوصفات وبطاقات التكلفة'},{k:'menu',t:'المنيو والأسعار'},{k:'breakeven',t:'نقطة التعادل'},{k:'edit:costs',t:'تعديل الوصفات والتكاليف',cap:1}]}
+   {k:'costcards',t:'الوصفات وبطاقات التكلفة'},{k:'menu',t:'المنيو والأسعار'},{k:'breakeven',t:'نقطة التعادل'},{k:'menu-eng',t:'هندسة المنيو (يلزم معها المنيو والتنبؤ لقراءة المبيعات والوصفات؛ حفظ العتبات لمن يملك تعديل الوصفات)'},{k:'edit:costs',t:'تعديل الوصفات والتكاليف',cap:1}]}
 ];
 var PX_KEYS={};PERM_CATALOG.forEach(function(g){g.items.forEach(function(i){PX_KEYS[i.k]=i;});});
 // الصلاحيات التي يمنحها كل دور افتراضيًا إلى جانب صفحاته (PERMS)
@@ -5690,7 +5708,7 @@ function userPerms(){
   if(!CU)return [];
   if(CU.role==='branch_manager')return (PERMS.branch_manager||[]).slice();
   if(CU.role==='owner_viewer')return (PERMS.owner_viewer||[]).slice();
-  if(Array.isArray(CU.perms)){var cp=CU.perms.filter(function(k){return k.indexOf(':')<0;});if(cp.indexOf('findash')>=0&&cp.indexOf('fdash')<0)cp.push('fdash');return cp;}   // findash = الاسم القديم لصفحة اللوحة المالية (يُعامل كـ fdash)
+  if(Array.isArray(CU.perms)){var cp=CU.perms.filter(function(k){return k.indexOf(':')<0;});if(cp.indexOf('findash')>=0&&cp.indexOf('fdash')<0)cp.push('fdash');if(CU.role==='visit_supervisor')cp=cp.filter(function(k){return k!=='doc-expiry';});return cp;}   // مشرف الزيارات لا يرى الوثائق الرسمية (تتضمن بيانات الموظفين) حتى لو عُلِّم له المفتاح   // findash = الاسم القديم لصفحة اللوحة المالية (يُعامل كـ fdash)
   var p=(PERMS[CU.role]||[]).slice();
   if(CU.role==='accountant'&&CU.allowEdit===true&&p.indexOf('cashier')<0)p.push('cashier'); // تعديل التقفيل يتم داخل صفحة التقفيل
   return p;
@@ -5838,6 +5856,7 @@ var AUDIT_COLL_NAMES={
   hr_advances:'سلف الموظفين',
   hr_violations:'مخالفات الموظفين',
   gov_fines:'غرامات الجهات الحكومية',
+  compliance_docs:'وثائق المنشأة الرسمية',
   gov_fines_settings:'إعدادات فئة الغرامات البلدية',
   delivery_apps:'إعدادات تطبيقات التوصيل',
   delivery_settlements:'تسويات تطبيقات التوصيل',
@@ -5978,7 +5997,7 @@ function sdAuditLog(action,coll,docId,summary,snapshot,changes){
   }catch(e){console.warn('sdAuditLog:',e);return Promise.resolve();}
 }
 // رصد تلقائي لتعديل أهم المجموعات المالية: يقرأ النسخة قبل التعديل ثم يسجّل ما تغيّر
-var SD_AUTO_EDIT_COLLS={acc_journal:1,maintenance_requests:1,expenses:1,cashier_reports:1,hr_payroll:1,hr_employees:1,hr_advances:1,hr_evaluations:1,revenue_receipts:1,purchases_invoices:1,purchases_payments:1,purchases_suppliers:1,gov_fines:1,delivery_apps:1};
+var SD_AUTO_EDIT_COLLS={acc_journal:1,maintenance_requests:1,expenses:1,cashier_reports:1,hr_payroll:1,hr_employees:1,hr_advances:1,hr_evaluations:1,revenue_receipts:1,purchases_invoices:1,purchases_payments:1,purchases_suppliers:1,gov_fines:1,compliance_docs:1,delivery_apps:1};
 (function(){
   try{
     var proto=Object.getPrototypeOf(db.collection('__sd').doc('__sd'));
@@ -6054,7 +6073,7 @@ function sdActionInfo(act){
 }
 // المجموعات التي يجوز استرجاعها من السجل (قائمة بيضاء). كل ما عداها (users, app_config, acc_*, inv_moves, inv_counts…) مرفوض
 var SD_RESTORABLE={cashier_reports:1,custody_ledger:1,custody_users:1,daily_reports:1,expenses:1,hr_advances:1,hr_employees:1,hr_evaluations:1,
-  hr_payroll:1,hr_violations:1,gov_fines:1,delivery_settlements:1,delivery_deposits:1,inv_production:1,inv_requests:1,maintenance_requests:1,operational_forms:1,purchases_invoices:1,purchases_payments:1,
+  hr_payroll:1,hr_violations:1,gov_fines:1,compliance_docs:1,delivery_settlements:1,delivery_deposits:1,inv_production:1,inv_requests:1,maintenance_requests:1,operational_forms:1,purchases_invoices:1,purchases_payments:1,
   purchases_suppliers:1,monthly_reports:1,revenue_receipts:1,invoice_images:1};
 function loadAuditLog(){
   if(!CU||(CU.role!=='branch_manager'&&!isRO())){alert('صلاحية مدير الفرع أو المشاهد فقط');return;}
@@ -6759,7 +6778,7 @@ var _employees = [];
 function openAddEmployee(){
   document.getElementById('modal-emp-title').textContent='➕ إضافة موظف جديد';
   document.getElementById('emp-doc-id').value='';
-  ['emp-name','emp-iqama','emp-nationality','emp-phone','emp-hire-date','emp-iqama-exp','emp-passport-exp','emp-health-exp','emp-basic','emp-housing','emp-transport','emp-phone-allow','emp-other-allow','emp-notes','emp-bank-name','emp-bank-iban','emp-bank-owner','emp-bank-account','emp-bank-name2','emp-bank-iban2','emp-cash-amount','emp-bank-amount','emp-sponsor-name'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['emp-name','emp-iqama','emp-nationality','emp-phone','emp-hire-date','emp-iqama-exp','emp-passport-exp','emp-health-exp','emp-contract-end','emp-wp-exp','emp-basic','emp-housing','emp-transport','emp-phone-allow','emp-other-allow','emp-notes','emp-bank-name','emp-bank-iban','emp-bank-owner','emp-bank-account','emp-bank-name2','emp-bank-iban2','emp-cash-amount','emp-bank-amount','emp-sponsor-name'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('emp-status').value='active';
   var sp=document.getElementById('emp-sponsorship');if(sp)sp.value='company';
   toggleSponsorName();
@@ -6928,7 +6947,7 @@ function saveEmployee(){
       bankTransferAmount:parseFloat(document.getElementById('emp-bank-amount')?document.getElementById('emp-bank-amount').value:0)||0};
   }
   var data={name:name,iqamaNumber:iqama,nationality:g('emp-nationality'),phone:g('emp-phone'),
-    position:g('emp-position'),dept:g('emp-dept'),hireDate:g('emp-hire-date'),iqamaExpiry:g('emp-iqama-exp'),passportExpiry:g('emp-passport-exp'),healthCardExpiry:g('emp-health-exp'),
+    position:g('emp-position'),dept:g('emp-dept'),hireDate:g('emp-hire-date'),iqamaExpiry:g('emp-iqama-exp'),passportExpiry:g('emp-passport-exp'),healthCardExpiry:g('emp-health-exp'),contractEnd:g('emp-contract-end'),workPermitExpiry:g('emp-wp-exp'),
     basicSalary:basic,housingAllowance:housing,transportAllowance:transport,phoneAllowance:phoneAllow,
     otherAllowances:otherAllow,insuranceDeduction:g('emp-insurance')?parseFloat(g('emp-insurance'))||0:0,totalSalary:totalSalary,
     paymentMethod:payMethod,bankData:bankData,
@@ -7164,7 +7183,7 @@ function editEmployee(docId){
   s('emp-name',emp.name);s('emp-iqama',emp.iqamaNumber);s('emp-nationality',emp.nationality);
   s('emp-phone',emp.phone);s('emp-position',emp.position);s('emp-dept',emp.dept);
   s('emp-hire-date',emp.hireDate);s('emp-iqama-exp',emp.iqamaExpiry);
-  s('emp-passport-exp',emp.passportExpiry||'');s('emp-health-exp',emp.healthCardExpiry||'');
+  s('emp-passport-exp',emp.passportExpiry||'');s('emp-health-exp',emp.healthCardExpiry||'');s('emp-contract-end',emp.contractEnd||'');s('emp-wp-exp',emp.workPermitExpiry||'');
   s('emp-basic',emp.basicSalary||0);s('emp-housing',emp.housingAllowance||0);
   s('emp-transport',emp.transportAllowance||0);s('emp-phone-allow',emp.phoneAllowance||0);
   s('emp-other-allow',emp.otherAllowances||0);s('emp-insurance',emp.insuranceDeduction||0);s('emp-status',emp.status||'active');s('emp-notes',emp.notes);
@@ -28796,6 +28815,1027 @@ function bedLegacyLoad(){
 })();
 
 </script>
+<script>/* module: 44-menu-eng-core.js */
+/* =====================================================================
+   «هندسة المنيو» — النواة (دوال نقية بلا DOM وبلا Firestore) : window.menuEng
+   طريقة كاسافانا–سميث (Kasavana–Smith) لتصنيف أصناف المنيو المباعة إلى أربع فئات:
+     ⭐ نجم        = شعبية عالية + هامش مساهمة عالٍ
+     🐎 حصان عمل  = شعبية عالية + هامش منخفض
+     ❓ لغز        = شعبية منخفضة + هامش عالٍ
+     🐕 كلب        = شعبية منخفضة + هامش منخفض
+   المعادلات (n = عدد الأصناف المحلَّلة، U = مجموع وحداتها، كل صنف i: وحدات u، سعر شامل الضريبة p، تكلفة وحدة c):
+     السعر بدون ضريبة  px = p / (1 + نسبة الضريبة/100)           (الإيرادات ونقطة التعادل في المنصة بدون ضريبة)
+     هامش المساهمة      cm = px − c ،  cm% = cm / px
+     حصة الصنف في المزيج mix = u / U × 100
+     عتبة الشعبية       = (نسبة الشعبية/100) × (1/n) × 100 %   (الافتراضي 70% من متوسط الحصة 1/n)  → شعبي إن mix ≥ العتبة
+     عتبة الهامش        = متوسط هامش المساهمة المرجّح Σ(cm×u)/U  (أو قيمة يدوية بالريال) → عالٍ إن cm ≥ العتبة
+     إجمالي المساهمة    = cm × u
+     السعر المقترح      = c / (هدف Food Cost %) بدون ضريبة، ويُقرَّب شاملُه الضريبة إلى أعلى 0.5 ريال
+   الأصناف بلا تكلفة أو بلا سعر لا تدخل الحساب (قائمة «بيانات ناقصة»)، والأصناف تحت الحد الأدنى للمبيعات لا تدخله أيضاً.
+   كل الأموال تُقرَّب إلى هللتين (r2). المقارنات بالقيم غير المقرَّبة.
+   الاختبارات: tests/e2e/menu-engineering.mjs   — التوثيق: docs/MENU-ENGINEERING.md
+   ===================================================================== */
+(function(){
+'use strict';
+var M=window.menuEng={};
+var EPS=1e-9;
+
+function r2(n){n=+n;if(!isFinite(n))return 0;return Math.round(n*100+(n>=0?1e-7:-1e-7))/100;}
+function r1(n){n=+n;if(!isFinite(n))return 0;return Math.round(n*10)/10;}
+function pad(n){return String(n).padStart(2,'0');}
+function isDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s+'T00:00:00Z'));}
+function utc(s){return Date.parse(s+'T00:00:00Z');}
+function addDays(s,n){return new Date(utc(s)+n*86400000).toISOString().slice(0,10);}
+function daysBetween(a,b){return Math.round((utc(b)-utc(a))/86400000);}
+function escH(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+M.r2=r2;M.addDays=addDays;M.daysBetween=daysBetween;M.isDate=isDate;
+
+/* ---------- الفئات ---------- */
+M.CLASSES={
+  star:{icon:'⭐',name:'نجم',color:'#1B5E20',bg:'#E8F5E9',order:0,
+    advice:'احمِ الجودة والحصة: ثبّت الوصفة والحجم، اجعله واجهة المنيو، ولا ترفع سعره إلا بحذر وبمتابعة المبيعات.'},
+  horse:{icon:'🐎',name:'حصان عمل',color:'#E65100',bg:'#FFF3E0',order:1,
+    advice:'مطلوب لكن هامشه ضعيف: ارفع السعر تدريجياً أو خفّض الحصة/التكلفة (مكوّن أرخص، حجم أدق، تقليل الهالك) أو اربطه بإضافات مربحة.'},
+  puzzle:{icon:'❓',name:'لغز',color:'#1565C0',bg:'#E3F2FD',order:2,
+    advice:'ربحه جيد لكن مبيعاته قليلة: روّج له وأعد تموضعه في المنيو (أعلى الصفحة/وصف أجذب/صورة)، واجعله اقتراح الموظفين، وجرّب اسماً أو حزمة أوضح.'},
+  dog:{icon:'🐕',name:'كلب',color:'#B71C1C',bg:'#FFEBEE',order:3,
+    advice:'ضعيف الطلب والهامش: أزِله من المنيو أو أعد تصميمه (وصفة وسعر جديدان)، ولا تُبقِه إلا لسبب استراتيجي مثل إكمال فئة.'}
+};
+M.CLASS_KEYS=['star','horse','puzzle','dog'];
+
+/* ---------- الإعدادات ---------- */
+M.DEFAULTS={minUnits:5,popPct:70,marginMode:'weighted',marginManual:0,targetFc:35,useRecipeTarget:true};
+function num(v){if(typeof v==='number')return isFinite(v)?v:null;var n=parseFloat(String(v==null?'':v).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);}));return isFinite(n)?n:null;}
+M.cleanSettings=function(x){
+  x=x||{};var D=M.DEFAULTS,m=num(x.minUnits),p=num(x.popPct),mm=num(x.marginManual),t=num(x.targetFc);
+  return {
+    minUnits:(m!=null&&m>=0&&m<=100000)?Math.floor(m):D.minUnits,
+    popPct:(p!=null&&p>0&&p<=200)?r2(p):D.popPct,
+    marginMode:x.marginMode==='manual'?'manual':'weighted',
+    marginManual:(mm!=null&&mm>=-100000&&mm<=100000)?r2(mm):D.marginManual,
+    targetFc:(t!=null&&t>0&&t<100)?r2(t):D.targetFc,
+    useRecipeTarget:x.useRecipeTarget===false?false:true
+  };
+};
+
+/* ---------- الفترة ---------- */
+// kind: '30' | '60' | '90' (آخر N يوماً شاملة اليوم) | 'month' (من أول الشهر حتى اليوم) | 'custom' (from..to، حتى 366 يوماً)
+M.periodRange=function(kind,today,from,to){
+  if(!isDate(today))return {error:'تاريخ اليوم غير صالح'};
+  if(kind==='30'||kind==='60'||kind==='90'){var n=+kind;return {from:addDays(today,-(n-1)),to:today,days:n,kind:kind};}
+  if(kind==='month'){var f=today.slice(0,8)+'01';return {from:f,to:today,days:daysBetween(f,today)+1,kind:kind};}
+  if(kind==='custom'){
+    if(!isDate(from)||!isDate(to))return {error:'حدّد تاريخ البداية والنهاية'};
+    if(from>to)return {error:'تاريخ البداية بعد تاريخ النهاية'};
+    var d=daysBetween(from,to)+1;
+    if(d>366)return {error:'الحد الأقصى للفترة المخصصة 366 يوماً'};
+    return {from:from,to:to,days:d,kind:kind};
+  }
+  return {error:'فترة غير معروفة'};
+};
+
+/* ---------- المبيعات ---------- */
+// dayMaps: مصفوفة items لكل يوم ({code:{q,v,t}}) ← {code:{q,v,t,hasT}} ؛ cfgMap = fc_meta/config.map لدمج الأصناف (merge) كما تفعل صفحة التنبؤ
+M.aggregateSales=function(dayMaps,cfgMap){
+  var agg={};
+  function canon(code){var m=cfgMap&&cfgMap[code],g=0;while(m&&m.merge&&g<5){code=m.merge;m=cfgMap[code];g++;}return code;}
+  (dayMaps||[]).forEach(function(items){
+    Object.keys(items||{}).forEach(function(code){
+      var it=items[code]||{},c=canon(code),a=agg[c]||(agg[c]={q:0,v:0,t:0,hasT:false});
+      a.q+=Number(it.q)||0;a.v+=Number(it.v)||0;if(it.t!=null){a.hasT=true;a.t+=Number(it.t)||0;}
+    });
+  });
+  return agg;
+};
+
+/* ---------- الأسعار ---------- */
+M.exVat=function(incl,vat){var v=num(vat);if(v==null||v<0)v=15;return (+incl||0)/(1+v/100);};
+// السعر المقترح لبلوغ هدف Food Cost: بدون ضريبة = c/(t%)، وشامل الضريبة مقرَّب لأعلى 0.5
+M.suggest=function(cost,targetFc,vat){
+  if(!(cost>0)||!(targetFc>0)||targetFc>=100)return null;
+  var ex=cost/(targetFc/100),incl=Math.ceil(r2(ex*(1+(num(vat)==null?15:num(vat))/100))*2-1e-9)/2;
+  return {ex:r2(ex),incl:incl};
+};
+
+/* ---------- التحليل ---------- */
+// rows: [{id,name,category,units,priceIncl,cost,target}] ؛ cost=null/0 ← ناقص ؛ priceIncl<=0 ← ناقص
+M.analyze=function(rows,settings,vat){
+  var S=M.cleanSettings(settings),v=num(vat);if(v==null||v<0)v=15;
+  var out={settings:S,vat:v,items:[],incomplete:[],belowMin:[],noSales:0,th:{n:0,units:0,popThr:null,cmThr:null,cmAvg:null,popFactor:S.popPct},byClass:{},totalContribution:0,totalRevenue:0};
+  M.CLASS_KEYS.forEach(function(k){out.byClass[k]={n:0,units:0,contribution:0};});
+  var cand=[];
+  (rows||[]).forEach(function(r){
+    var u=Number(r.units)||0;if(!(u>0)){out.noSales++;return;}
+    var missing=[];
+    if(!(Number(r.priceIncl)>0))missing.push('سعر البيع');
+    if(!(Number(r.cost)>0))missing.push('التكلفة (الوصفة)');
+    var base={id:r.id,name:r.name,category:r.category||'',units:u};
+    if(missing.length){out.incomplete.push(Object.assign(base,{missing:missing,priceIncl:Number(r.priceIncl)||0,cost:Number(r.cost)||0}));return;}
+    if(u<S.minUnits){out.belowMin.push(base);return;}
+    var px=M.exVat(r.priceIncl,v),cost=Number(r.cost),cm=px-cost;
+    cand.push({id:r.id,name:r.name,category:r.category||'',units:u,priceIncl:Number(r.priceIncl),px:px,cost:cost,cm:cm,target:Number(r.target)>0?Number(r.target):0});
+  });
+  var n=cand.length,U=cand.reduce(function(t,x){return t+x.units;},0);
+  out.th.n=n;out.th.units=U;
+  if(!n){return out;}
+  var wsum=cand.reduce(function(t,x){return t+x.cm*x.units;},0),avg=wsum/U;
+  var popThr=S.popPct/100*(1/n)*100,cmThr=S.marginMode==='manual'?S.marginManual:avg;
+  out.th.popThr=r2(popThr);out.th.cmAvg=r2(avg);out.th.cmThr=r2(cmThr);out.th.popThrExact=popThr;out.th.cmThrExact=cmThr;
+  cand.forEach(function(x){
+    var mix=x.units/U*100,popHigh=mix>=popThr-EPS,cmHigh=x.cm>=cmThr-EPS;
+    var cls=popHigh?(cmHigh?'star':'horse'):(cmHigh?'puzzle':'dog');
+    var target=(S.useRecipeTarget&&x.target>0)?x.target:S.targetFc,sg=M.suggest(x.cost,target,v);
+    var needsRaise=!!sg&&sg.ex>x.px+EPS;
+    var it={id:x.id,name:x.name,category:x.category,units:x.units,share:r2(mix),priceEx:r2(x.px),priceIncl:r2(x.priceIncl),cost:r2(x.cost),
+      cm:r2(x.cm),cmPct:x.px>0?r2(x.cm/x.px*100):0,fcPct:x.px>0?r2(x.cost/x.px*100):0,contribution:r2(x.cm*x.units),revenue:r2(x.px*x.units),
+      popHigh:popHigh,cmHigh:cmHigh,cls:cls,target:target,suggestEx:sg?sg.ex:null,suggestIncl:sg?sg.incl:null,needsRaise:needsRaise,_c:x.cm*x.units,_r:x.px*x.units};
+    out.items.push(it);
+  });
+  var tc=0,tr=0;
+  out.items.forEach(function(it){var b=out.byClass[it.cls];b.n++;b.units+=it.units;b.contribution+=it._c;tc+=it._c;tr+=it._r;});
+  M.CLASS_KEYS.forEach(function(k){out.byClass[k].contribution=r2(out.byClass[k].contribution);});
+  out.totalContribution=r2(tc);out.totalRevenue=r2(tr);
+  out.items.sort(function(a,b){return b.units-a.units||String(a.name).localeCompare(String(b.name),'ar');});
+  return out;
+};
+
+/* ---------- نص التوصية لصنف ---------- */
+M.adviceFor=function(it){
+  var c=M.CLASSES[it.cls],t=c.advice;
+  if((it.cls==='horse'||it.cls==='dog')&&it.needsRaise&&it.suggestIncl!=null)t+=' السعر المقترح للوصول إلى Food Cost '+r1(it.target)+'%: '+it.suggestIncl.toFixed(2)+' ﷼ شامل الضريبة ('+it.suggestEx.toFixed(2)+' بدونها).';
+  else if((it.cls==='horse'||it.cls==='dog')&&it.suggestIncl!=null)t+=' سعره الحالي ضمن هدف Food Cost '+r1(it.target)+'%، فالحل في خفض التكلفة أو زيادة المبيعات.';
+  return t;
+};
+
+/* ---------- أثر تطبيق التوصيل ---------- */
+// dlv = window.dlvCore ؛ app = إعداد التطبيق. الخصم الفعلي = مجموع بنود العقد بدون ضريبتها (ضريبة العمولة مدخلات تُسترد) على سعر شامل الضريبة.
+M.appEffect=function(it,app,vat,dlv){
+  if(!dlv||!app||!(it.priceIncl>0))return null;
+  var d=dlv.netCalc(app,it.priceIncl,{vatRate:vat});
+  var deduct=r2(d.subtotal),m=r2(it.priceEx-deduct-it.cost);
+  return {deduct:deduct,deductPct:it.priceEx>0?r2(deduct/it.priceEx*100):0,cm:m,cmPct:it.priceEx>0?r2(m/it.priceEx*100):0,rate:d.rate};
+};
+
+/* ---------- ترتيب وتصفية للجدول ---------- */
+M.COLS={name:'الصنف',category:'التصنيف',units:'الوحدات',share:'الحصة %',priceEx:'السعر بدون ضريبة',cost:'التكلفة',cm:'الهامش ﷼',cmPct:'الهامش %',contribution:'إجمالي المساهمة',cls:'الفئة'};
+M.sortItems=function(items,key,dir){
+  var f=dir==='asc'?1:-1,rank=function(c){return M.CLASSES[c].order;};
+  return items.slice().sort(function(a,b){
+    var x=key==='cls'?rank(a.cls):a[key],y=key==='cls'?rank(b.cls):b[key],c;
+    if(typeof x==='string'||typeof y==='string')c=String(x==null?'':x).localeCompare(String(y==null?'':y),'ar');else c=(x||0)-(y||0);
+    return c*f||String(a.name).localeCompare(String(b.name),'ar');
+  });
+};
+
+/* ---------- CSV ---------- */
+M.csvCell=function(v){
+  var s=v==null?'':String(v);
+  if(/^[=+\-@\t\r]/.test(s)&&!/^-?\d+(\.\d+)?$/.test(s))s="'"+s;
+  return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+};
+M.csv=function(res,opts){
+  opts=opts||{};var app=opts.app;
+  var head=['الصنف','التصنيف','الوحدات','الحصة %','السعر بدون ضريبة','التكلفة','الهامش','الهامش %','إجمالي المساهمة','Food Cost %','الفئة','السعر المقترح (شامل الضريبة)','التوصية'];
+  if(app)head.push('هامش بعد خصم '+app.name,'هامش التطبيق %');
+  var rows=[head];
+  (opts.items||res.items).forEach(function(it){
+    var r=[it.name,it.category,it.units,it.share,it.priceEx,it.cost,it.cm,it.cmPct,it.contribution,it.fcPct,M.CLASSES[it.cls].name,
+      (it.cls==='horse'||it.cls==='dog')&&it.needsRaise?it.suggestIncl:'',M.adviceFor(it)];
+    if(app){var e=M.appEffect(it,app,res.vat,opts.dlv);r.push(e?e.cm:'',e?e.cmPct:'');}
+    rows.push(r);
+  });
+  res.incomplete.forEach(function(it){rows.push([it.name,it.category,it.units,'','','','','','','','بيانات ناقصة','','ينقص: '+it.missing.join('، ')]);});
+  return '﻿'+rows.map(function(r){return r.map(M.csvCell).join(',');}).join('\r\n')+'\r\n';
+};
+
+/* ---------- مخطط الانتشار (SVG نقي، بلا مكتبات) ---------- */
+// المحور الأفقي: حصة المزيج %، العمودي: هامش المساهمة ﷼؛ خطان متقطعان عند العتبتين
+M.scatterSvg=function(res,opts){
+  opts=opts||{};var items=res.items;
+  if(!items.length)return '';
+  var W=720,H=430,pl=54,pr=16,pt=16,pb=40;
+  var xs=items.map(function(i){return i.share;}),ys=items.map(function(i){return i.cm;});
+  var xmax=Math.max.apply(null,xs.concat([res.th.popThr||0]))*1.12||1,xmin=0;
+  var ymin=Math.min.apply(null,ys.concat([res.th.cmThr,0])),ymax=Math.max.apply(null,ys.concat([res.th.cmThr]));
+  var padY=(ymax-ymin)*0.12||1;ymin-=padY;ymax+=padY;
+  function X(v){return pl+(v-xmin)/(xmax-xmin)*(W-pl-pr);}
+  function Y(v){return pt+(1-(v-ymin)/(ymax-ymin))*(H-pt-pb);}
+  var tx=X(res.th.popThrExact!=null?res.th.popThrExact:res.th.popThr),ty=Y(res.th.cmThrExact!=null?res.th.cmThrExact:res.th.cmThr),g='';
+  function rect(x1,y1,x2,y2,fill){return '<rect x="'+Math.min(x1,x2).toFixed(1)+'" y="'+Math.min(y1,y2).toFixed(1)+'" width="'+Math.abs(x2-x1).toFixed(1)+'" height="'+Math.abs(y2-y1).toFixed(1)+'" fill="'+fill+'"/>';}
+  g+=rect(pl,pt,tx,ty,M.CLASSES.puzzle.bg)+rect(tx,pt,W-pr,ty,M.CLASSES.star.bg)+rect(pl,ty,tx,H-pb,M.CLASSES.dog.bg)+rect(tx,ty,W-pr,H-pb,M.CLASSES.horse.bg);
+  g+='<line x1="'+tx.toFixed(1)+'" x2="'+tx.toFixed(1)+'" y1="'+pt+'" y2="'+(H-pb)+'" stroke="#8B6E55" stroke-dasharray="5 4"/>'
+    +'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+ty.toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="#8B6E55" stroke-dasharray="5 4"/>'
+    +'<rect x="'+pl+'" y="'+pt+'" width="'+(W-pl-pr)+'" height="'+(H-pt-pb)+'" fill="none" stroke="#D4C5A9"/>';
+  // أسماء الأرباع
+  g+='<text x="'+(pl+8)+'" y="'+(pt+16)+'" font-size="12" font-weight="700" fill="'+M.CLASSES.puzzle.color+'">'+M.CLASSES.puzzle.icon+' '+M.CLASSES.puzzle.name+'</text>'
+    +'<text x="'+(W-pr-8)+'" y="'+(pt+16)+'" font-size="12" font-weight="700" text-anchor="end" fill="'+M.CLASSES.star.color+'">'+M.CLASSES.star.icon+' '+M.CLASSES.star.name+'</text>'
+    +'<text x="'+(pl+8)+'" y="'+(H-pb-8)+'" font-size="12" font-weight="700" fill="'+M.CLASSES.dog.color+'">'+M.CLASSES.dog.icon+' '+M.CLASSES.dog.name+'</text>'
+    +'<text x="'+(W-pr-8)+'" y="'+(H-pb-8)+'" font-size="12" font-weight="700" text-anchor="end" fill="'+M.CLASSES.horse.color+'">'+M.CLASSES.horse.icon+' '+M.CLASSES.horse.name+'</text>';
+  // محاور وقيم
+  for(var i=0;i<=4;i++){
+    var xv=xmax*i/4,yv=ymin+(ymax-ymin)*i/4;
+    g+='<text x="'+X(xv).toFixed(1)+'" y="'+(H-pb+15)+'" font-size="10" text-anchor="middle" fill="#666">'+r1(xv)+'%</text>'
+      +'<text x="'+(pl-6)+'" y="'+(Y(yv)+3).toFixed(1)+'" font-size="10" text-anchor="end" fill="#666">'+r1(yv)+'</text>';
+  }
+  g+='<text x="'+((pl+W-pr)/2)+'" y="'+(H-6)+'" font-size="11" text-anchor="middle" fill="#444">الشعبية: حصة الصنف من المبيعات (%)</text>'
+    +'<text transform="translate(12 '+((pt+H-pb)/2)+') rotate(-90)" font-size="11" text-anchor="middle" fill="#444">هامش المساهمة (﷼ للوحدة، بدون ضريبة)</text>';
+  var top={};items.slice().sort(function(a,b){return b.units-a.units;}).slice(0,items.length<=22?items.length:14).forEach(function(i){top[i.id]=1;});
+  items.forEach(function(it){
+    var c=M.CLASSES[it.cls],cx=X(it.share),cy=Y(it.cm);
+    g+='<circle class="me-pt" data-cls="'+it.cls+'" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="6" fill="'+c.color+'" fill-opacity=".78" stroke="#fff" stroke-width="1.2"><title>'+escH(it.name)+' — '+c.name+' | '+it.units+' وحدة، حصة '+it.share+'%، هامش '+it.cm.toFixed(2)+' ﷼</title></circle>';
+    if(top[it.id]){
+      var nm=String(it.name),lab=nm.length>16?nm.slice(0,15)+'…':nm,right=cx<W-pr-110;
+      g+='<text x="'+(right?cx+9:cx-9).toFixed(1)+'" y="'+(cy+3.5).toFixed(1)+'" font-size="10" text-anchor="'+(right?'start':'end')+'" fill="#2C1A0E">'+escH(lab)+'</text>';
+    }
+  });
+  return '<svg class="me-chart" dir="ltr" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;min-width:520px;height:auto" role="img" aria-label="مخطط هندسة المنيو">'+g+'</svg>';
+};
+})();
+
+</script>
+<script>/* module: 45-menu-eng.js */
+/* =====================================================================
+   «هندسة المنيو» (pg-menu-eng) لكل البراندات — الواجهة؛ الحساب في 44-menu-eng-core.js (window.menuEng)
+   • المصادر (لا مجموعة جديدة): مبيعات الأصناف fc_daily (نطاق تواريخ الفترة فقط، عبر RC فلا قراءة بلا كاش ولا قراءة للمجموعة كاملة)،
+     fc_meta/items (أسماء) و fc_meta/config (ربط/دمج الأصناف)، ووصفات المنيو وتكلفتها من cost_recipes/cost_ingredients (ccEnsureLoaded: مرآة حيّة)،
+     وربط الصنف بالوصفة بنفس مطابقة نقطة التعادل (bedMatchRecipe: ربط يدوي ← SKU ← الاسم).
+   • الأسعار بدون ضريبة: سعر الوصفة شامل الضريبة ÷ (1 + نسبة ضريبة المحاسبة ACC.settings.vatRate، الافتراضي 15).
+   • العتبات تُحفظ في الوثيقة cost_settings/menu_eng (نفس نمط إعدادات التكاليف؛ لا تعديل على القواعد). الحفظ: مدير الفرع أو من يملك edit:costs، وليس المشاهد.
+   • خصم تطبيق التوصيل (اختياري): dlvCore.netCalc على إعدادات delivery_apps (قراءة فقط، لا تهيئة) ← عمود هامش بعد الخصم دون إعادة التصنيف.
+   • كل نص مصدره وثيقة يُهرَّب بـ esc()؛ لا onclick بمعرّفات (addEventListener).
+   الاختبارات: tests/e2e/menu-engineering.mjs
+   ===================================================================== */
+(function(){
+'use strict';
+var C=window.menuEng;
+var ME=window.menuEngUi={settings:C.cleanSettings(),period:{kind:'30',from:'',to:''},cat:'',cls:'',sort:{key:'units',dir:'desc'},sales:null,res:null,items:[],unmatched:[],menuNoSales:0,
+  useApp:false,appId:'',apps:null,appsErr:'',loaded:false,vat:15,err:''};
+var built=false,builtFor='',token=0;
+
+function $(id){return document.getElementById(id);}
+function pad(n){return String(n).padStart(2,'0');}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function money(n){return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function intf(n){return (Number(n)||0).toLocaleString('en-US',{maximumFractionDigits:2});}
+function vatRate(){var v=(window.ACC&&ACC.settings)?Number(ACC.settings.vatRate):NaN;return (isFinite(v)&&v>=0&&v<100)?v:15;}
+
+/* ---------- الصلاحيات ---------- */
+ME.canView=function(){return !!CU&&typeof hasPage==='function'&&hasPage('menu-eng');};
+ME.canSave=function(){return ME.canView()&&!(typeof isRO==='function'&&isRO())&&typeof ccGuard==='function'&&ccGuard();};
+
+/* ---------- الإعدادات المحفوظة ---------- */
+ME.loadSettings=function(){
+  return RC.getDoc(db.collection('cost_settings').doc('menu_eng')).then(function(d){
+    ME.settings=C.cleanSettings(d.exists?d.data():null);
+  }).catch(function(){ME.settings=C.cleanSettings();});      // بلا صلاحية قراءة: الافتراضيات
+};
+function readControls(){
+  var g=function(id){var e=$(id);return e?e.value:'';};
+  return C.cleanSettings({minUnits:g('me-min'),popPct:g('me-pop'),marginMode:g('me-mmode'),marginManual:g('me-mman'),targetFc:g('me-fc'),useRecipeTarget:($('me-rect')||{}).checked});
+}
+function fillControls(){
+  var S=ME.settings,set=function(id,v){var e=$(id);if(e)e.value=v;};
+  set('me-min',S.minUnits);set('me-pop',S.popPct);set('me-mmode',S.marginMode);set('me-mman',S.marginManual);set('me-fc',S.targetFc);
+  var r=$('me-rect');if(r)r.checked=S.useRecipeTarget;
+  mmodeUi();
+}
+function mmodeUi(){var m=$('me-mmode'),x=$('me-mman');if(m&&x)x.disabled=m.value!=='manual';}
+ME.save=function(){
+  if(!ME.canSave()){if(typeof roToast==='function')roToast('هذا الإجراء غير متاح لحسابك');return Promise.resolve(false);}
+  var s=readControls(),prev=ME.settings,now=new Date().toISOString();
+  return db.collection('cost_settings').doc('menu_eng').set(Object.assign({},s,{updatedAt:now,updatedBy:CU._id,updatedByName:CU.name||''})).then(function(){
+    ME.settings=s;
+    if(typeof sdAuditLog==='function')sdAuditLog('edit','cost_settings','menu_eng','إعدادات هندسة المنيو: حد أدنى '+prev.minUnits+'←'+s.minUnits+'، الشعبية '+prev.popPct+'%←'+s.popPct+'%، الهامش '+prev.marginMode+'←'+s.marginMode+'، هدف Food Cost '+prev.targetFc+'←'+s.targetFc);
+    msg('✅ حُفظت العتبات');recompute();return true;
+  }).catch(function(e){alert('تعذّر الحفظ: '+e.message);return false;});
+};
+function msg(t){var m=$('me-msg');if(m){m.textContent=t;setTimeout(function(){if(m.textContent===t)m.textContent='';},4000);}}
+
+/* ---------- التحميل (قراءات محدودة: نطاق التواريخ فقط، عبر RC) ---------- */
+function periodNow(){
+  var kind=($('me-period')||{}).value||ME.period.kind;
+  var p=C.periodRange(kind,today(),($('me-from')||{}).value,($('me-to')||{}).value);
+  return p;
+}
+ME.refresh=function(){
+  var p=periodNow(),box=$('me-out');if(!box)return Promise.resolve();
+  if(p.error){box.innerHTML='<div class="sdb-empty" style="color:#B71C1C">'+esc(p.error)+'</div>';return Promise.resolve();}
+  ME.period={kind:p.kind,from:p.from,to:p.to};
+  var my=++token;
+  box.innerHTML='<div class="sdb-empty">⏳ جارٍ تحميل مبيعات الأصناف والتكاليف…</div>';
+  var q=db.collection('fc_daily').where('date','>=',p.from).where('date','<=',p.to);
+  return Promise.all([
+    ccEnsureLoaded(),
+    RC.get(q),
+    RC.getDoc(db.collection('fc_meta').doc('items')).catch(function(){return null;}),
+    RC.getDoc(db.collection('fc_meta').doc('config')).catch(function(){return null;})
+  ]).then(function(r){
+    if(my!==token)return;
+    var days=[],n=0;
+    r[1].forEach(function(d){n++;days.push(d.data().items||{});});
+    var names=(r[2]&&r[2].exists&&r[2].data().names)||{},cfgMap=(r[3]&&r[3].exists&&r[3].data().map)||{};
+    ME.sales={from:p.from,to:p.to,periodDays:p.days,daysWithSales:n,agg:C.aggregateSales(days,cfgMap),names:names,cfgMap:cfgMap};
+    ME.err='';ME.loaded=true;recompute();
+  }).catch(function(e){
+    if(my!==token)return;
+    var m=String(e&&e.message||e);ME.err=m;
+    box.innerHTML='<div class="sdb-empty" style="color:#B71C1C">تعذّر التحميل: '+esc(m)+(/permission/i.test(m)?'<br>يلزم الاطلاع على التنبؤ (مبيعات الأصناف) والمنيو معاً لتعمل هذه الصفحة.':'')+'</div>';
+  });
+};
+
+/* ---------- بناء الصفوف (ربط الأصناف المباعة بوصفات المنيو) ---------- */
+function buildRows(){
+  var S=ME.sales,byRec={},unm=[];
+  Object.keys(S.agg).forEach(function(code){
+    var a=S.agg[code];if(!(a.q>0))return;
+    var nm=S.names[code]||code,rec=bedMatchRecipe(code,nm,S.cfgMap);
+    if(!rec){unm.push({name:nm,units:a.q});return;}
+    var x=byRec[rec._id]||(byRec[rec._id]={rec:rec,units:0});x.units+=a.q;
+  });
+  var rows=Object.keys(byRec).map(function(k){
+    var x=byRec[k],c=ccRecCost(x.rec),hasCost=!x.rec.noCost&&c.unit>0;
+    return {id:x.rec._id,name:x.rec.name||'',category:menuGroupOf(x.rec)||'أخرى',units:x.units,priceIncl:+x.rec.price||0,cost:hasCost?c.unit:null,target:+x.rec.target||0};
+  });
+  ME.menuNoSales=menuItems().filter(function(r){return !byRec[r._id];}).length;
+  unm.sort(function(a,b){return b.units-a.units;});ME.unmatched=unm;
+  return rows;
+}
+function recompute(){
+  if(!ME.sales)return;
+  ME.vat=vatRate();
+  var all=buildRows(),cats={};
+  all.forEach(function(r){cats[r.category]=1;});
+  ME.cats=Object.keys(cats).sort(function(a,b){return a.localeCompare(b,'ar');});
+  if(ME.cat&&!cats[ME.cat])ME.cat='';
+  var rows=ME.cat?all.filter(function(r){return r.category===ME.cat;}):all;
+  ME.res=C.analyze(rows,readSettingsLive(),ME.vat);
+  render();
+}
+function readSettingsLive(){return $('me-min')?readControls():ME.settings;}
+
+/* ---------- تطبيق التوصيل ---------- */
+function appObj(){
+  if(!ME.useApp||!ME.apps)return null;
+  var a=ME.apps.filter(function(x){return x.id===ME.appId;})[0];
+  return a||null;
+}
+ME.loadApps=function(){
+  if(ME.apps)return Promise.resolve(ME.apps);
+  if(!window.dlvCore){ME.apps=[];ME.appsErr='وحدة تسوية التوصيل غير متاحة';return Promise.resolve([]);}
+  return RC.get(db.collection('delivery_apps')).then(function(snap){
+    var stored={};snap.forEach(function(d){stored[d.id]=d.data();});
+    var ops=(window.BRAND_OPS&&window.BRAND_OPS.deliveryApps)||[];
+    var all=dlvCore.mergeApps(stored,window.BRAND_DELIVERY||{},ops);
+    ME.apps=all.filter(function(a){return a.enabled&&!dlvCore.missingRates(a).length;});
+    ME.appsErr=ME.apps.length?'':'لا يوجد تطبيق توصيل مفعّل بعمولاته مُدخلة في «تسوية تطبيقات التوصيل»';
+    if(!ME.appId||!ME.apps.some(function(a){return a.id===ME.appId;}))ME.appId=ME.apps[0]?ME.apps[0].id:'';
+    return ME.apps;
+  }).catch(function(e){ME.apps=[];ME.appsErr=/permission/i.test(String(e&&e.message))?'لا صلاحية لقراءة إعدادات تطبيقات التوصيل':'تعذّر تحميل إعدادات التوصيل';return [];});
+};
+
+/* ---------- الرسم ---------- */
+function css(){
+  if($('me-css'))return;
+  var s=document.createElement('style');s.id='me-css';
+  s.textContent='.me-k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px}'
+    +'.me-kc{background:var(--w);border:1px solid var(--br);border-radius:10px;padding:10px 12px}.me-kl{font-size:11px;color:var(--tl);font-weight:700}.me-kv{font-size:19px;font-weight:900;margin:2px 0}.me-ks{font-size:10.5px;color:var(--tl)}'
+    +'.me-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;align-items:end}'
+    +'.me-leg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:12px 0}'
+    +'.me-lc{border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;border:1px solid var(--br)}.me-lc b{font-size:13px}'
+    +'.me-b{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:800;white-space:nowrap}'
+    +'#me-table th[data-sort]{cursor:pointer;white-space:nowrap;user-select:none}#me-table th[data-sort]:hover{background:var(--bd)}'
+    +'.me-adv{font-size:10.5px;color:var(--tm);min-width:210px;line-height:1.7}.me-neg{color:#B71C1C;font-weight:800}'
+    +'.sdb-empty{padding:22px;text-align:center;color:var(--tl);font-size:13px;line-height:2}';
+  document.head.appendChild(s);
+}
+function build(){
+  var root=$('me-root');if(!root)return;
+  css();
+  var sv=ME.canSave();
+  root.innerHTML='<div class="card" style="margin-bottom:12px"><div class="ct">🎛️ الفترة والعتبات</div>'
+    +'<div class="me-tools">'
+    +'<div class="fr" style="margin:0"><label>الفترة</label><select id="me-period"><option value="30">آخر 30 يوماً</option><option value="60">آخر 60 يوماً</option><option value="90">آخر 90 يوماً</option><option value="month">هذا الشهر</option><option value="custom">مخصصة</option></select></div>'
+    +'<div class="fr" style="margin:0" id="me-cust1"><label>من</label><input type="date" id="me-from"></div><div class="fr" style="margin:0" id="me-cust2"><label>إلى</label><input type="date" id="me-to"></div>'
+    +'<div class="fr" style="margin:0"><label>التصنيف (يُحلَّل وحده)</label><select id="me-cat"><option value="">كل التصنيفات</option></select></div>'
+    +'<div class="fr" style="margin:0"><label>عرض فئة</label><select id="me-cls"><option value="">كل الفئات</option>'+C.CLASS_KEYS.map(function(k){return '<option value="'+k+'">'+C.CLASSES[k].icon+' '+C.CLASSES[k].name+'</option>';}).join('')+'</select></div>'
+    +'</div><div class="me-tools" style="margin-top:9px">'
+    +'<div class="fr" style="margin:0"><label>حد أدنى للمبيعات (وحدة)</label><input type="number" id="me-min" min="0" step="1"></div>'
+    +'<div class="fr" style="margin:0"><label>عتبة الشعبية (% من متوسط الحصة)</label><input type="number" id="me-pop" min="1" max="200" step="1"></div>'
+    +'<div class="fr" style="margin:0"><label>عتبة الهامش</label><select id="me-mmode"><option value="weighted">المتوسط المرجّح</option><option value="manual">قيمة يدوية (﷼)</option></select></div>'
+    +'<div class="fr" style="margin:0"><label>الهامش اليدوي (﷼)</label><input type="number" id="me-mman" step="0.01"></div>'
+    +'<div class="fr" style="margin:0"><label>هدف Food Cost % الافتراضي</label><input type="number" id="me-fc" min="1" max="99" step="0.5"></div>'
+    +'</div><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px">'
+    +'<label style="font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="me-rect" style="width:auto"> اعتماد هدف Food Cost المحفوظ في كل وصفة (إن وُجد)</label>'
+    +'<label style="font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="me-app" style="width:auto"> سعر التطبيق (هامش بعد خصم التوصيل)</label>'
+    +'<select id="me-appsel" style="width:auto;padding:5px 9px;border:1.5px solid var(--br);border-radius:7px;display:none"></select>'
+    +'<span id="me-appnote" style="font-size:11px;color:var(--tl)"></span></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">'
+    +'<button class="btn bp bsm" id="me-reload">🔄 تحديث</button>'
+    +(sv?'<button class="btn bsm bo" id="me-save">💾 حفظ العتبات</button>':'')
+    +'<button class="btn bsm bo" id="me-print">🖨️ طباعة التقرير</button><button class="btn bsm bo" id="me-csv">⬇️ CSV</button>'
+    +'<span id="me-msg" style="font-size:12px;color:#1B5E20;font-weight:700"></span></div></div>'
+    +'<div id="me-out"></div>';
+  $('me-period').addEventListener('change',function(){custUi();ME.refresh();});
+  $('me-from').addEventListener('change',function(){if(($('me-period')||{}).value==='custom')ME.refresh();});
+  $('me-to').addEventListener('change',function(){if(($('me-period')||{}).value==='custom')ME.refresh();});
+  $('me-cat').addEventListener('change',function(){ME.cat=this.value;recompute();});
+  $('me-cls').addEventListener('change',function(){ME.cls=this.value;render();});
+  ['me-min','me-pop','me-mman','me-fc'].forEach(function(id){$(id).addEventListener('input',recompute);});
+  $('me-mmode').addEventListener('change',function(){mmodeUi();recompute();});
+  $('me-rect').addEventListener('change',recompute);
+  $('me-app').addEventListener('change',function(){
+    ME.useApp=this.checked;
+    if(ME.useApp)ME.loadApps().then(function(){appUi();render();});else{appUi();render();}
+  });
+  $('me-appsel').addEventListener('change',function(){ME.appId=this.value;render();});
+  $('me-reload').addEventListener('click',function(){if(window.RC&&RC.clear)RC.clear();ME.apps=null;ME.refresh();});
+  var sb=$('me-save');if(sb)sb.addEventListener('click',function(){ME.save();});
+  $('me-print').addEventListener('click',function(){ME.print();});
+  $('me-csv').addEventListener('click',function(){ME.exportCsv();});
+  $('me-out').addEventListener('click',function(e){
+    var th=e.target.closest('[data-sort]');if(!th)return;
+    var k=th.getAttribute('data-sort');
+    ME.sort=(ME.sort.key===k)?{key:k,dir:ME.sort.dir==='asc'?'desc':'asc'}:{key:k,dir:(k==='name'||k==='category')?'asc':'desc'};
+    render();
+  });
+  built=true;builtFor=CU?CU._id:'';
+  var p=$('me-period');p.value=ME.period.kind;custUi();
+}
+function custUi(){
+  var c=($('me-period')||{}).value==='custom';
+  ['me-cust1','me-cust2'].forEach(function(id){var e=$(id);if(e)e.style.display=c?'':'none';});
+  if(c&&$('me-from')&&!$('me-from').value){$('me-to').value=today();$('me-from').value=C.addDays(today(),-29);}
+}
+function appUi(){
+  var sel=$('me-appsel'),note=$('me-appnote');if(!sel||!note)return;
+  if(!ME.useApp){sel.style.display='none';note.textContent='';return;}
+  if(!ME.apps||!ME.apps.length){sel.style.display='none';note.textContent=ME.appsErr||'';var cb=$('me-app');if(cb&&ME.apps){cb.checked=false;ME.useApp=false;}return;}
+  sel.innerHTML=ME.apps.map(function(a){return '<option value="'+esc(a.id)+'"'+(a.id===ME.appId?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+  sel.style.display='';
+  var a=appObj();
+  note.textContent=a&&!a.confirmed?'⚠️ عقد هذا التطبيق غير مؤكد في «تسوية تطبيقات التوصيل» — الأرقام تقديرية':'يُفترض أن سعر التطبيق = سعر المنيو';
+}
+function cardsHtml(R,per){
+  var th=R.th,k=function(l,v,s,c){return '<div class="me-kc"><div class="me-kl">'+l+'</div><div class="me-kv"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="me-ks">'+(s||'')+'</div></div>';};
+  return '<div class="me-k">'
+    +k('أصناف محلَّلة',R.th.n,'من '+(R.th.n+R.incomplete.length+R.belowMin.length)+' صنفاً مباعاً')
+    +k('إجمالي الوحدات',intf(th.units),'في '+esc(per.from)+' ← '+esc(per.to))
+    +k('عتبة الشعبية',th.popThr==null?'—':intf(th.popThr)+'%',R.settings.popPct+'% × (1 ÷ '+th.n+')')
+    +k('عتبة الهامش',th.cmThr==null?'—':money(th.cmThr)+' ﷼',R.settings.marginMode==='manual'?'قيمة يدوية':'متوسط مرجّح '+(th.cmAvg==null?'—':money(th.cmAvg)))
+    +k('إجمالي المساهمة',money(R.totalContribution)+' ﷼','إيراد صافٍ '+money(R.totalRevenue),'#1B5E20')
+    +'</div>';
+}
+function legendHtml(R){
+  return '<div class="me-leg">'+C.CLASS_KEYS.map(function(k){
+    var c=C.CLASSES[k],b=R.byClass[k],share=R.totalContribution>0?Math.round(b.contribution/R.totalContribution*100):0;
+    return '<div class="me-lc" style="background:'+c.bg+';border-color:'+c.color+'55"><b style="color:'+c.color+'">'+c.icon+' '+c.name+'</b> — '+b.n+' صنف · '+intf(b.units)+' وحدة · '+money(b.contribution)+' ﷼ ('+share+'% من المساهمة)<br>'+esc(c.advice)+'</div>';
+  }).join('')+'</div>';
+}
+function rowsHtml(items,app){
+  return items.map(function(it){
+    var c=C.CLASSES[it.cls],sug='—';
+    if((it.cls==='horse'||it.cls==='dog')&&it.suggestIncl!=null)sug=it.needsRaise?'<b>'+money(it.suggestIncl)+'</b> <span style="font-size:10px;color:var(--tl)">شامل الضريبة ('+money(it.suggestEx)+' بدونها)</span>':'<span style="font-size:10.5px;color:var(--tl)">ضمن الهدف '+intf(it.target)+'%</span>';
+    var ap='';
+    if(app){var e=C.appEffect(it,app,ME.vat,window.dlvCore);ap=e?'<td'+(e.cm<0?' class="me-neg"':'')+'>'+money(e.cm)+'</td><td>'+intf(e.cmPct)+'%</td>':'<td>—</td><td>—</td>';}
+    return '<tr data-cls="'+it.cls+'"><td style="font-weight:700">'+esc(it.name)+'</td><td>'+esc(it.category)+'</td><td>'+intf(it.units)+'</td><td>'+intf(it.share)+'%</td>'
+      +'<td>'+money(it.priceEx)+'</td><td>'+money(it.cost)+'</td><td'+(it.cm<0?' class="me-neg"':'')+'>'+money(it.cm)+'</td><td>'+intf(it.cmPct)+'%</td><td style="font-weight:700">'+money(it.contribution)+'</td>'
+      +'<td><span class="me-b" style="background:'+c.bg+';color:'+c.color+'">'+c.icon+' '+esc(c.name)+'</span></td><td>'+sug+'</td>'+ap
+      +'<td class="me-adv">'+esc(C.adviceFor(it))+'</td></tr>';
+  }).join('');
+}
+function theadHtml(app){
+  var cols=['name','category','units','share','priceEx','cost','cm','cmPct','contribution','cls'];
+  var s=ME.sort,arrow=function(k){return s.key===k?(s.dir==='asc'?' ▲':' ▼'):'';};
+  return '<tr>'+cols.map(function(k){return '<th data-sort="'+k+'">'+esc(C.COLS[k])+arrow(k)+'</th>';}).join('')+'<th>السعر المقترح</th>'
+    +(app?'<th>هامش بعد خصم '+esc(app.name)+'</th><th>هامش التطبيق %</th>':'')+'<th>التوصية</th></tr>';
+}
+function render(){
+  var box=$('me-out'),R=ME.res;if(!box||!R||!ME.sales)return;
+  var cs=$('me-cat');
+  if(cs){var cur=ME.cat;cs.innerHTML='<option value="">كل التصنيفات</option>'+(ME.cats||[]).map(function(c){return '<option value="'+esc(c)+'"'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');cs.value=cur;}
+  var S=ME.sales,per={from:S.from,to:S.to},h='';
+  h+='<div style="font-size:11.5px;color:var(--tl);margin-bottom:8px">الفترة '+esc(S.from)+' ← '+esc(S.to)+' — أيام فيها مبيعات أصناف: <b>'+S.daysWithSales+'</b> من '+S.periodDays
+    +(S.daysWithSales<S.periodDays?' <span style="color:#B71C1C;font-weight:700">(ناقص '+(S.periodDays-S.daysWithSales)+' يوماً من رفع المبيعات)</span>':'')
+    +' — الأسعار بدون ضريبة ('+intf(ME.vat)+'%)'+(ME.cat?' — تحليل تصنيف «'+esc(ME.cat)+'» وحده':'')+'</div>';
+  if(!S.daysWithSales){
+    box.innerHTML=h+'<div class="sdb-empty">لا توجد مبيعات أصناف في هذه الفترة — ارفع ملف المبيعات من صفحة «التنبؤ والطلب» (البيانات والاستيراد) أو اختر فترة أخرى.</div>';
+    return;
+  }
+  if(!R.th.n){
+    h+='<div class="sdb-empty">لا توجد أصناف مكتملة البيانات تتجاوز الحد الأدنى ('+R.settings.minUnits+' وحدة) في هذه الفترة.</div>';
+  }else{
+    h+=cardsHtml(R,per);
+    h+='<div class="card" style="margin-bottom:12px"><div class="ct">🎯 مصفوفة هندسة المنيو</div><div style="overflow-x:auto" id="me-chart">'+C.scatterSvg(R)+'</div>'+legendHtml(R)+'</div>';
+    var items=R.items.filter(function(i){return !ME.cls||i.cls===ME.cls;});
+    items=C.sortItems(items,ME.sort.key,ME.sort.dir);
+    ME.items=items;
+    var app=appObj();
+    h+='<div class="card" style="margin-bottom:12px"><div class="ct">📋 الأصناف ('+items.length+')</div><div style="overflow-x:auto"><table class="dt" id="me-table"><thead>'+theadHtml(app)+'</thead><tbody id="me-tbody">'+(rowsHtml(items,app)||'<tr><td colspan="14" style="text-align:center;color:var(--tl)">لا أصناف</td></tr>')+'</tbody></table></div>'
+      +'<div class="sdb-note" style="font-size:11px;color:var(--tl);line-height:1.8;margin-top:6px">الهامش = السعر بدون ضريبة − تكلفة الوصفة. الصنف «شعبي» إن كانت حصته ≥ عتبة الشعبية، و«عالي الهامش» إن كان هامشه ≥ عتبة الهامش. السعر المقترح يُعرض للحصان والكلب عندما يتجاوز Food Cost الفعلي هدفه.</div></div>';
+  }
+  if(R.incomplete.length){
+    h+='<div class="card" style="margin-bottom:12px;border:1.5px solid #FFB74D"><div class="ct">⚠️ بيانات ناقصة ('+R.incomplete.length+') — لا تدخل التصنيف</div><div style="overflow-x:auto"><table class="dt" id="me-incomplete"><thead><tr><th>الصنف</th><th>التصنيف</th><th>الوحدات المباعة</th><th>ما ينقصه</th></tr></thead><tbody>'
+      +R.incomplete.map(function(i){return '<tr><td style="font-weight:700">'+esc(i.name)+'</td><td>'+esc(i.category)+'</td><td>'+intf(i.units)+'</td><td style="color:#B71C1C">'+esc(i.missing.join('، '))+'</td></tr>';}).join('')+'</tbody></table></div>'
+      +'<div class="sdb-note" style="font-size:11px;color:var(--tl);margin-top:6px">أكمل سعر البيع أو وصفة الصنف من «الوصفات وبطاقات التكلفة».</div></div>';
+  }
+  var notes=[];
+  if(R.belowMin.length)notes.push(R.belowMin.length+' صنفاً تحت الحد الأدنى للمبيعات ('+R.settings.minUnits+' وحدة) خارج التصنيف: '+R.belowMin.slice(0,15).map(function(i){return esc(i.name)+' ('+intf(i.units)+')';}).join('، ')+(R.belowMin.length>15?' …':''));
+  if(ME.menuNoSales)notes.push(ME.menuNoSales+' صنف في المنيو بلا مبيعات في الفترة (لا يُصنَّفون).');
+  if(ME.unmatched.length)notes.push(ME.unmatched.length+' صنف مباع لم يُربط بوصفة منيو: '+ME.unmatched.slice(0,12).map(function(i){return esc(i.name)+' ('+intf(i.units)+')';}).join('، ')+(ME.unmatched.length>12?' …':'')+' — اربطه من «التنبؤ والطلب» أو وحّد اسمه مع الوصفة.');
+  if(notes.length)h+='<div class="card" style="font-size:12px;line-height:2;color:var(--tm)">'+notes.map(function(n){return '<div>• '+n+'</div>';}).join('')+'</div>';
+  box.innerHTML=h;
+}
+
+/* ---------- التصدير والطباعة ---------- */
+ME.exportCsv=function(){
+  if(!ME.res||!ME.res.th.n){alert('لا بيانات للتصدير');return '';}
+  var app=appObj(),csv=C.csv(ME.res,{items:ME.items,app:app,dlv:window.dlvCore});
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='menu-engineering-'+(window.BRAND_ID||'brand')+'-'+ME.sales.from+'_'+ME.sales.to+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(a.href);},1500);
+  return csv;
+};
+ME.printHtml=function(){
+  var R=ME.res,S=ME.sales,P=window.BRAND_PRINT||{};if(!R||!S||!R.th.n)return '';
+  var app=appObj(),items=ME.items.length?ME.items:R.items;
+  var rows=items.map(function(it){var c=C.CLASSES[it.cls],e=app?C.appEffect(it,app,ME.vat,window.dlvCore):null;
+    return '<tr><td>'+esc(it.name)+'</td><td>'+esc(it.category)+'</td><td>'+intf(it.units)+'</td><td>'+intf(it.share)+'%</td><td>'+money(it.priceEx)+'</td><td>'+money(it.cost)+'</td><td>'+money(it.cm)+'</td><td>'+intf(it.cmPct)+'%</td><td>'+money(it.contribution)+'</td><td style="color:'+c.color+';font-weight:800">'+c.icon+' '+esc(c.name)+'</td>'
+      +'<td>'+(((it.cls==='horse'||it.cls==='dog')&&it.needsRaise)?money(it.suggestIncl):'—')+'</td>'+(app?'<td>'+(e?money(e.cm):'—')+'</td>':'')+'</tr>';}).join('');
+  var inc=R.incomplete.length?'<h3>بيانات ناقصة ('+R.incomplete.length+')</h3><table><thead><tr><th>الصنف</th><th>الوحدات</th><th>ما ينقصه</th></tr></thead><tbody>'+R.incomplete.map(function(i){return '<tr><td>'+esc(i.name)+'</td><td>'+intf(i.units)+'</td><td>'+esc(i.missing.join('، '))+'</td></tr>';}).join('')+'</tbody></table>':'';
+  var leg=C.CLASS_KEYS.map(function(k){var c=C.CLASSES[k],b=R.byClass[k];return '<div class="lc" style="border-color:'+c.color+'"><b style="color:'+c.color+'">'+c.icon+' '+c.name+'</b> — '+b.n+' صنف · '+money(b.contribution)+' ﷼<br>'+esc(c.advice)+'</div>';}).join('');
+  var bc='#8B2F2B';
+  return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('هندسة المنيو — '+S.from+' إلى '+S.to)+'</title><style>'
+    +'*{box-sizing:border-box}body{font-family:Cairo,Tahoma,sans-serif;direction:rtl;color:#2C1A0E;margin:0;padding:18px 22px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid '+bc+';padding-bottom:8px;margin-bottom:10px}.hd h1{margin:0;font-size:21px;color:'+bc+'}.s{font-size:11.5px;color:#555;line-height:1.8;margin-bottom:8px}'
+    +'table{width:100%;border-collapse:collapse;font-size:10.5px;margin:6px 0}th,td{border:1px solid #bbb;padding:3px 6px;text-align:right}th{background:#eee}'
+    +'.leg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.lc{border:1.5px solid;border-radius:8px;padding:6px 9px;font-size:10.5px;line-height:1.7}svg{max-width:100%;height:auto}'
+    +'.ft{margin-top:12px;border-top:1px solid #bbb;padding-top:6px;font-size:10px;color:#666;display:flex;justify-content:space-between}@page{size:A4 landscape;margin:10mm}</style></head><body>'
+    +'<div class="hd"><div><h1>هندسة المنيو</h1><div class="s">'+esc([P.nameAr,P.branchLabel].filter(Boolean).join(' · '))+'</div></div><div class="s" style="text-align:left">الفترة: '+esc(S.from)+' ← '+esc(S.to)+'</div></div>'
+    +'<div class="s">الأسعار بدون ضريبة ('+intf(ME.vat)+'%) — عتبة الشعبية '+intf(R.th.popThr)+'% (= '+R.settings.popPct+'% × 1/'+R.th.n+') — عتبة الهامش '+money(R.th.cmThr)+' ﷼ ('+(R.settings.marginMode==='manual'?'يدوية':'متوسط مرجّح')+') — الحد الأدنى '+R.settings.minUnits+' وحدة'+(ME.cat?' — التصنيف: '+esc(ME.cat):'')+'</div>'
+    +C.scatterSvg(R)+'<div class="leg">'+leg+'</div>'
+    +'<table><thead><tr><th>الصنف</th><th>التصنيف</th><th>الوحدات</th><th>الحصة</th><th>السعر بدون ضريبة</th><th>التكلفة</th><th>الهامش</th><th>الهامش %</th><th>إجمالي المساهمة</th><th>الفئة</th><th>السعر المقترح (شامل الضريبة)</th>'+(app?'<th>هامش '+esc(app.name)+'</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'+inc
+    +'<div class="ft"><span>'+esc(P.footer||'')+'</span><span>تاريخ الإصدار: '+esc(today())+'</span></div></body></html>';
+};
+ME.print=function(){
+  var h=ME.printHtml();if(!h){alert('لا بيانات للطباعة');return;}
+  var w=window.open('','_blank');if(!w){alert('اسمح بالنوافذ المنبثقة للطباعة');return;}
+  w.document.open();w.document.write(h);w.document.close();setTimeout(function(){try{w.focus();w.print();}catch(e){}},500);
+};
+
+/* ---------- الدخول للصفحة ---------- */
+ME.init=function(){
+  if(built&&builtFor!==(CU?CU._id:'')){built=false;ME.sales=null;ME.res=null;ME.apps=null;ME.useApp=false;}
+  if(!built)build();
+  ME.loadSettings().then(function(){fillControls();return ME.refresh();});
+};
+(function(){
+  var _go=window.go;
+  if(typeof _go==='function')window.go=function(pid){
+    var r=_go.apply(this,arguments);
+    if(pid==='menu-eng'&&ME.canView()){try{ME.init();}catch(e){console.error(e);}}
+    return r;
+  };
+})();
+})();
+
+</script>
+<script>/* module: 46-doc-expiry-core.js */
+/* =====================================================================
+   «الوثائق المنتهية والقريبة» — النواة (دوال نقية بلا DOM وبلا Firestore) : window.docExpiry
+   • وثائق الموظفين من hr_employees (حقول موجودة أصلاً: iqamaExpiry / passportExpiry / healthCardExpiry، وحقلان اختياريان أُضيفا:
+     contractEnd = انتهاء عقد العمل، workPermitExpiry = انتهاء رخصة العمل). الخصوصية: تُستخرج من سجل الموظف الحقول التالية فقط:
+     الاسم، المسمى، القسم، نوع الوثيقة، رقمها مقنَّعاً (آخر 4 خانات)، تاريخ الانتهاء — لا راتب ولا آيبان ولا صورة.
+   • وثائق المنشأة من compliance_docs (سجل تجاري، رخصة بلدية، دفاع مدني، زكاة وضريبة، عقد إيجار، تأمين، أخرى).
+   • الحالة بحسب الأيام المتبقية (today قابل للحقن للاختبار): <0 منتهية | 0..30 تنتهي خلال 30 يوماً | 31..60 خلال 60 يوماً | >60 سارية.
+     يوم الانتهاء نفسه = 0 يوم متبقٍ (ما زالت سارية اليوم) فتُعدّ «خلال 30 يوماً».
+   • الغرامة المحتملة من الكتالوج المضمَّن (دليل المخالفات البلدية): كرت/شهادة صحية منتهية ← 1/5/2 (و1/5/1 إن لم تكن للعامل شهادة أصلاً)
+     بمبلغ «لكل عامل مخالف»، رخصة بلدية منتهية للمنشأة ← 1/1/2؛ مبلغ الفئة المؤكدة أو نطاق أدنى–أعلى إن لم تُؤكَّد.
+   الاختبارات: tests/e2e/doc-expiry.mjs   — التوثيق: docs/DOC-EXPIRY.md
+   ===================================================================== */
+(function(){
+'use strict';
+var D=window.docExpiry={};
+
+function r2(n){n=+n;if(!isFinite(n))return 0;return Math.round(n*100+(n>=0?1e-7:-1e-7))/100;}
+function isDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s+'T00:00:00Z'));}
+function utc(s){return Date.parse(s+'T00:00:00Z');}
+D.isDate=isDate;
+D.daysBetween=function(a,b){return Math.round((utc(b)-utc(a))/86400000);};
+D.daysLeft=function(date,today){return (isDate(date)&&isDate(today))?D.daysBetween(today,date):null;};
+
+/* ---------- أنواع الوثائق ---------- */
+D.EMP_DOCS=[
+  {k:'iqama',label:'الإقامة / الهوية',icon:'🪪',field:'iqamaExpiry',num:'iqamaNumber'},
+  {k:'passport',label:'جواز السفر',icon:'🛂',field:'passportExpiry',num:''},
+  {k:'health',label:'الكرت الصحي',icon:'🏥',field:'healthCardExpiry',num:'healthCardNumber'},
+  {k:'contract',label:'عقد العمل',icon:'📄',field:'contractEnd',num:''},
+  {k:'permit',label:'رخصة العمل',icon:'📋',field:'workPermitExpiry',num:''}
+];
+D.EST_TYPES={cr:'السجل التجاري',municipal:'الرخصة البلدية',civil_defense:'شهادة الدفاع المدني',zakat_tax:'شهادة الزكاة والضريبة',lease:'عقد الإيجار',insurance:'التأمين',other:'أخرى'};
+D.EST_KEYS=['cr','municipal','civil_defense','zakat_tax','lease','insurance','other'];
+D.STATUS={
+  expired:{label:'منتهية',color:'#B71C1C',bg:'#FFEBEE',order:0},
+  d30:{label:'تنتهي خلال 30 يوماً',color:'#E65100',bg:'#FFF3E0',order:1},
+  d60:{label:'تنتهي خلال 60 يوماً',color:'#8D6E00',bg:'#FFF8E1',order:2},
+  valid:{label:'سارية',color:'#1B5E20',bg:'#E8F5E9',order:3}
+};
+D.statusOf=function(days){if(days==null)return null;return days<0?'expired':days<=30?'d30':days<=60?'d60':'valid';};
+
+/* ---------- قناع الرقم: آخر 4 خانات فقط ---------- */
+D.maskNumber=function(v){
+  var s=String(v==null?'':v).replace(/\s+/g,'');
+  if(!s)return '';
+  if(s.length<=4)return '••••';
+  return '•'.repeat(Math.min(s.length-4,8))+s.slice(-4);
+};
+
+/* ---------- صفوف الموظفين (حقول مقيَّدة فقط) ---------- */
+D.employeeRows=function(emps,today){
+  var out=[];
+  (emps||[]).forEach(function(e){
+    if(!e||e.status==='terminated')return;
+    D.EMP_DOCS.forEach(function(t){
+      var date=e[t.field];if(!isDate(date))return;
+      var days=D.daysLeft(date,today);
+      out.push({kind:'emp',empId:e._id||e.id||'',name:String(e.name||''),position:String(e.position||''),dept:String(e.dept||''),
+        docKey:t.k,docLabel:t.label,icon:t.icon,number:t.num?D.maskNumber(e[t.num]):'',date:date,days:days,status:D.statusOf(days)});
+    });
+  });
+  return out;
+};
+// موظفون نشطون بلا تاريخ إقامة أو كرت صحي مسجَّل (وثيقتان أساسيتان) — للتنبيه إلى نقص البيانات
+D.missingDocs=function(emps){
+  var out=[];
+  (emps||[]).forEach(function(e){
+    if(!e||e.status==='terminated')return;
+    D.EMP_DOCS.filter(function(t){return t.k==='iqama'||t.k==='health';}).forEach(function(t){
+      if(!isDate(e[t.field]))out.push({empId:e._id||e.id||'',name:String(e.name||''),position:String(e.position||''),docKey:t.k,docLabel:t.label});
+    });
+  });
+  return out;
+};
+
+/* ---------- صفوف المنشأة ---------- */
+D.establishmentRows=function(docs,today){
+  var out=[];
+  (docs||[]).forEach(function(d){
+    if(!d||!isDate(d.expiryDate))return;
+    var days=D.daysLeft(d.expiryDate,today),rd=Number(d.reminderDays);
+    out.push({kind:'est',id:d._id||d.id||'',name:String(d.title||''),position:'',dept:'',docKey:'est:'+(D.EST_TYPES[d.type]?d.type:'other'),docLabel:D.EST_TYPES[d.type]||D.EST_TYPES.other,
+      icon:'🏢',number:String(d.number||''),authority:String(d.authority||''),notes:String(d.notes||''),issueDate:isDate(d.issueDate)?d.issueDate:'',reminderDays:(isFinite(rd)&&rd>=0&&rd<=365)?Math.floor(rd):30,
+      type:D.EST_TYPES[d.type]?d.type:'other',date:d.expiryDate,days:days,status:D.statusOf(days)});
+  });
+  return out;
+};
+
+/* ---------- ترتيب وتصفية وملخص ---------- */
+// الأكثر إلحاحاً أولاً: المنتهية (الأقدم انتهاءً أولاً) ثم الأقرب انتهاءً
+D.sortRows=function(rows){
+  return rows.slice().sort(function(a,b){return (a.days-b.days)||String(a.name).localeCompare(String(b.name),'ar')||String(a.docLabel).localeCompare(String(b.docLabel),'ar');});
+};
+// f: {type:'' | iqama|passport|health|contract|permit|est|est:<type>, dept, status, q}
+D.filter=function(rows,f){
+  f=f||{};var q=String(f.q||'').trim().toLowerCase();
+  return rows.filter(function(r){
+    if(f.type){
+      if(f.type==='est'){if(r.kind!=='est')return false;}
+      else if(r.docKey!==f.type)return false;
+    }
+    if(f.dept&&r.dept!==f.dept)return false;
+    if(f.status&&r.status!==f.status)return false;
+    if(q&&(String(r.name)+' '+String(r.position)+' '+String(r.docLabel)).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+};
+D.summary=function(rows){
+  var S={total:rows.length,expired:0,d30:0,d60:0,valid:0,byDoc:{},alerts:0};
+  rows.forEach(function(r){S[r.status]++;var b=S.byDoc[r.docLabel]=S.byDoc[r.docLabel]||{expired:0,d30:0,d60:0,valid:0};b[r.status]++;});
+  S.alerts=S.expired+S.d30;
+  return S;
+};
+// عدّاد الشارة: منتهية أو تنتهي خلال 30 يوماً (وثيقة المنشأة: أو ضمن مدة تذكيرها الخاصة إن كانت أطول من 30)
+D.alertRow=function(r){
+  if(r.days==null)return false;
+  return r.days<=(r.kind==='est'?Math.max(30,r.reminderDays||30):30);
+};
+D.badgeCount=function(rows){return rows.filter(D.alertRow).length;};
+
+/* ---------- الغرامة المحتملة (من الكتالوج المضمَّن) ---------- */
+// lookup(no) -> سطر الكتالوج {no,fines:[5],unit,warning,days} أو null ؛ state={cls:1..5, confirmed:bool}
+D.potentialFor=function(row,lookup,state){
+  if(!row||row.status!=='expired'||typeof lookup!=='function')return null;
+  var nos=null;
+  if(row.kind==='emp'&&row.docKey==='health')nos=['1/5/2','1/5/1'];
+  else if(row.kind==='est'&&row.type==='municipal')nos=['1/1/2'];
+  if(!nos)return null;
+  var v=lookup(nos[0]);if(!v||!Array.isArray(v.fines)||v.fines.length!==5)return null;
+  var cls=(state&&state.cls>=1&&state.cls<=5)?state.cls:2,conf=!!(state&&state.confirmed);
+  var lo=Math.min.apply(null,v.fines),hi=Math.max.apply(null,v.fines),exact=r2(v.fines[cls-1]);
+  return {nos:nos,unit:v.unit||'',amount:conf?exact:null,lo:r2(lo),hi:r2(hi),confirmed:conf,cls:cls,
+    warning:!!v.warning,graceDays:v.days==null?null:v.days};
+};
+function fmt(n){return (Number(n)||0).toLocaleString('en-US',{maximumFractionDigits:2});}
+D.fineText=function(p){
+  if(!p)return '';
+  var amt=p.confirmed?fmt(p.amount)+' ﷼':(p.lo===p.hi?fmt(p.lo)+' ﷼':fmt(p.lo)+' – '+fmt(p.hi)+' ﷼ (الفئة غير مؤكدة)');
+  return p.nos[0]+(p.nos[1]?' (و'+p.nos[1]+' إن لم تكن للعامل شهادة أصلاً)':'')+' — '+amt+(p.unit?' '+p.unit:'');
+};
+// مجموع الغرامات المحتملة لقائمة صفوف: مبلغ دقيق إن كانت الفئة مؤكدة وإلا نطاق
+D.potentialTotal=function(rows,lookup,state){
+  var lo=0,hi=0,exact=0,n=0,conf=true;
+  rows.forEach(function(r){var p=D.potentialFor(r,lookup,state);if(!p)return;n++;lo+=p.lo;hi+=p.hi;if(p.confirmed)exact+=p.amount;else conf=false;});
+  return {n:n,lo:r2(lo),hi:r2(hi),exact:conf?r2(exact):null,confirmed:conf};
+};
+
+/* ---------- CSV ---------- */
+D.csvCell=function(v){
+  var s=v==null?'':String(v);
+  if(/^[=+\-@\t\r]/.test(s)&&!/^-?\d+(\.\d+)?$/.test(s))s="'"+s;
+  return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+};
+D.csv=function(rows,lookup,state){
+  var head=['النوع','الاسم / العنوان','المسمى الوظيفي','القسم','الوثيقة','الرقم (مقنَّع)','تاريخ الانتهاء','الأيام المتبقية','الحالة','غرامة محتملة'];
+  var out=[head];
+  rows.forEach(function(r){out.push([r.kind==='emp'?'موظف':'منشأة',r.name,r.position,r.dept,r.docLabel,r.number,r.date,r.days,D.STATUS[r.status].label,D.fineText(D.potentialFor(r,lookup,state))]);});
+  return '﻿'+out.map(function(x){return x.map(D.csvCell).join(',');}).join('\r\n')+'\r\n';
+};
+})();
+
+</script>
+<script>/* module: 47-doc-expiry.js */
+/* =====================================================================
+   «الوثائق المنتهية والقريبة» (pg-doc-expiry) لكل البراندات — الواجهة؛ الحساب في 46-doc-expiry-core.js (window.docExpiry)
+   • وثائق الموظفين: من hr_employees عبر كاش القراءات RC (مرآة حيّة: القراءة الأولى N وثيقة، وبعدها التغييرات فقط، ومشتركة مع صفحات الموارد).
+     لا يُحتفظ في الذاكرة إلا بالحقول اللازمة (الاسم، المسمى، القسم، تواريخ الوثائق، أرقام الهوية/الكرت للقناع) — لا راتب ولا آيبان ولا صورة.
+     الوصول: مدير الفرع، مالك المشاهدة، مسؤول الموارد، أو مفتاح doc-expiry؛ مشرف الزيارات والكاشير لا يرون الصفحة، والقواعد تمنع قراءة hr_employees عنهم.
+   • وثائق المنشأة: المجموعة compliance_docs (مدير الفرع يضيف/يعدّل/يحذف، والمشاهد وغيره قراءة فقط).
+   • الغرامة المحتملة: من الكتالوج المضمَّن (muniGuide) — كرت صحي منتهٍ ← 1/5/2 و1/5/1، رخصة بلدية منتهية ← 1/1/2.
+   • الإشعارات داخل التطبيق فقط (شارة القائمة وبطاقة لوحة التحكم)؛ لا بريد ولا رسائل (لا خادم خلفي).
+   • كل نص مصدره وثيقة يُهرَّب بـ esc()؛ أزرار الصفوف data-* + addEventListener (لا onclick بمعرّفات).
+   الاختبارات: tests/e2e/doc-expiry.mjs
+   ===================================================================== */
+(function(){
+'use strict';
+var C=window.docExpiry;
+var DX=window.docExpiryUi={emps:[],est:[],empErr:'',estErr:'',loaded:false,editing:null,F:{type:'',dept:'',status:'',q:''},rows:[]};
+var built=false,builtFor='',token=0;
+
+function $(id){return document.getElementById(id);}
+function pad(n){return String(n).padStart(2,'0');}
+function today(){return DX.today||(function(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());})();}
+function isRO(){return typeof window.isRO==='function'&&window.isRO();}
+function lookup(no){return (window.muniGuide&&window.muniGuide.byNo&&window.muniGuide.byNo[no])||null;}
+function mgState(){return (window.muniGuide&&window.muniGuide.state)?window.muniGuide.state():{cls:2,confirmed:false};}
+function dayWord(n){n=Math.abs(n);return n===0?'اليوم':n===1?'يوم':n===2?'يومان':n<=10?n+' أيام':n+' يوماً';}
+
+/* ---------- الصلاحيات ---------- */
+DX.canView=function(){return !!CU&&CU.role!=='visit_supervisor'&&typeof hasPage==='function'&&hasPage('doc-expiry');};
+DX.canWrite=function(){return !!CU&&CU.role==='branch_manager'&&!isRO();};
+
+/* ---------- التحميل ---------- */
+function slimEmp(id,d){
+  var o={_id:id,name:d.name,position:d.position,dept:d.dept,status:d.status,iqamaNumber:d.iqamaNumber,healthCardNumber:d.healthCardNumber};
+  C.EMP_DOCS.forEach(function(t){o[t.field]=d[t.field];});
+  return o;
+}
+DX.load=function(force){
+  var my=++token;
+  if(force&&window.RC&&RC.clear)RC.clear();
+  var pE=RC.get(db.collection('hr_employees')).then(function(snap){var l=[];snap.forEach(function(d){l.push(slimEmp(d.id,d.data()));});DX.emps=l;DX.empErr='';},
+    function(e){DX.emps=[];DX.empErr=String((e&&e.code)||'')+' '+String(e&&e.message||e);});
+  var pC=RC.get(db.collection('compliance_docs')).then(function(snap){var l=[];snap.forEach(function(d){var x=d.data();x._id=d.id;l.push(x);});DX.est=l;DX.estErr='';},
+    function(e){DX.est=[];DX.estErr=String((e&&e.code)||'')+' '+String(e&&e.message||e);});
+  var pM=(window.muniGuide?window.muniGuide.loadSettings():Promise.resolve()).catch(function(){});
+  return Promise.all([pE,pC,pM]).then(function(){if(my!==token)return;DX.loaded=true;DX.compute();DX.render();return true;});
+};
+DX.compute=function(){
+  var t=today();
+  DX.rows=C.employeeRows(DX.emps,t).concat(C.establishmentRows(DX.est,t));
+  DX.updateBadge();
+};
+
+/* ---------- الواجهة ---------- */
+function css(){
+  if($('dx-css'))return;
+  var s=document.createElement('style');s.id='dx-css';
+  s.textContent='.dx-k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px}'
+    +'.dx-kc{border-radius:10px;padding:10px 12px;border:1px solid var(--br)}.dx-kl{font-size:11px;font-weight:700}.dx-kv{font-size:22px;font-weight:900;margin:2px 0}.dx-ks{font-size:10.5px;opacity:.85}'
+    +'.dx-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;align-items:end}'
+    +'.dx-b{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:800;white-space:nowrap}'
+    +'.dx-fine{font-size:10.5px;color:#B71C1C;line-height:1.7;min-width:200px}'
+    +'.sdb-empty{padding:22px;text-align:center;color:var(--tl);font-size:13px;line-height:2}';
+  document.head.appendChild(s);
+}
+function build(){
+  var root=$('dx-root');if(!root)return;
+  css();
+  var wr=DX.canWrite();
+  root.innerHTML='<div id="dx-alert"></div><div class="dx-k" id="dx-sum"></div>'
+    +'<div class="card" style="margin-bottom:12px"><div class="ct">🔎 التصفية</div><div class="dx-tools">'
+    +'<div class="fr" style="margin:0"><label>نوع الوثيقة</label><select id="dx-f-type"></select></div>'
+    +'<div class="fr" style="margin:0"><label>القسم</label><select id="dx-f-dept"><option value="">كل الأقسام</option></select></div>'
+    +'<div class="fr" style="margin:0"><label>الحالة</label><select id="dx-f-status"><option value="">كل الحالات</option>'+['expired','d30','d60','valid'].map(function(k){return '<option value="'+k+'">'+esc(C.STATUS[k].label)+'</option>';}).join('')+'</select></div>'
+    +'<div class="fr" style="margin:0"><label>بحث (الاسم / المسمى / الوثيقة)</label><input type="search" id="dx-f-q"></div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn bp bsm" id="dx-reload">🔄 تحديث</button><button class="btn bsm bo" id="dx-print">🖨️ طباعة القائمة</button><button class="btn bsm bo" id="dx-csv">⬇️ CSV</button>'
+    +(wr?'<button class="btn bsm bp" id="dx-new">➕ وثيقة منشأة</button>':'')+'</div></div>'
+    +(wr?formHtml():'')
+    +'<div class="card" style="margin-bottom:12px"><div class="ct">👥 وثائق الموظفين <span id="dx-emp-n" style="font-size:11px;color:var(--tl);font-weight:400"></span></div>'
+    +'<div id="dx-emp-note"></div><div style="overflow-x:auto"><table class="dt" id="dx-emp-table"><thead><tr><th>الموظف</th><th>المسمى</th><th>القسم</th><th>الوثيقة</th><th>الرقم</th><th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th>غرامة محتملة</th></tr></thead><tbody id="dx-emp-body"></tbody></table></div></div>'
+    +'<div class="card"><div class="ct">🏢 وثائق المنشأة <span id="dx-est-n" style="font-size:11px;color:var(--tl);font-weight:400"></span></div><div id="dx-est-note"></div>'
+    +'<div style="overflow-x:auto"><table class="dt" id="dx-est-table"><thead><tr><th>الوثيقة</th><th>النوع</th><th>الرقم</th><th>الجهة</th><th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th>غرامة محتملة</th><th></th></tr></thead><tbody id="dx-est-body"></tbody></table></div></div>';
+  var ty=$('dx-f-type');
+  ty.innerHTML='<option value="">كل الوثائق</option>'+C.EMP_DOCS.map(function(t){return '<option value="'+t.k+'">'+t.icon+' '+esc(t.label)+'</option>';}).join('')+'<option value="est">🏢 كل وثائق المنشأة</option>'
+    +C.EST_KEYS.map(function(k){return '<option value="est:'+k+'">&nbsp;&nbsp;'+esc(C.EST_TYPES[k])+'</option>';}).join('');
+  [['dx-f-type','type'],['dx-f-dept','dept'],['dx-f-status','status']].forEach(function(p){$(p[0]).addEventListener('change',function(){DX.F[p[1]]=this.value;DX.render();});});
+  $('dx-f-q').addEventListener('input',function(){DX.F.q=this.value;DX.render();});
+  $('dx-reload').addEventListener('click',function(){DX.load(true);});
+  $('dx-print').addEventListener('click',function(){DX.print();});
+  $('dx-csv').addEventListener('click',function(){DX.exportCsv();});
+  var nb=$('dx-new');if(nb)nb.addEventListener('click',function(){DX.openForm(null);});
+  if(wr){$('dx-save').addEventListener('click',function(){DX.save();});$('dx-cancel').addEventListener('click',function(){$('dx-form').style.display='none';DX.editing=null;});}
+  root.addEventListener('click',onClick);
+  built=true;builtFor=CU?CU._id:'';
+}
+function formHtml(){
+  return '<div class="card" id="dx-form" style="display:none;margin-bottom:12px;border:1.5px solid var(--r)"><div class="ct" id="dx-form-t">➕ وثيقة منشأة</div>'
+    +'<div class="dx-tools"><div class="fr" style="margin:0"><label>النوع</label><select id="dx-t-type">'+C.EST_KEYS.map(function(k){return '<option value="'+k+'">'+esc(C.EST_TYPES[k])+'</option>';}).join('')+'</select></div>'
+    +'<div class="fr" style="margin:0"><label>العنوان</label><input id="dx-t-title" maxlength="120" placeholder="مثال: رخصة بلدية — فرع أبها"></div>'
+    +'<div class="fr" style="margin:0"><label>الرقم</label><input id="dx-t-number" maxlength="60" dir="ltr"></div>'
+    +'<div class="fr" style="margin:0"><label>الجهة المصدِرة</label><input id="dx-t-auth" maxlength="100"></div>'
+    +'<div class="fr" style="margin:0"><label>تاريخ الإصدار</label><input type="date" id="dx-t-issue"></div>'
+    +'<div class="fr" style="margin:0"><label>تاريخ الانتهاء *</label><input type="date" id="dx-t-exp"></div>'
+    +'<div class="fr" style="margin:0"><label>تذكير قبل (يوم)</label><input type="number" id="dx-t-rem" min="0" max="365" value="30"></div></div>'
+    +'<div class="fr" style="margin-top:8px"><label>ملاحظات</label><textarea id="dx-t-notes" rows="2" maxlength="1500"></textarea></div>'
+    +'<div style="display:flex;gap:8px"><button class="btn bp" id="dx-save">💾 حفظ</button><button class="btn bo" id="dx-cancel">إلغاء</button><span id="dx-form-msg" style="font-size:12px;color:#B71C1C"></span></div></div>';
+}
+function badge(st){var s=C.STATUS[st];return '<span class="dx-b" style="background:'+s.bg+';color:'+s.color+'">'+esc(s.label)+'</span>';}
+function leftText(r){return r.days<0?'منتهية منذ '+dayWord(r.days):r.days===0?'تنتهي اليوم':'بعد '+dayWord(r.days);}
+function fineCell(r){var p=C.potentialFor(r,lookup,mgState());return p?'<div class="dx-fine">⚠️ '+esc(C.fineText(p))+(p.warning&&p.graceDays!=null?'<br>تسبقها مهلة تصحيح '+esc(p.graceDays)+' يوماً':'')+'</div>':'<span style="color:var(--tl)">—</span>';}
+DX.filtered=function(){return C.sortRows(C.filter(DX.rows,DX.F));};
+DX.render=function(){
+  if(!built||!$('dx-emp-body'))return;
+  var all=DX.rows,S=C.summary(all),st=mgState();
+  // الأقسام
+  var depts={};DX.emps.forEach(function(e){if(e.dept)depts[e.dept]=1;});
+  var ds=$('dx-f-dept'),cur=DX.F.dept;ds.innerHTML='<option value="">كل الأقسام</option>'+Object.keys(depts).sort(function(a,b){return a.localeCompare(b,'ar');}).map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join('');ds.value=cur;
+  var pot=C.potentialTotal(all,lookup,st);
+  var card=function(k,l,v,sub){var s=C.STATUS[k];return '<div class="dx-kc" id="dx-c-'+k+'" style="background:'+s.bg+';color:'+s.color+'"><div class="dx-kl">'+esc(l)+'</div><div class="dx-kv">'+v+'</div><div class="dx-ks">'+sub+'</div></div>';};
+  $('dx-sum').innerHTML=card('expired','منتهية',S.expired,'تحتاج تجديداً فورياً')+card('d30','تنتهي خلال 30 يوماً',S.d30,'')+card('d60','تنتهي خلال 60 يوماً',S.d60,'')+card('valid','سارية',S.valid,'أكثر من 60 يوماً')
+    +(pot.n?'<div class="dx-kc" id="dx-c-fine" style="background:#fff;color:#B71C1C"><div class="dx-kl">غرامات محتملة</div><div class="dx-kv" style="font-size:17px">'+esc(pot.confirmed?pot.exact.toLocaleString('en-US')+' ﷼':pot.lo.toLocaleString('en-US')+' – '+pot.hi.toLocaleString('en-US')+' ﷼')+'</div><div class="dx-ks">'+pot.n+' وثيقة منتهية'+(pot.confirmed?'':' — الفئة غير مؤكدة')+'</div></div>':'');
+  $('dx-alert').innerHTML=S.expired?'<div class="card" style="background:#FFEBEE;border:1.5px solid #EF9A9A;color:#B71C1C;font-weight:800;font-size:13px;margin-bottom:12px">🚨 '+S.expired+' وثيقة منتهية و'+S.d30+' تنتهي خلال 30 يوماً'+(pot.n?' — الغرامة المحتملة على المنتهي من الكروت الصحية والرخصة البلدية موضّحة أدناه':'')+'</div>':(S.d30?'<div class="card" style="background:#FFF8E1;border:1.5px solid #FFE082;color:#E65100;font-weight:800;font-size:13px;margin-bottom:12px">⚠️ '+S.d30+' وثيقة تنتهي خلال 30 يوماً</div>':'');
+  var list=DX.filtered(),emp=list.filter(function(r){return r.kind==='emp';}),est=list.filter(function(r){return r.kind==='est';});
+  $('dx-emp-n').textContent='('+emp.length+')';$('dx-est-n').textContent='('+est.length+')';
+  $('dx-emp-body').innerHTML=emp.map(function(r){
+    var s=C.STATUS[r.status];
+    return '<tr data-st="'+r.status+'"><td style="font-weight:700">'+esc(r.name)+'</td><td>'+esc(r.position)+'</td><td>'+esc(r.dept)+'</td><td>'+r.icon+' '+esc(r.docLabel)+'</td><td dir="ltr" style="text-align:right">'+esc(r.number||'—')+'</td>'
+      +'<td dir="ltr" style="text-align:right;white-space:nowrap">'+esc(r.date)+'</td><td style="color:'+s.color+';font-weight:700;white-space:nowrap">'+esc(leftText(r))+'</td><td>'+badge(r.status)+'</td><td>'+fineCell(r)+'</td></tr>';
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--tl);padding:16px">'+(DX.loaded?'لا توجد وثائق موظفين ضمن هذا العرض':'جارٍ التحميل…')+'</td></tr>';
+  $('dx-emp-note').innerHTML=DX.empErr?'<div class="sdb-empty" style="color:#B71C1C">تعذّر تحميل وثائق الموظفين: '+esc(DX.empErr)+(/permission/i.test(DX.empErr)?'<br>يلزم الاطلاع على «سجل الموظفين» (صلاحية الموارد البشرية).':'')+'</div>':missingNote();
+  var wr=DX.canWrite();
+  $('dx-est-body').innerHTML=est.map(function(r){
+    var s=C.STATUS[r.status];
+    return '<tr data-st="'+r.status+'"><td style="font-weight:700">'+esc(r.name)+(r.notes?'<div style="font-size:10px;color:var(--tl);font-weight:400">'+esc(r.notes.length>80?r.notes.slice(0,80)+'…':r.notes)+'</div>':'')+'</td><td>'+esc(r.docLabel)+'</td><td dir="ltr" style="text-align:right">'+esc(r.number||'—')+'</td><td>'+esc(r.authority||'—')+'</td>'
+      +'<td dir="ltr" style="text-align:right;white-space:nowrap">'+esc(r.date)+'</td><td style="color:'+s.color+';font-weight:700;white-space:nowrap">'+esc(leftText(r))+'</td><td>'+badge(r.status)+'</td><td>'+fineCell(r)+'</td>'
+      +'<td style="white-space:nowrap">'+(wr?'<button class="btn bsm bo" data-dx-act="edit" data-id="'+esc(r.id)+'">✏️</button> <button class="btn bsm bd3" data-dx-act="del" data-id="'+esc(r.id)+'">🗑️</button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--tl);padding:16px">'+(DX.loaded?'لا توجد وثائق منشأة مسجّلة'+(wr?' — أضف السجل التجاري والرخصة البلدية وغيرها':''):'جارٍ التحميل…')+'</td></tr>';
+  $('dx-est-note').innerHTML=DX.estErr?'<div class="sdb-empty" style="color:#B71C1C">تعذّر تحميل وثائق المنشأة: '+esc(DX.estErr)+'</div>':'';
+};
+function missingNote(){
+  var m=C.missingDocs(DX.emps);if(!m.length)return '';
+  var by={};m.forEach(function(x){(by[x.docLabel]=by[x.docLabel]||[]).push(x.name);});
+  return '<div style="font-size:11.5px;line-height:1.9;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:8px 10px;margin-bottom:8px">ℹ️ موظفون نشطون بلا تاريخ انتهاء مسجَّل (لا يمكن تنبيههم): '
+    +Object.keys(by).map(function(k){return '<b>'+esc(k)+'</b>: '+esc(by[k].slice(0,12).join('، '))+(by[k].length>12?' … (+'+(by[k].length-12)+')':'');}).join(' — ')+'</div>';
+}
+function onClick(e){
+  var b=e.target.closest('[data-dx-act]');if(!b)return;
+  var id=b.getAttribute('data-id'),act=b.getAttribute('data-dx-act');
+  var d=DX.est.filter(function(x){return x._id===id;})[0];if(!d)return;
+  if(act==='edit')DX.openForm(d);else if(act==='del')DX.remove(id);
+}
+
+/* ---------- نموذج وثائق المنشأة (مدير الفرع) ---------- */
+DX.openForm=function(d){
+  if(!DX.canWrite())return;
+  DX.editing=d?d._id:null;
+  var set=function(id,v){var e=$(id);if(e)e.value=v==null?'':v;};
+  $('dx-form').style.display='';$('dx-form-t').textContent=d?'✏️ تعديل وثيقة منشأة':'➕ وثيقة منشأة';
+  set('dx-t-type',d?d.type:'cr');set('dx-t-title',d?d.title:'');set('dx-t-number',d?d.number:'');set('dx-t-auth',d?d.authority:'');
+  set('dx-t-issue',d?d.issueDate:'');set('dx-t-exp',d?d.expiryDate:'');set('dx-t-rem',d&&d.reminderDays!=null?d.reminderDays:30);set('dx-t-notes',d?d.notes:'');
+  $('dx-form-msg').textContent='';$('dx-form').scrollIntoView({behavior:'smooth',block:'nearest'});
+};
+DX.readForm=function(){
+  var g=function(id){return String(($(id)||{}).value||'').trim();};
+  var rem=parseInt(g('dx-t-rem'),10);
+  return {title:g('dx-t-title'),type:g('dx-t-type'),number:g('dx-t-number'),issueDate:g('dx-t-issue'),expiryDate:g('dx-t-exp'),authority:g('dx-t-auth'),notes:g('dx-t-notes'),reminderDays:isFinite(rem)?rem:30};
+};
+DX.validate=function(d){
+  if(!d.title)return 'العنوان مطلوب';
+  if(d.title.length>120)return 'العنوان أطول من 120 حرفاً';
+  if(!C.EST_TYPES[d.type])return 'نوع غير معروف';
+  if(!C.isDate(d.expiryDate))return 'تاريخ الانتهاء مطلوب';
+  if(d.issueDate&&!C.isDate(d.issueDate))return 'تاريخ الإصدار غير صالح';
+  if(d.issueDate&&d.issueDate>d.expiryDate)return 'تاريخ الإصدار بعد تاريخ الانتهاء';
+  if(!(d.reminderDays>=0&&d.reminderDays<=365))return 'مدة التذكير بين 0 و365 يوماً';
+  return '';
+};
+DX.save=function(){
+  if(!DX.canWrite()){if(typeof roToast==='function')roToast('هذا الإجراء غير متاح لحسابك');return Promise.resolve(false);}
+  var d=DX.readForm(),err=DX.validate(d);
+  if(err){$('dx-form-msg').textContent=err;return Promise.resolve(false);}
+  var now=new Date().toISOString(),id=DX.editing;
+  var op;
+  if(id){
+    d.updatedBy=CU._id;d.updatedByName=CU.name||'';d.updatedAt=now;
+    op=db.collection('compliance_docs').doc(id).update(d);
+  }else{
+    d.createdBy=CU._id;d.createdByName=CU.name||'';d.createdAt=now;
+    op=db.collection('compliance_docs').add(d).then(function(ref){if(typeof sdAuditLog==='function')sdAuditLog('create','compliance_docs',ref.id,'وثيقة منشأة — '+C.EST_TYPES[d.type]+' — '+d.title+' — تنتهي '+d.expiryDate,d);});
+  }
+  return op.then(function(){$('dx-form').style.display='none';DX.editing=null;return DX.load();}).then(function(){return true;})
+    .catch(function(e){$('dx-form-msg').textContent='تعذّر الحفظ: '+e.message;return false;});
+};
+DX.remove=function(id){
+  if(!DX.canWrite())return Promise.resolve(false);
+  var d=DX.est.filter(function(x){return x._id===id;})[0];if(!d)return Promise.resolve(false);
+  if(!confirm('حذف «'+d.title+'»؟ تُحفظ نسخة منها في سجل العمليات ويمكن استرجاعها منه.'))return Promise.resolve(false);
+  return sdSafeDelete('compliance_docs',id,'حذف وثيقة منشأة — '+(C.EST_TYPES[d.type]||'')+' — '+String(d.title||'').slice(0,80)).then(function(){return DX.load();}).then(function(){return true;})
+    .catch(function(e){alert('تعذّر الحذف: '+e.message);return false;});
+};
+
+/* ---------- التصدير والطباعة ---------- */
+DX.exportCsv=function(){
+  var rows=DX.filtered(),csv=C.csv(rows,lookup,mgState());
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='doc-expiry-'+(window.BRAND_ID||'brand')+'-'+today()+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(a.href);},1500);
+  return csv;
+};
+DX.printHtml=function(){
+  var rows=DX.filtered(),P=window.BRAND_PRINT||{},S=C.summary(rows),bc='#8B2F2B',st=mgState();
+  var tr=rows.map(function(r){var s=C.STATUS[r.status],p=C.potentialFor(r,lookup,st);
+    return '<tr><td>'+(r.kind==='emp'?'موظف':'منشأة')+'</td><td>'+esc(r.name)+(r.position?'<br><small>'+esc(r.position)+'</small>':'')+'</td><td>'+esc(r.docLabel)+'</td><td dir="ltr">'+esc(r.number||'—')+'</td><td dir="ltr">'+esc(r.date)+'</td><td>'+esc(leftText(r))+'</td><td style="color:'+s.color+';font-weight:800">'+esc(s.label)+'</td><td>'+esc(p?C.fineText(p):'')+'</td></tr>';}).join('');
+  return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الوثائق المنتهية والقريبة</title><style>'
+    +'*{box-sizing:border-box}body{font-family:Cairo,Tahoma,sans-serif;direction:rtl;color:#2C1A0E;margin:0;padding:18px 22px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid '+bc+';padding-bottom:8px;margin-bottom:10px}.hd h1{margin:0;font-size:21px;color:'+bc+'}.s{font-size:11.5px;color:#555;line-height:1.8;margin-bottom:8px}'
+    +'table{width:100%;border-collapse:collapse;font-size:10.5px}th,td{border:1px solid #bbb;padding:3px 6px;text-align:right;vertical-align:top}th{background:#eee}small{color:#666}'
+    +'.ft{margin-top:12px;border-top:1px solid #bbb;padding-top:6px;font-size:10px;color:#666;display:flex;justify-content:space-between}@page{size:A4 landscape;margin:10mm}</style></head><body>'
+    +'<div class="hd"><div><h1>الوثائق المنتهية والقريبة</h1><div class="s">'+esc([P.nameAr,P.branchLabel].filter(Boolean).join(' · '))+'</div></div><div class="s" style="text-align:left">بتاريخ '+esc(today())+'</div></div>'
+    +'<div class="s">منتهية: <b>'+S.expired+'</b> — خلال 30 يوماً: <b>'+S.d30+'</b> — خلال 60 يوماً: <b>'+S.d60+'</b> — سارية: <b>'+S.valid+'</b> — أرقام الهوية مقنَّعة (آخر 4 خانات)</div>'
+    +'<table><thead><tr><th>النوع</th><th>الاسم / العنوان</th><th>الوثيقة</th><th>الرقم</th><th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th>غرامة محتملة</th></tr></thead><tbody>'+tr+'</tbody></table>'
+    +'<div class="ft"><span>'+esc(P.footer||'')+'</span><span>الغرامات المحتملة تقديرية من دليل المخالفات البلدية — تحقق من النسخة السارية</span></div></body></html>';
+};
+DX.print=function(){
+  var w=window.open('','_blank');if(!w){alert('اسمح بالنوافذ المنبثقة للطباعة');return;}
+  w.document.open();w.document.write(DX.printHtml());w.document.close();setTimeout(function(){try{w.focus();w.print();}catch(e){}},500);
+};
+
+/* ---------- الشارة (القائمة الجانبية + لوحة التحكم) — داخل التطبيق فقط ---------- */
+DX.updateBadge=function(){
+  var n=C.badgeCount(DX.rows),expired=DX.rows.filter(function(r){return r.status==='expired';}).length;
+  var b=$('nbdg-doc-expiry');
+  if(b){b.textContent=n;b.style.display=(n&&DX.canView())?'':'none';b.style.background=expired?'#B71C1C':'#E65100';}
+  var dash=$('pg-dashboard'),al=$('dx-dash-alert');
+  if(dash){
+    if(n&&DX.canView()){
+      if(!al){al=document.createElement('div');al.id='dx-dash-alert';al.className='card';al.style.cssText='background:#FFF3E0;border:1.5px solid #FFB74D;color:#B54300;font-weight:800;font-size:13px;margin-bottom:12px;cursor:pointer';
+        al.addEventListener('click',function(){if(typeof go==='function')go('doc-expiry',null);});
+        var ph=dash.querySelector('.ph');if(ph)ph.insertAdjacentElement('afterend',al);else dash.insertBefore(al,dash.firstChild);}
+      al.textContent=(expired?'🚨 ':'⚠️ ')+n+' وثيقة رسمية منتهية أو تنتهي خلال 30 يوماً — افتح «الوثائق المنتهية والقريبة»';
+    }else if(al)al.remove();
+  }
+  return n;
+};
+DX.refreshBadge=function(){
+  if(!DX.canView()||typeof db==='undefined')return Promise.resolve(0);
+  if(DX.loaded){DX.compute();return Promise.resolve(DX.updateBadge());}
+  return DX.load().then(function(){return DX.updateBadge();}).catch(function(){return 0;});
+};
+
+DX.init=function(){
+  if(built&&builtFor!==(CU?CU._id:'')){built=false;DX.emps=[];DX.est=[];DX.rows=[];DX.loaded=false;DX.editing=null;DX.F={type:'',dept:'',status:'',q:''};}
+  if(!built)build();
+  DX.render();
+  DX.load();
+};
+(function(){
+  var _go=window.go;
+  if(typeof _go==='function')window.go=function(pid){
+    var r=_go.apply(this,arguments);
+    if(pid==='doc-expiry'&&DX.canView()){try{DX.init();}catch(e){console.error(e);}}
+    return r;
+  };
+  var _ss=window.startSession;
+  if(typeof _ss==='function')window.startSession=function(){
+    var r=_ss.apply(this,arguments);
+    try{if(DX.canView())setTimeout(function(){DX.refreshBadge();},4000);}catch(e){}
+    return r;
+  };
+  var _lo=window.doLogout;
+  if(typeof _lo==='function')window.doLogout=function(){DX.emps=[];DX.est=[];DX.rows=[];DX.loaded=false;return _lo.apply(this,arguments);};
+})();
+})();
+
+</script>
 <script>/* module: 50-inventory-core.js */
 /* =====================================================================
    المخزون — النواة المشتركة لوحدات 50-55
@@ -34860,12 +35900,12 @@ window.printForm=function(formId){
 /* ---------- استيراد الموظفين ---------- */
 var EMP_FIELDS=['name','nameEn','iqamaNumber','nationality','phone','position','dept','hireDate','iqamaExpiry','passportExpiry',
   'healthCardExpiry','healthCardNumber','healthCardIssue','healthCardIssueHijri','healthCardExpiryHijri','trainingProgram','trainingEndHijri',
-  'birthDate','birthPlace','religion','iqamaProfession','employerName','employerId','workLocation','sponsorship','sponsorName','status','notes'];
-var DATE_FIELDS={hireDate:1,iqamaExpiry:1,passportExpiry:1,healthCardExpiry:1,healthCardIssue:1,birthDate:1};
+  'contractEnd','workPermitExpiry','birthDate','birthPlace','religion','iqamaProfession','employerName','employerId','workLocation','sponsorship','sponsorName','status','notes'];
+var DATE_FIELDS={hireDate:1,iqamaExpiry:1,passportExpiry:1,healthCardExpiry:1,healthCardIssue:1,contractEnd:1,workPermitExpiry:1,birthDate:1};
 // عناوين أعمدة عربية شائعة في ملفات CSV
 var AR_HEAD={'الاسم':'name','اسم الموظف':'name','الاسم بالانجليزي':'nameEn','الاسم بالإنجليزي':'nameEn','رقم الإقامة':'iqamaNumber','رقم الاقامة':'iqamaNumber','رقم الهوية':'iqamaNumber','الجنسية':'nationality',
   'الجوال':'phone','رقم الجوال':'phone','الوظيفة':'position','المهنة':'position','القسم':'dept','تاريخ التعيين':'hireDate','انتهاء الإقامة':'iqamaExpiry','انتهاء الاقامة':'iqamaExpiry',
-  'انتهاء الجواز':'passportExpiry','انتهاء الشهادة الصحية':'healthCardExpiry','انتهاء الكرت الصحي':'healthCardExpiry','ملاحظات':'notes'};
+  'انتهاء الجواز':'passportExpiry','انتهاء الشهادة الصحية':'healthCardExpiry','انتهاء الكرت الصحي':'healthCardExpiry','انتهاء العقد':'contractEnd','انتهاء عقد العمل':'contractEnd','انتهاء رخصة العمل':'workPermitExpiry','ملاحظات':'notes'};
 
 window.empImportOK=function(){return !!CU&&(permsMode()?hasCap('edit:hr'):(CU.role==='branch_manager'||CU.role==='hr_manager'));};
 
@@ -34990,7 +36030,7 @@ window.mobWrapTables=function(root){
 'use strict';
 var COLLECTIONS=['users','cashier_reports','cashier_closures','cashier_names','custody_users','custody','custody_ledger','opening_logs','closing_logs',
  'visit_reports','purchase_orders','production_orders','daily_reports','op_reports','forms_data','operational_forms','monthly_reports','monthly_report_chunks',
- 'revenue_receipts','hr_employees','hr_payroll','hr_evaluations','hr_eval_settings','hr_advances','hr_schedules','hr_schedule_assignments','hr_violations','gov_fines','gov_fines_settings','delivery_apps','delivery_settlements','delivery_deposits',
+ 'revenue_receipts','hr_employees','hr_payroll','hr_evaluations','hr_eval_settings','hr_advances','hr_schedules','hr_schedule_assignments','hr_violations','gov_fines','gov_fines_settings','compliance_docs','delivery_apps','delivery_settlements','delivery_deposits',
  'purchases_suppliers','purchases_invoices','purchases_payments','purchases_audit_log','invoice_images','expenses','expense_types',
  'acc_accounts','acc_journal','acc_counters','acc_settings','vat_returns','finance_pl',
  'inv_items_meta','inv_moves','inv_counts','inv_count_drafts','inv_counters','inv_requests','inv_production',
