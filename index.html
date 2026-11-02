@@ -36026,7 +36026,7 @@ window.mobWrapTables=function(root){
    سند استلام الإيراد اليومي (Daily Cash Closing Voucher) — نموذج مطبوع على ورقة A4 واحدة، لكل البراندات.
    • يظهر في «النماذج والقوائم» (بطاقة + زر طباعة فارغ + «تعبئة ثم طباعة»).
    • الهوية (الاسم/الشعار/الألوان) من ثيم البراند (BRAND_PRINT / BRAND_OPS.theme / --sdflogo)، لا أسماء ثابتة.
-   • تطبيقات التوصيل: BRAND_OPS.deliveryApps إن وُجدت وإلا الافتراضية (هنقرستيشن/ذا شيف/جاهز/تو يو/مرسول/نينجا).
+   • تطبيقات التوصيل: الستة الثابتة دائماً (هنقرستيشن/ذا شيف/جاهز/تو يو/مرسول/نينجا) + ما أُضيف للبراند أو عليه مبلغ (حد 8).
    • تعبئة من تقفيل اليوم: استعلام واحد (حد أقصى 10 وثائق) عبر RC.get؛ لا قراءة عند فتح الصفحة.
    • الصفحة تُضبط لتبقى ورقة واحدة: ارتفاعات صفوف ثابتة بالملّيمتر + سكربت ملاءمة احتياطي (zoom) قبل الطباعة.
    • كل نص قادم من المستخدم يمر عبر esc() ويُقصّ لطول ثابت (حتى لا يكسر الصفحة الواحدة).
@@ -36053,10 +36053,11 @@ function dayName(ds){if(!/^\d{4}-\d{2}-\d{2}$/.test(ds||''))return '';var d=new 
 
 /* ---- قائمة تطبيقات التوصيل: المضبوطة للبراند أو الافتراضية، + أي تطبيق عليه مبلغ؛ 6 خانات (3 صفوف) حتى 8 ---- */
 function appKeys(extra){
-  var cfg=Array.isArray(OPS.deliveryApps)&&OPS.deliveryApps.length?OPS.deliveryApps:DEFAULT_APPS;
-  var ks=cfg.filter(function(k){return KNOWN[k];});
-  if(!ks.length)ks=DEFAULT_APPS.slice();
-  (extra||[]).forEach(function(k){if(KNOWN[k]&&ks.indexOf(k)<0)ks.push(k);});
+  // الستة الثابتة كما في النموذج الأصلي (هنقرستيشن/ذا شيف/جاهز/تو يو/مرسول/نينجا) تظهر دائماً في كل البراندات،
+  // ثم أي تطبيق مضبوط للبراند أو عليه مبلغ (كيتا…)، بحد أقصى 8 ليبقى السند ورقة واحدة
+  var ks=DEFAULT_APPS.slice();
+  var cfg=Array.isArray(OPS.deliveryApps)?OPS.deliveryApps:[];
+  cfg.concat(extra||[]).forEach(function(k){if(KNOWN[k]&&ks.indexOf(k)<0)ks.push(k);});
   return ks.slice(0,8);
 }
 function appCells(extra){
