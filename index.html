@@ -5860,6 +5860,7 @@ var AUDIT_COLL_NAMES={
   gov_fines:'غرامات الجهات الحكومية',
   compliance_docs:'وثائق المنشأة الرسمية',
   gov_fines_settings:'إعدادات فئة الغرامات البلدية',
+  shift_task_config:'إعداد بنود مهام الوردية',
   delivery_apps:'إعدادات تطبيقات التوصيل',
   delivery_settlements:'تسويات تطبيقات التوصيل',
   delivery_deposits:'إيداعات تطبيقات التوصيل',
@@ -9752,7 +9753,7 @@ function go(pid,el){
   if(pid==='expenses'){setTimeout(function(){expInit();},80);}
   if(pid==='maintenance'){setTimeout(function(){mntInit();},80);}
   if(pid==='cashier'){setTimeout(function(){makeCashierSelector('ccn');},150);if(typeof loadCCLog==='function')loadCCLog();}
-  if(pid==='opening'){setTimeout(function(){var f=document.getElementById('opening-cashier');if(f)makeCashierSelector('opening-cashier');},150);}
+  if(pid==='opening'){if(window.shTaskCfg)shTaskCfg.init();setTimeout(function(){var f=document.getElementById('opening-cashier');if(f)makeCashierSelector('opening-cashier');},150);}
 }
 
 // ===== USER MANAGEMENT (Firestore) =====
@@ -10024,10 +10025,7 @@ var opTot=20,clTot=16;
 function oc(cb,id){
   if(cb.checked){opCk.add(id);cb.closest('.ci').classList.add('chk');cb.nextElementSibling.classList.add('done')}
   else{opCk.delete(id);cb.closest('.ci').classList.remove('chk');cb.nextElementSibling.classList.remove('done')}
-  var p=Math.round(opCk.size/opTot*100);
-  document.getElementById('op-pf').style.width=p+'%';
-  document.getElementById('op-t').textContent=opCk.size+' من '+opTot+' مهمة';
-  document.getElementById('op-p').textContent=p+'%';
+  if(typeof updateShiftProgress==='function')updateShiftProgress();   // العدّاد الحي: بنود المنطقة الفعّالة فقط (المحذوفة لا تُحتسب)
 }
 function clc(cb,id){
   if(cb.checked){clCk.add(id);cb.closest('.ci').classList.add('chk');cb.nextElementSibling.classList.add('done')}
@@ -16444,17 +16442,19 @@ var _zoneConfig = {
   hall:{name:'🪑 الصالة',color:'#1A4A6B'}
 };
 
+// بنود الاختيار الفعّالة في عنصر: تستثني الصفوف المحذوفة من قائمة البراند (.ci-rm، انظر 77-shift-task-config.js)
+function shCBs(root){return [].slice.call(root.querySelectorAll('.ci:not(.ci-rm) input[type="checkbox"]'));}
 function updateZoneProgresses(){
   ['kitchen','bar','bakery','hall'].forEach(function(z){
     var zone=document.getElementById('zone-'+z);
     if(!zone)return;
-    var cbs=zone.querySelectorAll('input[type="checkbox"]');
+    var cbs=shCBs(zone);
     var total=cbs.length,checked=0;
     cbs.forEach(function(cb){if(cb.checked)checked++;});
-    var pct=total>0?Math.round(checked/total*100):0;
+    var pct=total>0?Math.round(checked/total*100):100;   // لا بنود فعّالة: لا قسمة على صفر
     var prog=document.getElementById('zone-'+z+'-prog');
     if(prog){
-      prog.textContent=pct+'%';
+      prog.textContent=total>0?pct+'%':'لا توجد بنود';
       prog.style.background=pct===100?'#E8F5E9':pct>50?'#FFF8E1':'var(--b)';
       prog.style.color=pct===100?'#1B5E20':pct>50?'#E65100':'var(--tl)';
     }
@@ -16884,7 +16884,7 @@ function printZone(zoneId){
     var title=card.querySelector('.ct span, .ct');
     var titleText=title?title.textContent.trim():'قسم';
     var items=[];
-    card.querySelectorAll('.ci').forEach(function(ci){
+    card.querySelectorAll('.ci:not(.ci-rm)').forEach(function(ci){   // البنود المحذوفة من قائمة البراند لا تُطبع ولا تُحتسب
       var cb=ci.querySelector('input[type="checkbox"]');
       var lbl=ci.querySelector('.ci-lbl');
       var tempInp=ci.querySelector('input[type="number"]');
@@ -16901,7 +16901,7 @@ function printZone(zoneId){
 
   var total=0,checked=0;
   sections.forEach(function(s){s.items.forEach(function(it){total++;if(it.checked)checked++;});});
-  var pct=total>0?Math.round(checked/total*100):0;
+  var pct=total>0?Math.round(checked/total*100):100;   // لا بنود فعّالة: بلا قسمة على صفر
 
   var rowsHtml='';
   sections.forEach(function(s){
@@ -16986,15 +16986,15 @@ function shActiveZone(){
 function updateShiftProgress(){
   updateZoneProgresses();
   var _az=shActiveZone();
-  var allCBs=document.querySelectorAll('#zone-'+_az+' input[type="checkbox"]');
+  var allCBs=shCBs(document.getElementById('zone-'+_az)||document);
   var total=allCBs.length;
   var checked=0;
   allCBs.forEach(function(cb){if(cb.checked)checked++;});
-  var pct=total>0?Math.round(checked/total*100):0;
+  var pct=total>0?Math.round(checked/total*100):100;   // لا بنود فعّالة: 100% بلا قسمة على صفر
   var t=document.getElementById('op-t');
   var p=document.getElementById('op-p');
   var pf=document.getElementById('op-pf');
-  if(t)t.textContent=(_zoneConfig[_az]?_zoneConfig[_az].name+' — ':'')+checked+' من '+total+' مهمة';
+  if(t)t.textContent=(_zoneConfig[_az]?_zoneConfig[_az].name+' — ':'')+(total>0?checked+' من '+total+' مهمة':'لا توجد بنود');
   if(p)p.textContent=pct+'%';
   if(pf)pf.style.width=pct+'%';
 }
@@ -17016,6 +17016,9 @@ function resetShiftForm(){
 
 function saveShiftReport(){
   if(!CU){alert('يرجى تسجيل الدخول');return;}
+  // المقام = البنود الفعّالة فقط: ننتظر تحميل إعداد البنود المحذوفة قبل العدّ
+  if(window.shTaskCfg&&!shTaskCfg.loaded()){shTaskCfg.ready().then(function(){saveShiftReport();});return;}
+  if(window.shTaskCfg&&shTaskCfg.err()&&!confirm('تعذّر تحميل إعداد البنود المحذوفة؛ قد تُحتسب بنود محذوفة في النسبة. متابعة؟'))return;
   var today=new Date().toISOString().split('T')[0];
   var shiftType=document.getElementById('shift-type')?document.getElementById('shift-type').value:'morning';
   var responsible=document.getElementById('opening-cashier')?document.getElementById('opening-cashier').value.trim():'';
@@ -17034,7 +17037,7 @@ function saveShiftReport(){
   zones.forEach(function(z){
     var el=document.getElementById('zone-'+z);
     if(!el)return;
-    var cbs=el.querySelectorAll('input[type="checkbox"]');
+    var cbs=shCBs(el);   // البنود المحذوفة من قائمة البراند لا تُعدّ ولا تُحفظ
     var zChecked=0;
     var zItems=[];
     cbs.forEach(function(cb){
@@ -17055,9 +17058,10 @@ function saveShiftReport(){
   });
 
   /* كل منطقة تُحفظ بتقرير مستقل بنسبتها الخاصة — تُحفظ المناطق التي أُنجز فيها بند واحد على الأقل */
-  var saveZones=zones.filter(function(z){return zoneResults[z]&&(zoneResults[z].checked>0||(window.shPhotoCounts&&shPhotoCounts()[z]>0));});
+  var saveZones=zones.filter(function(z){return zoneResults[z]&&zoneResults[z].total>0&&(zoneResults[z].checked>0||(window.shPhotoCounts&&shPhotoCounts()[z]>0));});
   if(saveZones.length===0){
     var az=shActiveZone();
+    if(!zoneResults[az]||!zoneResults[az].total){alert('لا توجد بنود فعّالة في '+zoneNames[az]+' (كل بنودها محذوفة من القائمة) — لا شيء للحفظ');return;}
     if(!confirm('لم تُكمل أي مهمة في '+zoneNames[az]+' — هل تريد حفظ تقرير المنطقة بنسبة 0%؟'))return;
     saveZones=[az];
   }
@@ -17078,7 +17082,8 @@ function saveShiftReport(){
       responsible:responsible||CU.name,
       role:CU.role,
       checkedCount:r.checked,
-      totalCount:r.total,
+      totalCount:r.total,                       // المقام المستعمل فعلاً = البنود الفعّالة وقت الحفظ
+      removedCount:window.shTaskCfg?shTaskCfg.removedCount(z):0,
       completionPct:r.pct,
       items:allItems.filter(function(it){return it.zone===z;}),
       notes:notes,
@@ -35383,7 +35388,7 @@ window.collectShiftData=function(){
   ZONES.forEach(function(z){
     var el=document.getElementById('zone-'+z);if(!el)return;
     var zc=0,zt=0;
-    el.querySelectorAll('.ci').forEach(function(ci){
+    el.querySelectorAll('.ci:not(.ci-rm)').forEach(function(ci){   // المحذوف من قائمة البراند لا يُعدّ
       var cb=ci.querySelector('input[type="checkbox"]');if(!cb)return;
       zt++;totalItems++;
       var lbl=ci.querySelector('.ci-lbl'),txt='بند';
@@ -35394,7 +35399,7 @@ window.collectShiftData=function(){
       if(ti&&ti.value)it.temp=ti.value;
       allItems.push(it);
     });
-    zoneResults[z]={name:ZN[z],checked:zc,total:zt,pct:zt>0?Math.round(zc/zt*100):0};
+    if(zt>0)zoneResults[z]={name:ZN[z],checked:zc,total:zt,pct:Math.round(zc/zt*100)};   // منطقة كل بنودها محذوفة: لا بطاقة ولا نسبة
     photos=photos.concat(shPhotosFor(z,0,photos.length));
   });
   return {type:'shift',shiftType:shiftType,shiftName:shiftLabel(shiftType),date:shiftDate,time:new Date().toLocaleTimeString('ar-SA'),
@@ -36895,6 +36900,223 @@ window.workPlan={endFor:endFor,addMonths:addMonths,addDays:addDays,progress:prog
 })();
 
 </script>
+<script>/* module: 77-shift-task-config.js */
+/* =====================================================================
+   بنود مهام الوردية القابلة للحذف لكل براند (صفحة `opening`، المناطق: المطبخ/البار/المخبز/الصالة)
+   • بعض البنود لا وجود لها في بعض المطاعم: يضغط مدير الفرع ✕ في نهاية صف البند فيُخفى ولا يُحتسب في أي نسبة.
+   • التخزين: وثيقة واحدة shift_task_config/main = {removed:{kitchen:[id…],bar:[…],bakery:[…],hall:[…]}, updatedBy, updatedByName, updatedAt}
+     (إعداد للبراند كله لا لليوم). تُقرأ بقراءة واحدة عبر RC.getDoc (TTL 5 دقائق) وتُكتب بـ arrayUnion/arrayRemove (لا يضيع حذف مديرَين متزامنَين).
+   • معرّف البند = معرّف صف القائمة المكتوب في القالب (`<div class="ci" id="ksF9">`)، ثابت مهما تغيّر الترتيب أو النص،
+     ويعمل للقالب المشترك ولأي قالب مناطق خاص بالبراند (brands/<id>.shift-zones.html) لأن الصفوف نفسها هي المصدر.
+   • الإخفاء بالفئة .ci-rm؛ كل عدّ في التطبيق يستعمل shCBs()/.ci:not(.ci-rm) فيتجاهل المحذوف. السجلات القديمة تبقى كما حُفظت.
+   • الكتابة لمدير الفرع فقط (والقواعد تفرض ذلك)؛ الآخرون والمشاهد لا يرون ✕ ويرون البنود المحذوفة مخفية.
+   • لا معرّفات في onclick: تفويض أحداث على data-stk-*، وكل نص يُكتب بـtextContent.
+   ===================================================================== */
+(function(){
+'use strict';
+var ZONES=['kitchen','bar','bakery','hall'];
+var ZN={kitchen:'المطبخ',bar:'البار',bakery:'المخبز',hall:'الصالة'};
+var ID_RX=/^[A-Za-z0-9_-]{1,40}$/,MAX_PER_ZONE=100,UNDO_MS=8000;
+var S={loaded:false,p:null,err:'',removed:emptyCfg(),toast:null,toastTimer:0};
+function emptyCfg(){var o={};ZONES.forEach(function(z){o[z]=[];});return o;}
+function ref(){return db.collection('shift_task_config').doc('main');}
+function canEdit(){return !!window.CU&&CU.role==='branch_manager';}
+function zoneOf(ci){var z=ci&&ci.closest?ci.closest('[id^="zone-"]'):null;var k=z?z.id.slice(5):'';return ZONES.indexOf(k)>=0?k:'';}
+function labelOf(ci){
+  var l=ci.querySelector('.ci-lbl');if(!l)return ci.id||'بند';
+  var c=l.cloneNode(true);[].forEach.call(c.querySelectorAll('.cat,.temp-wrap,.tstat'),function(x){x.remove();});
+  return c.textContent.replace(/\s+/g,' ').trim().slice(0,120)||ci.id;
+}
+function ciById(z,id){var el=document.getElementById('zone-'+z);if(!el||!ID_RX.test(id))return null;var c=el.querySelector('.ci[id="'+id+'"]');return c||null;}
+function has(z,id){return !!S.removed[z]&&S.removed[z].indexOf(id)>=0;}
+function toastMsg(msg,undo){
+  if(S.toast){S.toast.remove();clearTimeout(S.toastTimer);S.toast=null;}
+  var d=document.createElement('div');d.className='stk-toast';d.setAttribute('role','status');
+  var s=document.createElement('span');s.textContent=msg;d.appendChild(s);
+  if(undo){var b=document.createElement('button');b.type='button';b.textContent='تراجع';b.setAttribute('data-stk-undo','1');b.addEventListener('click',function(){d.remove();S.toast=null;clearTimeout(S.toastTimer);undo();});d.appendChild(b);}
+  document.body.appendChild(d);S.toast=d;
+  S.toastTimer=setTimeout(function(){d.remove();if(S.toast===d)S.toast=null;},UNDO_MS);
+}
+
+/* ---------- الحالة من الوثيقة (تنقية: أي معرّف لا يطابق النمط يُهمل) ---------- */
+function normalize(data){
+  var out=emptyCfg(),r=data&&typeof data==='object'&&data.removed&&typeof data.removed==='object'?data.removed:{};
+  ZONES.forEach(function(z){
+    var a=Array.isArray(r[z])?r[z]:[];
+    a.forEach(function(id){if(typeof id==='string'&&ID_RX.test(id)&&out[z].indexOf(id)<0&&out[z].length<MAX_PER_ZONE)out[z].push(id);});
+  });
+  S.removed=out;
+}
+function load(){
+  if(S.loaded)return Promise.resolve();
+  if(S.p)return S.p;
+  var r=ref();
+  S.p=(window.RC&&RC.getDoc?RC.getDoc(r):r.get()).then(function(snap){S.err='';normalize(snap.exists?snap.data():null);},
+    function(e){S.err=(e&&(e.code||e.message))||'error';S.removed=emptyCfg();})
+    .then(function(){S.loaded=true;S.p=null;});
+  return S.p;
+}
+
+/* ---------- العرض ---------- */
+function allCIs(){return [].slice.call(document.querySelectorAll('#pg-opening [id^="zone-"] .ci'));}
+function apply(){
+  allCIs().forEach(function(ci){
+    var z=zoneOf(ci);if(!z)return;
+    ci.classList.toggle('ci-rm',has(z,ci.id));
+    var x=ci.querySelector(':scope > .ci-x');
+    if(canEdit()){
+      if(!x){x=document.createElement('button');x.type='button';x.className='ci-x';x.setAttribute('data-stk-rm',ci.id);x.title='حذف البند من القائمة';x.setAttribute('aria-label','حذف البند من القائمة');x.textContent='✕';ci.appendChild(x);}
+    }else if(x)x.remove();
+  });
+  ZONES.forEach(zoneBar);
+  if(typeof updateShiftProgress==='function')updateShiftProgress();
+}
+function zoneBar(z){
+  var el=document.getElementById('zone-'+z);if(!el)return;
+  var bar=document.getElementById('stk-bar-'+z);
+  if(!bar){bar=document.createElement('div');bar.id='stk-bar-'+z;bar.className='stk-bar';el.insertBefore(bar,el.children[1]||null);}
+  var n=S.removed[z].length;
+  bar.textContent='';bar.style.display=n?'block':'none';
+  if(!n)return;
+  if(canEdit()){var a=document.createElement('button');a.type='button';a.className='stk-link';a.setAttribute('data-stk-list',z);a.textContent='البنود المحذوفة ('+n+') — استعادة';bar.appendChild(a);}
+  else bar.textContent='البنود المحذوفة من هذه القائمة: '+n;
+}
+
+/* ---------- الحفظ ---------- */
+function stamp(){
+  var FV=firebase.firestore.FieldValue,u=null;try{u=firebase.auth().currentUser;}catch(e){}
+  return {updatedBy:u?u.uid:'',updatedByName:CU.name||'',updatedAt:FV.serverTimestamp()};
+}
+function persist(z,ids,add){
+  var FV=firebase.firestore.FieldValue,rm={},op=add?FV.arrayUnion:FV.arrayRemove;
+  rm[z]=op.apply(FV,ids);
+  var d=stamp();d.removed=rm;
+  return ref().set(d,{merge:true});
+}
+function setLocal(z,id,add){
+  var a=S.removed[z],i=a.indexOf(id);
+  if(add&&i<0)a.push(id);else if(!add&&i>=0)a.splice(i,1);
+  apply();
+  var m=document.getElementById('stk-modal');if(m&&m.getAttribute('data-zone')===z)renderList(z);
+}
+function audit(msg){try{if(typeof sdAuditLog==='function')sdAuditLog('edit','shift_task_config','main',msg);}catch(e){}}
+function removeItem(ci){
+  if(!canEdit())return;
+  var z=zoneOf(ci),id=ci.id;if(!z||has(z,id))return;
+  var txt=labelOf(ci);
+  if(!confirm('حذف هذا البند من قائمة '+ZN[z]+' لهذا البراند؟ لن يُحتسب في النسبة'))return;
+  setLocal(z,id,true);
+  persist(z,[id],true).then(function(){
+    audit('حذف بند من مهام الوردية ('+ZN[z]+'): '+txt);
+    toastMsg('تم حذف البند من قائمة '+ZN[z]+' — لن يُحتسب في النسبة',function(){restoreItem(z,id,txt,true);});
+  },function(e){setLocal(z,id,false);alert('تعذّر حفظ الحذف: '+((e&&e.message)||e));});
+}
+function restoreItem(z,id,txt,quiet){
+  if(!canEdit()||!has(z,id))return Promise.resolve();
+  setLocal(z,id,false);
+  return persist(z,[id],false).then(function(){
+    audit('استعادة بند إلى مهام الوردية ('+ZN[z]+'): '+txt);
+    if(!quiet)toastMsg('تمت استعادة البند',null);
+  },function(e){setLocal(z,id,true);alert('تعذّرت الاستعادة: '+((e&&e.message)||e));});
+}
+function restoreAll(z){
+  var ids=S.removed[z].slice();if(!ids.length)return;
+  if(!confirm('استعادة كل بنود '+ZN[z]+' المحذوفة ('+ids.length+')؟'))return;
+  var texts=ids.map(function(id){var c=ciById(z,id);return c?labelOf(c):id;});
+  S.removed[z]=[];apply();renderList(z);
+  persist(z,ids,false).then(function(){
+    audit('استعادة كل بنود '+ZN[z]+' المحذوفة ('+ids.length+'): '+texts.join(' | ').slice(0,600));
+    toastMsg('تمت استعادة '+ids.length+' بند',null);
+  },function(e){S.removed[z]=ids;apply();renderList(z);alert('تعذّرت الاستعادة: '+((e&&e.message)||e));});
+}
+
+/* ---------- نافذة الاستعادة ---------- */
+function closeList(){var m=document.getElementById('stk-modal');if(m)m.remove();}
+function renderList(z){
+  var m=document.getElementById('stk-modal');if(!m)return;
+  var box=m.querySelector('.stk-box');box.textContent='';
+  var h=document.createElement('div');h.className='stk-h';h.textContent='البنود المحذوفة — '+ZN[z];box.appendChild(h);
+  var ids=S.removed[z];
+  if(!ids.length){var e=document.createElement('div');e.className='stk-empty';e.textContent='لا توجد بنود محذوفة';box.appendChild(e);}
+  ids.forEach(function(id){
+    var ci=ciById(z,id),row=document.createElement('div');row.className='stk-row';
+    var t=document.createElement('span');t.textContent=ci?labelOf(ci):'بند غير معروف ('+id+')';row.appendChild(t);
+    var b=document.createElement('button');b.type='button';b.className='btn bsm';b.setAttribute('data-stk-restore',id);b.textContent='استعادة';row.appendChild(b);
+    box.appendChild(row);
+  });
+  var f=document.createElement('div');f.className='stk-f';
+  if(ids.length){var ba=document.createElement('button');ba.type='button';ba.className='btn bsm';ba.setAttribute('data-stk-restore-all',z);ba.textContent='استعادة الكل ('+ids.length+')';f.appendChild(ba);}
+  var bc=document.createElement('button');bc.type='button';bc.className='btn bsm';bc.setAttribute('data-stk-close','1');bc.textContent='إغلاق';f.appendChild(bc);
+  box.appendChild(f);
+}
+function openList(z){
+  closeList();
+  var m=document.createElement('div');m.id='stk-modal';m.className='stk-modal';m.setAttribute('data-zone',z);
+  var box=document.createElement('div');box.className='stk-box';m.appendChild(box);
+  m.addEventListener('click',function(ev){
+    var t=ev.target;
+    if(t===m){closeList();return;}
+    if(!t.closest)return;
+    var r=t.closest('[data-stk-restore]');
+    if(r){var id=r.getAttribute('data-stk-restore'),ci=ciById(z,id);restoreItem(z,id,ci?labelOf(ci):id,false);return;}
+    if(t.closest('[data-stk-restore-all]')){restoreAll(z);return;}
+    if(t.closest('[data-stk-close]'))closeList();
+  });
+  document.body.appendChild(m);renderList(z);
+}
+
+/* ---------- أنماط وربط الأحداث ---------- */
+var css=document.createElement('style');
+css.textContent='.ci-rm{display:none!important}'
+ +'.ci-x{margin-inline-start:auto;flex-shrink:0;border:0;background:transparent;color:#B71C1C;font-size:14px;font-weight:900;line-height:1;cursor:pointer;padding:3px 6px;border-radius:6px;opacity:.55}'
+ +'.ci-x:hover,.ci-x:focus{opacity:1;background:#FDECEA}'
+ +'.stk-bar{margin:0 0 10px;font-size:11px;color:var(--tl)}'
+ +'.stk-link{background:none;border:0;padding:0;color:#1A4A6B;font:700 11px Cairo,sans-serif;text-decoration:underline;cursor:pointer}'
+ +'.stk-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#3E2C1C;color:#fff;padding:10px 16px;border-radius:10px;font:700 13px Cairo,sans-serif;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;gap:14px;align-items:center;max-width:92vw}'
+ +'.stk-toast button{background:#fff;color:#3E2C1C;border:0;border-radius:7px;padding:4px 12px;font:900 12px Cairo,sans-serif;cursor:pointer}'
+ +'.stk-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px}'
+ +'.stk-box{background:#fff;border-radius:12px;padding:14px;max-width:560px;width:100%;max-height:80vh;overflow:auto;direction:rtl}'
+ +'.stk-h{font-weight:900;font-size:14px;margin-bottom:10px}'
+ +'.stk-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:12px}'
+ +'.stk-empty{padding:14px;text-align:center;color:#888;font-size:12px}'
+ +'.stk-f{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}'
+ +'body.ro .ci-x{display:none!important}';
+document.head.appendChild(css);
+
+document.addEventListener('click',function(ev){
+  var t=ev.target;if(!t||!t.closest)return;
+  var x=t.closest('#pg-opening .ci-x');
+  if(x){ev.preventDefault();var ci=x.closest('.ci');if(ci)removeItem(ci);return;}
+  var l=t.closest('#pg-opening [data-stk-list]');
+  if(l&&canEdit())openList(l.getAttribute('data-stk-list'));
+});
+document.addEventListener('keydown',function(ev){if(ev.key==='Escape')closeList();});
+
+function reset(){S.loaded=false;S.p=null;S.err='';S.removed=emptyCfg();closeList();if(S.toast){S.toast.remove();S.toast=null;}}
+var _ss=window.startSession;
+if(typeof _ss==='function')window.startSession=function(){reset();return _ss.apply(this,arguments);};
+var _lo=window.doLogout;
+if(typeof _lo==='function')window.doLogout=function(){reset();allCIs().forEach(function(c){c.classList.remove('ci-rm');var x=c.querySelector(':scope > .ci-x');if(x)x.remove();});return _lo.apply(this,arguments);};
+if(window.RC&&RC.ttl)RC.ttl.shift_task_config=5*60*1000;
+
+/* ---------- واجهة عامة (للتطبيق والاختبارات) ---------- */
+window.shTaskCfg={
+  init:function(){if(!window.CU)return Promise.resolve();return load().then(apply);},
+  ready:function(){return load().then(apply);},
+  loaded:function(){return S.loaded;},
+  err:function(){return S.err;},
+  canEdit:canEdit,
+  removed:function(z){return S.removed[z]?S.removed[z].slice():[];},
+  removedCount:function(z){return S.removed[z]?S.removed[z].length:0;},
+  isRemoved:has,
+  normalize:normalize
+};
+try{Object.assign(I18N,{
+  'تراجع':'Undo','استعادة':'Restore','لا توجد بنود محذوفة':'No removed items','لا توجد بنود':'No items','حذف البند من القائمة':'Remove item from list'
+});}catch(e){}
+})();
+
+</script>
 <script>/* module: 80-full-backup.js */
 /* =====================================================================
    نسخة احتياطية كاملة: كل مجموعات البراند في ملف JSON واحد (للمدير والمشاهد)
@@ -36906,7 +37128,7 @@ window.workPlan={endFor:endFor,addMonths:addMonths,addDays:addDays,progress:prog
 'use strict';
 var COLLECTIONS=['users','cashier_reports','cashier_closures','cashier_names','custody_users','custody','custody_ledger','opening_logs','closing_logs',
  'visit_reports','purchase_orders','production_orders','daily_reports','op_reports','forms_data','operational_forms','monthly_reports','monthly_report_chunks',
- 'revenue_receipts','hr_employees','hr_payroll','hr_evaluations','hr_eval_settings','hr_advances','hr_schedules','hr_schedule_assignments','hr_violations','gov_fines','gov_fines_settings','compliance_docs','delivery_apps','delivery_settlements','delivery_deposits',
+ 'revenue_receipts','hr_employees','hr_payroll','hr_evaluations','hr_eval_settings','hr_advances','hr_schedules','hr_schedule_assignments','hr_violations','gov_fines','gov_fines_settings','shift_task_config','compliance_docs','delivery_apps','delivery_settlements','delivery_deposits',
  'purchases_suppliers','purchases_invoices','purchases_payments','purchases_audit_log','invoice_images','expenses','expense_types',
  'acc_accounts','acc_journal','acc_counters','acc_settings','vat_returns','finance_pl',
  'inv_items_meta','inv_moves','inv_counts','inv_count_drafts','inv_counters','inv_requests','inv_production',
