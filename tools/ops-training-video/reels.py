@@ -22,7 +22,7 @@ REEL_CSS = """
 
 FACE_CSS = "#vwm{bottom:auto!important;top:192px!important}"
 # small round face: bottom-left, above the captions
-CIRCLE = dict(d=300, x=36, y=1310)
+CIRCLE = dict(d=380, x=36, y=1230)
 
 
 def main():
@@ -67,7 +67,7 @@ def main():
             build.render(page, beats, narr, base, work, module=script["module"],
                          size=(540, 960), dpr=2, css=REEL_CSS + FACE_CSS, chromium=args.chromium,
                          hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
-                         cam_top=205, cam_bottom=300 if circle else 430, cap_bottom=70 if circle else 422, lead=0.5)
+                         cam_top=205, cam_bottom=350 if circle else 430, cap_bottom=70 if circle else 422, lead=0.5)
             if circle:
                 face.overlay_circle(base, clips, out, work / "face", intro=0, lead=0.5, tail=build.TAIL,
                                     name="face-reel-circle", **CIRCLE)
