@@ -108,23 +108,30 @@ def _track(clips, starts, lead, tail, aspect, scale, size, work, name, cyf=0.62)
     return out
 
 
-def overlay_full(base, clips, out, work, *, intro, lead, tail, d=330, margin=40):
+def overlay_full(base, clips, out, work, *, intro, lead, tail, d=280, margin=36):
+    overlay_circle(base, clips, out, work, intro=intro, lead=lead, tail=tail, d=d, x=margin, y=margin,
+                   name="face-full")
+
+
+def overlay_circle(base, clips, out, work, *, intro, lead, tail, d, x, y, name="face-circle", ring=28):
+    """Round picture-in-picture with a gold ring at (x, y), shown while the presenter speaks."""
     from PIL import Image, ImageDraw
-    track = _track(clips, None, lead, tail, 1.0, 2.6, (d, d), work, "face-full")
+    track = _track(clips, None, lead, tail, 1.0, 2.6, (d, d), work, name)
     big = d * 4
     m = Image.new("L", (big, big), 0); ImageDraw.Draw(m).ellipse((0, 0, big - 1, big - 1), fill=255)
-    m.resize((d, d), Image.LANCZOS).save(work / "mask.png")
+    m.resize((d, d), Image.LANCZOS).save(work / f"mask{d}.png")
     r = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    ImageDraw.Draw(r).ellipse((0, 0, big - 1, big - 1), outline=(217, 164, 65, 255), width=28)
-    r.resize((d, d), Image.LANCZOS).save(work / "ring.png")
+    ImageDraw.Draw(r).ellipse((0, 0, big - 1, big - 1), outline=(217, 164, 65, 255), width=ring)
+    r.resize((d, d), Image.LANCZOS).save(work / f"ring{d}.png")
     end = intro + sum(lead + c["dur"] + tail for c in clips)
     en = f"between(t,{intro},{end:.3f})"
     fc = (f"[1:v]format=rgba[f];[2:v]format=gray[m];[f][m]alphamerge[fm];"
-          f"[0:v][fm]overlay={margin}:{margin}:enable='{en}'[v1];[v1][3:v]overlay={margin}:{margin}:enable='{en}'[v]")
+          f"[0:v][fm]overlay={x}:{y}:enable='{en}'[v1];[v1][3:v]overlay={x}:{y}:enable='{en}'[v]")
     subprocess.run([FF, "-v", "error", "-y", "-i", str(base), "-itsoffset", str(intro), "-i", str(track),
-                    "-loop", "1", "-i", str(work / "mask.png"), "-loop", "1", "-i", str(work / "ring.png"),
+                    "-loop", "1", "-i", str(work / f"mask{d}.png"), "-loop", "1", "-i", str(work / f"ring{d}.png"),
                     "-filter_complex", fc, "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-crf", "20",
-                    "-preset", "medium", "-af", LOUD, "-ar", "48000", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out)], check=True)
+                    "-preset", "medium", "-af", LOUD, "-ar", "48000", "-c:a", "aac", "-b:a", "160k", "-shortest",
+                    "-movflags", "+faststart", str(out)], check=True)
 
 
 def overlay_reel(base, clips, out, work, *, lead, tail, fh=820, W=1080, H=1920):

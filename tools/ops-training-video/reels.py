@@ -21,6 +21,8 @@ REEL_CSS = """
 """
 
 FACE_CSS = "#vwm{bottom:auto!important;top:192px!important}"
+# small round face: bottom-left, above the captions
+CIRCLE = dict(d=300, x=36, y=1310)
 
 
 def main():
@@ -28,6 +30,8 @@ def main():
     ap.add_argument("--script", default=str(build.DEFAULT_SCRIPT), help="beats file with a 'reels' list")
     ap.add_argument("--voice-dir")
     ap.add_argument("--face-dir", help="presenter videos per beat; the face fills the bottom of each reel")
+    ap.add_argument("--face-style", choices=["circle", "band"], default="circle",
+                    help="circle: small round face above the captions (default); band: face fills the bottom")
     ap.add_argument("--page")
     ap.add_argument("--out-dir", help="default: out/<script id>-reels/")
     ap.add_argument("--only", nargs="*", help="reel ids to build")
@@ -59,11 +63,16 @@ def main():
             clips = build.face_clips(args.face_dir, beats, build.HERE / "out" / script["id"] / "work" / "face")
             narr = [(c["pcm"], c["dur"], None) for c in clips]
             base = work / f"{r['id']}-base.mp4"
+            circle = args.face_style == "circle"
             build.render(page, beats, narr, base, work, module=script["module"],
                          size=(540, 960), dpr=2, css=REEL_CSS + FACE_CSS, chromium=args.chromium,
                          hook=r["hook"], outro_card=r.get("cta", cfg["cta"]) + contact, outro=3.5, watermark=wm,
-                         cam_top=205, cam_bottom=430, cap_bottom=422, lead=0.5)
-            face.overlay_reel(base, clips, out, work / "face", lead=0.5, tail=build.TAIL)
+                         cam_top=205, cam_bottom=300 if circle else 430, cap_bottom=70 if circle else 422, lead=0.5)
+            if circle:
+                face.overlay_circle(base, clips, out, work / "face", intro=0, lead=0.5, tail=build.TAIL,
+                                    name="face-reel-circle", **CIRCLE)
+            else:
+                face.overlay_reel(base, clips, out, work / "face", lead=0.5, tail=build.TAIL)
             continue
         narr = build.narration(script, beats, work, args.voice_dir)
         build.render(page, beats, narr, out, work, module=script["module"],
