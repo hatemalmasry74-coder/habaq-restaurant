@@ -43,3 +43,5 @@ def create(path,fields,created=None):
     if created: body['fields']['createdAt']={'timestampValue':created}
     try: req(f'{B}/{path}?currentDocument.exists=false',body,'PATCH');return 'ok'
     except urllib.error.HTTPError as e: return f'ERR {e.code}'
+def getdoc(path):
+    d=req(f'{B}/{path}');return {a:val(b) for a,b in d.get('fields',{}).items()}

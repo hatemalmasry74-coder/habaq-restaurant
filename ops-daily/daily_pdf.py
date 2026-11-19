@@ -34,6 +34,49 @@ rows=[(x['day'][5:],x['n'],f(x['p'].get('total',0),2),f(x['r']['total'],2),bd(x[
 half=(len(rows)+1)//2
 br=[('كاش',y['p'].get('cash',0),y['r']['cash']),('شبكة',y['p'].get('card',0),y['r']['card']),('تطبيقات التوصيل',y['p'].get('apps',0),y['r']['apps']),('الإجمالي',y['p'].get('total',0),y['r']['total'])]
 sl('المبيعات: التقفيلات مقابل رواء',f'تفصيل {dar(DAY)} + منذ بداية الشهر · ر.س',f'<div class="row" style="gap:26px"><div class="col" style="flex:.8">{tbl(["طريقة الدفع","المنصة","رواء","الفرق"],[(a,f(b,2),f(c,2),bd(b-c,2)) for a,b,c in br],"t",20)}<div class="card" style="font-size:19px;line-height:1.7">يوم العمل من ~3 فجراً إلى ~3 فجراً. الفرق في توزيع الكاش/الشبكة بين يومين متتاليين غالباً توقيت تقفيل.</div></div><div class="col" style="flex:1.2"><div class="row" style="gap:16px;flex:0"><div class="col" style="flex:1">{tbl(["اليوم","ت","المنصة","رواء","الفرق","الحالة"],rows[:half],"t sm",15)}</div><div class="col" style="flex:1">{tbl(["اليوم","ت","المنصة","رواء","الفرق","الحالة"],rows[half:]+[("<b>الشهر</b>","",f"<b>{f(PT,2)}</b>",f"<b>{f(RT,2)}</b>",f"<b>{bd(PT-RT,2)}</b>","")],"t sm",15)}</div></div></div></div>')
+# ---- items
+IT=J.get('items',[]);AN=J.get('analysis',{})
+if IT:
+    short=lambda n:(n.split(' - ')[0] if ' - ' in n else n.split(' — ')[-1] if ' — ' in n else n)[:26]
+    tot=sum(x['sales'] for x in IT) or 1
+    def trend(x):
+        a=x.get('mtd_avg') or 0
+        if not a: return '—'
+        ch=(x['qty']/a-1)*100;c=G if ch>=10 else (RD if ch<=-10 else '#7a6658')
+        return f'<span style="color:{c};font-weight:700"><bdi dir="ltr">{"+" if ch>0 else ""}{ch:.0f}%</bdi></span>'
+    rows=[(short(x['name']),f(x['qty']),f(x['sales'],2),pc(x['sales']/tot*100,0),f(x.get('mtd_avg',0),1),trend(x)) for x in IT[:14]]
+    byq=sorted(IT,key=lambda x:-x['qty'])
+    low=[x for x in byq if x['qty']>0][-5:][::-1]
+    ns=J.get('notsold',[])
+    side=f'<div class="h3" style="font-size:24px">الأكثر مبيعاً (كمية)</div><div class="dchart" style="padding:8px">{hbars([(short(x["name"]),x["qty"]) for x in byq[:7]],760,46,MAR)}</div>'
+    side+=f'<div class="card" style="padding:14px 20px;font-size:19px;line-height:1.7"><b style="color:{RD}">الأقل مبيعاً:</b> '+'، '.join(f'{short(x["name"])} ({f(x["qty"])})' for x in low)+'</div>'
+    if ns: side+=f'<div class="card" style="padding:14px 20px;font-size:19px;line-height:1.7"><b style="color:{AM}">لم تُبع اليوم (تُباع عادةً):</b> '+'، '.join(short(x['name']) for x in ns[:6])+'</div>'
+    sl('مبيعات الأصناف',f'{dar(DAY)} · {len(IT)} صنفاً مباعاً · الاتجاه مقارنة بمتوسط الصنف اليومي هذا الشهر',f'<div class="row" style="gap:26px"><div class="col" style="flex:1.05">{tbl(["الصنف","الكمية","المبيعات ر.س","الحصة","متوسط يومي","الاتجاه"],rows,"t sm",17)}</div><div class="col" style="flex:.95">{side}</div></div>')
+    # ---- analysis
+    ch_avg=(AN['total']/AN['mtd_avg']-1)*100 if AN.get('mtd_avg') else 0
+    ch_wd=(AN['total']/AN['same_wd_avg']-1)*100 if AN.get('same_wd_avg') else 0
+    WDN=['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'][AN['weekday']]
+    top=IT[0];cols=[MAR,'#B5523B',AM,'#7A8B5C','#5B6F8A','#C9B8A6']
+    parts=[(short(x['name']),x['sales'],cols[i]) for i,x in enumerate(IT[:5])]+[('أخرى',sum(x['sales'] for x in IT[5:]),cols[5])]
+    ins=[f"مبيعات يوم {WDN} {f(AN['total'],2)} ر.س — {'أعلى' if ch_avg>=0 else 'أقل'} من متوسط أيام الشهر بنسبة {abs(ch_avg):.0f}%",
+         f"مقارنة بمتوسط أيام {WDN} هذا الشهر ({AN['same_wd_n']} يوم): {'+' if ch_wd>=0 else '−'}{abs(ch_wd):.0f}%" if AN.get('same_wd_n') else f"لا توجد أيام {WDN} سابقة هذا الشهر للمقارنة",
+         f"الصنف الأول «{short(top['name'])}» يمثل {top['sales']/tot*100:.0f}% من المبيعات",
+         f"متوسط الفاتورة {f(AN['avg_ticket'],2)} ر.س و{AN['items_per_inv']:.1f} صنف لكل فاتورة"]
+    sl('تحليل المبيعات','',kp([('متوسط الفاتورة',f(AN['avg_ticket'],2),f"ر.س · {AN['invoices']} فاتورة",MAR),('أصناف لكل فاتورة',f"{AN['items_per_inv']:.1f}",f"{f(AN['items'])} صنف مباع",MAR),
+       ('مقابل متوسط الشهر',f'<bdi dir="ltr">{"+" if ch_avg>=0 else ""}{ch_avg:.0f}%</bdi>',f"المتوسط {f(AN['mtd_avg'])} ر.س يومياً",G if ch_avg>=0 else RD),('مقابل نفس اليوم',f'<bdi dir="ltr">{"+" if ch_wd>=0 else ""}{ch_wd:.0f}%</bdi>' if AN.get('same_wd_n') else '—',f"متوسط أيام {WDN}",G if ch_wd>=0 else RD)])+
+       f'<div class="row" style="gap:30px;align-items:center"><div style="flex:0 0 380px">{donut(parts,360,0.58,(f(tot),"ر.س"))}</div><div class="col" style="flex:.8">{legend(parts,tot)}</div><div class="col" style="flex:1.2"><div class="card" style="padding:22px 26px">{"".join(f"<div style=font-size:21px;line-height:1.8>• {t}</div>" for t in ins)}</div></div></div>')
+    # ---- consumption
+    CL=J.get('consumption',[])
+    def qfmt(q,u):
+        if u in('جم','g') and q>=1000: return f'{q/1000:,.2f} كجم'
+        if u in('مل','ml') and q>=1000: return f'{q/1000:,.2f} لتر'
+        return f'{q:,.0f} {u}' if q>=10 else f'{q:,.2f} {u}'
+    cr=[(c['name'],qfmt(c['qty'],c['unit']),f(c['cost'],2),pc(c['cost']/AN['recipe_cogs']*100 if AN['recipe_cogs'] else 0,0)) for c in CL[:12]]
+    nr=J.get('norec',[])
+    sl('استهلاك المواد حسب الوصفات',f'الكميات المستهلكة نظرياً من مبيعات {dar(DAY)} × وصفات المنصة',f'<div class="row" style="gap:26px"><div class="col" style="flex:1.1">{tbl(["المادة","الكمية المستهلكة","التكلفة ر.س","الحصة"],cr,"t sm",18)}</div><div class="col" style="flex:.9">'+
+       kp([('تكلفة الأصناف (وصفات)',f(AN['recipe_cogs'],2),'ر.س لليوم',MAR),('نسبة التكلفة',pc(AN['cogs_pct'],1),'من صافي مبيعات الأصناف ذات الوصفة',G if AN['cogs_pct']<=25 else AM)],2)+
+       (f'<div class="card" style="padding:16px 22px;font-size:19px;line-height:1.7"><b style="color:{AM}">أصناف بدون وصفة ({f(AN["norec_sales"],2)} ر.س):</b> '+'، '.join(f'{short(x["name"])} ({f(x["qty"])})' for x in nr)+'</div>' if nr else '')+
+       '<div class="card" style="padding:16px 22px;font-size:18px;line-height:1.7;color:#5b4a40">الاستهلاك النظري يُقارن بالجرد الفعلي آخر الشهر؛ الفرق = هدر أو أخطاء تحضير أو تسجيل.</div></div></div>')
 # 3 purchases
 dr=[(x.get('date',''),f"{x.get('sup','')} — {x.get('no','')}",f(float(x.get('total') or 0),2),x.get('doc') or x.get('ref',''),x.get('note','')) for x in done]
 pr=[(x['date'],f"{x['sup']} — {x['no']}",f(float(x['total'] or 0),2),x.get('desc') or '',pill('يحتاج قرار','bad')) for x in pend]
