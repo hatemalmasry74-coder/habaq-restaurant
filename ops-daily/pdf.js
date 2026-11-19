@@ -1,0 +1,6 @@
+const {chromium}=require('playwright');const fs=require('fs');(async()=>{
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1243/chrome-linux/chrome',proxy:process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined,args:['--ignore-certificate-errors']}).catch(async e=>chromium.launch({proxy:process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined,args:['--ignore-certificate-errors']}));
+const p=await b.newPage({viewport:{width:1920,height:1080}});await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.evaluate(()=>document.fonts.ready);
+const ov=await p.evaluate(()=>[...document.querySelectorAll('.s')].map((s,i)=>{const bd=s.querySelector('.body');if(!bd)return null;let mx=0;const st=s.getBoundingClientRect();bd.querySelectorAll('*').forEach(e=>{const q=e.getBoundingClientRect();if(q.bottom>mx)mx=q.bottom});return mx-st.top>1015?[i+1,Math.round(mx-st.top)]:null}).filter(Boolean));console.log('overflow',JSON.stringify(ov));
+fs.mkdirSync(process.argv[4],{recursive:true});const sl=await p.$$('.s');for(let i=0;i<sl.length;i++)await sl[i].screenshot({path:`${process.argv[4]}/${String(i+1).padStart(2,'0')}.png`});
+await p.pdf({path:process.argv[3],width:'1920px',height:'1080px',printBackground:true});await b.close();})();
