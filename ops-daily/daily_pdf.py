@@ -64,7 +64,7 @@ if IT:
          f"متوسط الفاتورة {f(AN['avg_ticket'],2)} ر.س و{AN['items_per_inv']:.1f} صنف لكل فاتورة"]
     sl('تحليل المبيعات','',kp([('متوسط الفاتورة',f(AN['avg_ticket'],2),f"ر.س · {AN['invoices']} فاتورة",MAR),('أصناف لكل فاتورة',f"{AN['items_per_inv']:.1f}",f"{f(AN['items'])} صنف مباع",MAR),
        ('مقابل متوسط الشهر',f'<bdi dir="ltr">{"+" if ch_avg>=0 else ""}{ch_avg:.0f}%</bdi>',f"المتوسط {f(AN['mtd_avg'])} ر.س يومياً",G if ch_avg>=0 else RD),('مقابل نفس اليوم',f'<bdi dir="ltr">{"+" if ch_wd>=0 else ""}{ch_wd:.0f}%</bdi>' if AN.get('same_wd_n') else '—',f"متوسط أيام {WDN}",G if ch_wd>=0 else RD)])+
-       f'<div class="row" style="gap:30px;align-items:center"><div style="flex:0 0 380px">{donut(parts,360,0.58,(f(tot),"ر.س"))}</div><div class="col" style="flex:.8">{legend(parts,tot)}</div><div class="col" style="flex:1.2"><div class="card" style="padding:22px 26px">{"".join(f"<div style=font-size:21px;line-height:1.8>• {t}</div>" for t in ins)}</div></div></div>')
+       f'<div class="row" style="gap:30px;align-items:center"><div style="flex:0 0 330px">{donut(parts,320,0.58,(f(tot),"ر.س"))}</div><div class="col" style="flex:.8;zoom:.82">{legend(parts,tot)}</div><div class="col" style="flex:1.2"><div class="card" style="padding:22px 26px">{"".join(f"<div style=font-size:21px;line-height:1.8>• {t}</div>" for t in ins)}</div></div></div>')
     # ---- consumption
     CL=J.get('consumption',[])
     def qfmt(q,u):
